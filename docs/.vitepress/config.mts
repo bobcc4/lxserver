@@ -38,6 +38,7 @@ export default defineConfig({
           {
             text: '核心功能',
             items: [
+              { text: 'V2 功能与使用场景', link: '/guide/v2-features' },
               { text: '同步服务器设置', link: '/guide/sync-server' },
               { text: 'Web 播放器指南', link: '/guide/web-player' }
             ]

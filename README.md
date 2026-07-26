@@ -27,7 +27,7 @@
   </p>
 </div>
 
-[帮助文档 Documentation](https://xcq0607.github.io/lxserver/) | [同步服务器 SyncServer](md/lxserver.md) | [更新日志 Changelog](changelog.md) | [English](README_EN.md)
+[V2 功能与使用指南](docs/guide/v2-features.md) | [帮助文档 Documentation](https://xcq0607.github.io/lxserver/) | [同步服务器 SyncServer](md/lxserver.md) | [更新日志 Changelog](changelog.md) | [English](README_EN.md)
 
 ---
 
@@ -99,7 +99,7 @@
 
 ### 8. 自定义源管理
 
-支持导入自定义源脚本，扩展更多音乐来源。
+支持导入自定义源脚本，扩展更多音乐来源。管理员可以把已启用的音源共享给指定用户或全部用户，接收方以只读方式使用，无需重复上传脚本。
 
 <p align="center">
   <img src="md/source.png" width="800" alt="Source Management">
@@ -122,6 +122,16 @@
   <img src="md/subsonic.png" width="400" alt="Subsonic 支持">
   <img src="md/subsonic-search.png" width="400" alt="Subsonic 在线全网搜索">
 </p>
+
+### 11. 用户间歌单分享
+
+所有同步用户都可以在双方主动开启分享开关后互相发送用户歌单。接收方可在待处理弹窗中接受或拒绝；接受后会创建独立歌单并进入接收方的同步空间，不会与发送方歌单持续绑定。
+
+### 12. V2 SQLite 与全局媒体去重
+
+V2 使用 SQLite 保存每个用户的媒体索引，并按音频内容哈希建立全局不可变对象仓库。多个用户下载完全相同的音频时只占用一份物理空间，删除单个用户引用不会影响其他用户；封面、外置歌词和嵌入元数据仍被保留。
+
+音源分享、歌单分享、音流连接和 V2 存储的完整说明见 [V2 功能与使用指南](docs/guide/v2-features.md)。
 
 ## 🔒 访问控制与安全
 
@@ -157,10 +167,11 @@ Web 播放器针对移动端进行了深度优化，手机浏览器访问也能�
 
 ### 方式二：使用 Docker
 
-本项目支持从 Docker Hub 或 GitHub Packages 拉取镜像：
+V2 数据库版本使用以下 Docker Hub 镜像（当前发布平台为 `linux/amd64`）：
 
-- **Docker Hub**: `xcq0607/lxserver:latest`
-- **GitHub Packages**: `ghcr.io/xcq0607/lxserver:latest`
+- **Docker Hub**: `bobcc4/lxserver:V2`
+
+> V2 不支持从旧目录结构直接升级。请备份旧数据并使用空的 `./data` 目录首次启动。
 
 **Docker Run 示例：**
 
@@ -168,12 +179,9 @@ Web 播放器针对移动端进行了深度优化，手机浏览器访问也能�
 docker run -d \
   -p 9527:9527 \
   -v $(pwd)/data:/server/data \
-  -v $(pwd)/logs:/server/logs \
-  -v $(pwd)/cache:/server/cache \
-  -v $(pwd)/music:/server/music \
   --name lx-sync-server \
   --restart unless-stopped \
-  xcq0607/lxserver:latest
+  bobcc4/lxserver:V2
 ```
 
 **Docker Compose 示例：**
@@ -181,19 +189,15 @@ docker run -d \
 新建 `docker-compose.yml` 文件：
 
 ```yaml
-version: '3'
 services:
   lx-sync-server:
-    image: xcq0607/lxserver:latest
+    image: bobcc4/lxserver:V2
     container_name: lx-sync-server
     restart: unless-stopped
     ports:
       - "9527:9527"
     volumes:
       - ./data:/server/data
-      - ./logs:/server/logs
-      - ./cache:/server/cache
-      - ./music:/server/music
     environment:
       - NODE_ENV=production
       # - FRONTEND_PASSWORD=123456
