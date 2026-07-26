@@ -1,4 +1,4 @@
-FROM alpine AS base
+FROM node:24-alpine AS base
 
 FROM base AS builder
 WORKDIR /source-code
@@ -8,8 +8,6 @@ RUN apk add --update \
   g++ \
   make \
   py3-pip \
-  nodejs \
-  npm \
   && (apk add --no-cache chromaprint || true) \
   && npm install --ignore-scripts --no-audit --no-fund && npm run build \
   && rm -rf node_modules && npm install --omit=dev --no-audit --no-fund \
@@ -20,8 +18,7 @@ RUN apk add --update \
 FROM base AS final
 WORKDIR /server
 
-RUN apk add --update --no-cache nodejs \
-  && (apk add --no-cache chromaprint || echo "chromaprint apk not found, will use bundled binary")
+RUN (apk add --no-cache chromaprint || echo "chromaprint apk not found, will use bundled binary")
 
 COPY --from=builder ./source-code/build-output ./
 

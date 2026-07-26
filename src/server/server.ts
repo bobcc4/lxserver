@@ -1510,6 +1510,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 if (deleteData && deletedUsers.length > 0) {
                   console.log(`[DeleteUser] Processing ${deletedUsers.length} data folders deletion...`)
                   for (const user of deletedUsers) {
+                    fileCache.removeUserMedia(user.name)
                     for (const dataPath of user.dataPaths) {
                       try {
                         console.log(`[DeleteUser] Checking path: ${dataPath}`)
@@ -3429,13 +3430,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                   continue
                 }
 
-                const embedResult = fileCache.embedLyricsIntoFile(filePath, lyricText)
-                fileCache.setIndexEmbedLyric(filename, username, embedResult.hasEmbedLyric, {
-                  audioContainer: embedResult.audioContainer,
-                  metadataWritable: embedResult.metadataWritable,
-                  metadataError: embedResult.metadataWritable ? undefined : embedResult.error,
-                  embedLyricError: embedResult.error,
-                })
+                const embedResult = await fileCache.embedLyricsForCacheFile(filename, username, folder, lyricText)
                 if (!embedResult.success) {
                   details.push({ filename, status: 'fail', reason: embedResult.error || '歌词标签写入后校验失败，外置歌词文件仍可正常使用' })
                   failCount++
@@ -6233,6 +6228,7 @@ export const startServer = async (port: number, ip: string) => {
     global.lx.config['cache.namingPattern'] = fileCache.setNamingPattern(global.lx.config['cache.namingPattern'])
 
     // Background sync cache index for active users
+    console.log(`[MediaStore] Removed ${fileCache.cleanupMediaObjects()} unreferenced objects`)
     if (global.lx.config.users) {
       for (const user of global.lx.config.users) {
         void fileCache.syncCacheIndex(user.name)

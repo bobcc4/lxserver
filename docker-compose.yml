@@ -1,17 +1,17 @@
-version: '3.8'
-
 services:
   lx-sync-server:
-    build: .
+    image: bobcc4/lxserver:V2
     container_name: lx-sync-server
     restart: always
     ports:
       - "9527:9527"
     volumes:
-      # 数据持久化
+      # V2 is not an in-place upgrade. Back up and remove all legacy data and
+      # media files before starting this image with an empty ./data directory.
+      # Keep this directory on persistent NAS storage.
+      # SQLite: ./data/media/media.db
+      # Audio objects: ./data/media/objects
       - ./data:/server/data
     environment:
-      # 环境变量配置，优先级高于 config.js
       - NODE_ENV=production
-      # 示例：通过环境变量设置用户
-      # - LX_USER_myuser=mypassword
+      # Example: - LX_USER_myuser=mypassword

@@ -1,5 +1,10 @@
 # LX Music Sync Server (Enhanced Edition)
 
+> [!CAUTION]
+> The `V2` media store uses a new SQLite schema and content-addressed object layout. In-place upgrades from the legacy `music`/`cache` layout are not supported. Back up all existing data, remove the old container data and media files, then deploy `V2` with an empty `/server/data` directory.
+>
+> `V2` 媒体仓库改变了数据结构，不支持从旧版直接升级。请先备份全部旧数据，删除旧容器数据、音乐和缓存文件，再使用空的 `/server/data` 目录重新部署 `V2`。
+
 ![lxserver](https://socialify.git.ci/XCQ0607/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/XCQ0607/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
@@ -9,7 +14,7 @@
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v2.0.0-blue?style=flat-square" alt="Version">
-    <img src="https://img.shields.io/badge/node-%3E%3D16-green?style=flat-square" alt="Node Version">
+    <img src="https://img.shields.io/badge/node-%3E%3D22.5-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/XCQ0607/lxserver?style=flat-square" alt="License">
     <br>
     <br>
@@ -253,7 +258,7 @@ npm start
 | `DATA_PATH`                           | -                                    | 指定数据存储目录的绝对路径                                         | `./data`         |
 | `LOG_PATH`                            | -                                    | 指定日志输出目录的绝对路径                                         | `./logs`         |
 | `PROXY_HEADER`                        | `proxy.header`                     | 代理转发 IP 头 (如 `x-real-ip`)                                  | -                  |
-| `USER_ENABLE_ROOT`                    | `user.enableRoot`                  | 启用根路径 (开启后连接URL即为 `ip:port`，不允许不同用户密码相同) | `false`          |
+| `USER_ENABLE_ROOT`                    | `user.enableRoot`                  | 启用根路径 (开启后连接URL即为 `ip:port`，不允许不同用户密码相同) | `true`           |
 | `USER_ENABLE_PATH`                    | `user.enablePath`                  | 启用用户路径 (开启后连接URL需为 `ip:port/用户名`，允许密码相同)  | `true`           |
 | `WEBDAV_ENABLE`                       | `webdav.enable`                    | 是否启用 WebDAV 同步与备份                                         | `false`          |
 | `WEBDAV_URL`                          | `webdav.url`                       | WebDAV 地址                                                        | -                  |

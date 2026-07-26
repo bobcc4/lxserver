@@ -13,13 +13,14 @@
     "dev1": "nodemon --exec \"tsx --inspect=127.0.0.1:9301 ./src/index.ts\"",
     "predev2": "node scripts/update-build-hash.js",
     "dev2": "nodemon --exec \"cmd /c start /affinity 1 /b /wait tsx --inspect=127.0.0.1:9302 ./src/index.ts\"",
+    "test:media-store": "tsx scripts/test-media-store.ts",
     "prd": "pm2 start ecosystem.config.js --env production",
     "publish": "node publish",
     "electron:build": "npm run build",
     "electron:dist": "npm run electron:build && electron-builder"
   },
   "engines": {
-    "node": ">= 16",
+    "node": ">= 22.5.0",
     "npm": ">= 8.5.2"
   },
   "repository": {
