@@ -9,7 +9,7 @@
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version">
-    <img src="https://img.shields.io/badge/node-%3E%3D16-green?style=flat-square" alt="Node Version">
+    <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
     <br>
@@ -155,6 +155,8 @@ Web 播放器针对移动端进行了深度优化，手机浏览器访问也能�
 
 本项目基于 **Node.js** 开发，支持多种部署方式。
 
+直接运行源码需要 Node.js `22.12.0` 或更高版本，推荐使用 Node.js 24 LTS。
+
 ### 方式一：桌面客户端
 
 可以通过桌面端更方便地运行 LX Music Sync Server，支持 Windows、macOS 和 Linux。
@@ -163,7 +165,7 @@ Web 播放器针对移动端进行了深度优化，手机浏览器访问也能�
 - **✨ 桌面端优势**:
   - **单窗口管理**: 服务器管理与 Web 播放器合二为一，界面更统一。
   - **托盘常驻**: 窗口关闭后自动缩回托盘，服务在后台始终运行。
-  - **全架构支持**: 提供 Windows (x64/x86/ARM64 Setup 及 Portable)、macOS (Intel/Apple Silicon) 及 Linux (amd64/arm64/armv7l) 全家桶。
+  - **多架构支持**: 提供 Windows (x64/x86/ARM64 Setup 及 Portable)、macOS (Intel/Apple Silicon) 及 Linux (amd64/arm64) 安装包。
 
 ### 方式二：使用 Docker
 

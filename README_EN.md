@@ -6,7 +6,7 @@
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version">
-    <img src="https://img.shields.io/badge/node-%3E%3D16-green?style=flat-square" alt="Node Version">
+    <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
     <br>
@@ -143,6 +143,8 @@ The Web Player is deeply optimized for mobile devices, providing a native App-li
 
 Built with **Node.js**, supporting multiple deployment methods.
 
+Running from source requires Node.js `22.12.0` or later. Node.js 24 LTS is recommended.
+
 
 ### Option 1: Desktop Client
 
@@ -154,7 +156,7 @@ You can now run LX Music Sync Server more conveniently via our Desktop Client, a
     - **System Tray**: Minimizes to tray on close, ensuring the sync service stays active in the background.
     - **Port Conflict Resolution**: Automatically detects and switches ports if the default is in use.
     - **Setup Wizard**: Guided data path selection on first launch, supports **Portable Mode**.
-    - **Multi-Arch Support**: Builds for Windows (x64/x86/ARM64 Setup & Portable), macOS (Intel x64 & Apple Silicon arm64), and Linux (amd64/arm64/armv7l deb/AppImage).
+    - **Multi-Arch Support**: Builds for Windows (x64/x86/ARM64 Setup & Portable), macOS (Intel x64 & Apple Silicon arm64), and Linux (amd64/arm64 deb/AppImage).
 
 ### Option 2: Containerized Deployment via Docker
 

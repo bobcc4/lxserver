@@ -26,12 +26,12 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           cache: npm
 
       - name: Resolve and validate version
@@ -50,7 +50,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Upload release metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-metadata
           path: RELEASE_NOTES.md
@@ -83,12 +83,12 @@ jobs:
     name: Desktop ${{ matrix.platform }}-${{ matrix.arch }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           cache: npm
 
       - name: Install Linux dependencies
@@ -120,7 +120,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload desktop package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lxserver-${{ matrix.artifact }}
           path: |
@@ -136,12 +136,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           cache: npm
 
       - name: Install and build
@@ -164,7 +164,7 @@ jobs:
           zip -r "lx-music-sync-server-${VERSION}-linux-x64.zip" lx-music-sync-server
 
       - name: Upload server package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lxserver-server
           path: release/*.zip
@@ -178,26 +178,24 @@ jobs:
       contents: write
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-assets
           merge-multiple: true
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.init.outputs.version }}
-          name: LX Music Sync Server V1 ${{ needs.init.outputs.version }}
-          body_path: release-assets/RELEASE_NOTES.md
-          files: |
-            release-assets/*.exe
-            release-assets/*.dmg
-            release-assets/*.AppImage
-            release-assets/*.deb
-            release-assets/*.zip
-          fail_on_unmatched_files: true
-          draft: false
-          prerelease: false
-          make_latest: true
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.init.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            release-assets/*.exe \
+            release-assets/*.dmg \
+            release-assets/*.AppImage \
+            release-assets/*.deb \
+            release-assets/*.zip \
+            --target "$GITHUB_SHA" \
+            --title "LX Music Sync Server V1 $VERSION" \
+            --notes-file release-assets/RELEASE_NOTES.md \
+            --latest

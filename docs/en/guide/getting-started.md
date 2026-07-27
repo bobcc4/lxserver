@@ -8,7 +8,7 @@ Before starting this service project, please ensure that the host system (or vir
 
 **Running Directly from Source:**
 
-- **Node.js**: `v16.x` or higher (`v18.x` LTS version is recommended for production environments).
+- **Node.js**: `v22.12.0` or later (Node.js 24 LTS is recommended for production).
 - **Network Resources**: Ensure that the listening port required for the business (default configuration is `9527`) has been correctly allowed in the host firewall policy and the cloud provider's security group rules.
 
 **Running on Containerized Facilities (Preferred for Production):**

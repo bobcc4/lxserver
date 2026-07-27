@@ -90,9 +90,9 @@ linux:
   # 统一命名文件名
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
-    # 为三个主流 Linux 架构创建独立包 (deb 和 AppImage)
+    # 为 x64 和 arm64 创建独立包 (deb 和 AppImage)
     - target: AppImage
-      arch: [x64, arm64, armv7l]
+      arch: [x64, arm64]
     - target: deb
-      arch: [x64, arm64, armv7l]
+      arch: [x64, arm64]
   category: Utility

@@ -33,8 +33,7 @@ function getFpcalcPath(): string | null {
         platformBinaryName = `fpcalc-win-${arch === 'arm64' ? 'arm64' : 'x64'}.exe`
     } else if (platform === 'linux') {
         if (arch === 'arm64') platformBinaryName = 'fpcalc-linux-arm64'
-        else if (arch === 'arm') platformBinaryName = 'fpcalc-linux-arm'
-        else platformBinaryName = 'fpcalc-linux-x64'
+        else if (arch === 'x64') platformBinaryName = 'fpcalc-linux-x64'
     } else if (platform === 'darwin') {
         platformBinaryName = 'fpcalc-macos'
     }

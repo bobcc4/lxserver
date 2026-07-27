@@ -17,7 +17,6 @@ const PLATFORMS = [
     { id: 'win-x64', platform: 'win32', arch: 'x64', fileNamePart: 'windows-x86_64.zip', target: 'fpcalc-win-x64.exe' },
     { id: 'linux-x64', platform: 'linux', arch: 'x64', fileNamePart: 'linux-x86_64.tar.gz', target: 'fpcalc-linux-x64' },
     { id: 'linux-arm64', platform: 'linux', arch: 'arm64', fileNamePart: 'linux-arm64.tar.gz', target: 'fpcalc-linux-arm64' },
-    { id: 'linux-arm', platform: 'linux', arch: 'arm', fileNamePart: 'linux-armhf.tar.gz', target: 'fpcalc-linux-arm' },
     { id: 'macos', platform: 'darwin', arch: 'any', fileNamePart: 'macos-universal.tar.gz', target: 'fpcalc-macos' },
 ];
 
