@@ -1719,7 +1719,7 @@ class App {
                 form.elements['proxy.all.address'].value = config['proxy.all.address'] || '';
             }
             if (form.elements['user.enablePath']) {
-                form.elements['user.enablePath'].checked = config['user.enablePath'] !== false;
+                form.elements['user.enablePath'].checked = config['user.enablePath'] === true;
             }
             if (form.elements['user.enableRoot']) {
                 form.elements['user.enableRoot'].checked = config['user.enableRoot'] === true;

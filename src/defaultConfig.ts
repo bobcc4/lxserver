@@ -5,7 +5,7 @@ const config: LX.Config = {
   'proxy.header': 'x-real-ip', // 代理转发的请求头 原始IP
   bindIP: '0.0.0.0', // 绑定IP
   port: 9527, // 端口
-  'user.enablePath': true, // 是否开启用户路径
+  'user.enablePath': false, // 是否开启用户路径
   'user.enableRoot': true, // 是否开启根路径
   'user.enableLoginCacheRestriction': false, // 是否启用登录用户缓存限制
   'user.enableCacheSizeLimit': false, // 是否启用缓存空间限制

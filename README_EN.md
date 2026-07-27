@@ -259,7 +259,7 @@ Edit `config.js` directly. Environment variables take precedence:
 | `LOG_PATH` | - | Absolute path to log output directory | `./logs` |
 | `PROXY_HEADER` | `proxy.header` | Proxy IP header (e.g., `x-real-ip`) | - |
 | `USER_ENABLE_ROOT` | `user.enableRoot` | Enable root path (use `ip:port`, password must be unique) | `true` |
-| `USER_ENABLE_PATH` | `user.enablePath` | Enable user path (use `ip:port/username`, passwords can repeat) | `true` |
+| `USER_ENABLE_PATH` | `user.enablePath` | Enable user path (use `ip:port/username`, passwords can repeat) | `false` |
 | `WEBDAV_ENABLE` | `webdav.enable` | Enable WebDAV sync and backup | `false` |
 | `WEBDAV_URL` | `webdav.url` | WebDAV URL | - |
 | `WEBDAV_USERNAME` | `webdav.username` | WebDAV Username | - |
@@ -325,14 +325,7 @@ Anonymous telemetry via PostHog is used for:
 
 ## 📈 Star History
 
-
-<a href="https://gitdata.xuanhun520.com/?repos=bobcc4/lxserver&type=Date">
-<picture >
-  <source media="(prefers-color-scheme: dark) and (max-width: 800px)" srcset="https://gitdata.xuanhun520.com/api/starimg?repos=bobcc4/lxserver&type=Date&theme=dark" />
-  <source  media="(prefers-color-scheme: light) and (max-width: 800px)" srcset="https://gitdata.xuanhun520.com/api/starimg?repos=bobcc4/lxserver&type=Date&theme=light" />
-  <img style="width: 800px; height: 533px;" alt="Star History Chart" src="https://gitdata.xuanhun520.com/api/starimg?repos=bobcc4/lxserver&type=Date&theme=dark" />
-</picture>
-</a>
+[![Star History Chart](md/star-history.svg)](https://github.com/bobcc4/lxserver/stargazers)
 
 
 ---

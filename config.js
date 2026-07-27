@@ -26,7 +26,7 @@ module.exports = {
   // 是否开启用户路径 (baseurl/用户名)
   // 开启后连接URL需包含用户名，允许不同用户使用相同密码。关闭后仅使用密码鉴权，要求所有用户密码唯一。
   // 环境变量: USER_ENABLE_PATH (true/false)
-  "user.enablePath": true,
+  "user.enablePath": false,
 
   // 是否开启根路径 (baseurl)
   // 开启后连接URL即为根路径，不允许不同用户使用相同密码。

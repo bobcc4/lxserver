@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-labelledby="title desc">
+  <title id="title">bobcc4/lxserver Star History</title>
+  <desc id="desc">The repository reached five stars between June 30 and July 26, 2026.</desc>
+  <style>
+    .background { fill: #ffffff; }
+    .grid { stroke: #d8dee8; stroke-width: 1; }
+    .axis { stroke: #65758b; stroke-width: 1.5; }
+    .label { fill: #526174; font: 13px Arial, sans-serif; }
+    .title { fill: #172033; font: 700 22px Arial, sans-serif; }
+    .subtitle { fill: #65758b; font: 14px Arial, sans-serif; }
+    .area { fill: #dcecff; }
+    .line { fill: none; stroke: #1877d2; stroke-width: 4; stroke-linejoin: round; }
+    .point { fill: #ffffff; stroke: #1877d2; stroke-width: 3; }
+    @media (prefers-color-scheme: dark) {
+      .background { fill: #0d1117; }
+      .grid { stroke: #293445; }
+      .axis { stroke: #78879a; }
+      .label, .subtitle { fill: #9daabd; }
+      .title { fill: #f0f3f6; }
+      .area { fill: #122d49; }
+      .line { stroke: #58a6ff; }
+      .point { fill: #0d1117; stroke: #58a6ff; }
+    }
+  </style>
+
+  <rect class="background" width="800" height="420" rx="8" />
+  <text class="title" x="48" y="42">bobcc4/lxserver Star History</text>
+  <text class="subtitle" x="48" y="66">5 stars as of 2026-07-27</text>
+
+  <line class="grid" x1="80" y1="350" x2="760" y2="350" />
+  <line class="grid" x1="80" y1="290" x2="760" y2="290" />
+  <line class="grid" x1="80" y1="230" x2="760" y2="230" />
+  <line class="grid" x1="80" y1="170" x2="760" y2="170" />
+  <line class="grid" x1="80" y1="110" x2="760" y2="110" />
+  <line class="grid" x1="80" y1="50" x2="760" y2="50" />
+  <line class="axis" x1="80" y1="50" x2="80" y2="350" />
+  <line class="axis" x1="80" y1="350" x2="760" y2="350" />
+
+  <text class="label" x="58" y="355">0</text>
+  <text class="label" x="58" y="295">1</text>
+  <text class="label" x="58" y="235">2</text>
+  <text class="label" x="58" y="175">3</text>
+  <text class="label" x="58" y="115">4</text>
+  <text class="label" x="58" y="55">5</text>
+
+  <path class="area" d="M80 350 H106 V230 H394 V170 H760 V50 V350 Z" />
+  <path class="line" d="M80 350 H106 V230 H394 V170 H760 V50" />
+  <circle class="point" cx="106" cy="230" r="6" />
+  <circle class="point" cx="394" cy="170" r="6" />
+  <circle class="point" cx="760" cy="50" r="6" />
+
+  <text class="label" x="87" y="380">2026-06-30</text>
+  <text class="label" x="354" y="380">2026-07-11</text>
+  <text class="label" x="674" y="380">2026-07-26</text>
+</svg>
