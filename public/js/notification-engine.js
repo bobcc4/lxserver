@@ -1,14 +1,14 @@
 /**
- * PostHog 通用通知引擎 (混合模式 + 多样式美化版)
+ * LX Server 通用通知与版本检查引擎
  * 核心特性：
- * 1. 优先级控制：System > Remote
+ * 1. 从 bobcc4/lxserver 获取版本与系统通知
  * 2. 队列系统：FIFO 队列处理
  * 3. 智能样式：根据 type 和 title 自动匹配图标与配色 (版本火箭、警告三角、广播铃铛)
  */
 (function () {
     // ================= 1. 基础配置与资源 =================
     const CONFIG = {
-        PRIORITY_KEYS: ['system_notification_config', 'remote_config_source'],
+        UPDATE_CONFIG_URL: 'https://raw.githubusercontent.com/bobcc4/lxserver/main/notice/notification.json',
         getLocalVersion: () => (window.CONFIG && window.CONFIG.version) ? window.CONFIG.version : '0.0.0'
     };
 
@@ -416,93 +416,29 @@
 
     // ================= 5. 初始化入口 =================
     function init() {
-        if (typeof posthog === 'undefined') {
-            if (!window._ph_retry) window._ph_retry = 0;
-            if (window._ph_retry < 10) {
-                window._ph_retry++;
-                setTimeout(init, 500);
-            }
-            return;
-        }
-
-        posthog.onFeatureFlags(() => {
-            checkUpdates(false);
-        });
+        checkUpdates(false);
     }
 
     async function checkUpdates(isManual = false) {
-        // 如果是手动检查，增加一个主动探测逻辑来判断 PostHog 是否被拦截
-        let adBlocked = !!window._ph_blocked;
-        if (isManual && !adBlocked) {
-            // 如果 posthog 对象看起来还没完全加载，进行一次 fetch 探测
-            if (typeof posthog === 'undefined' || !posthog.__loaded) {
-                try {
-                    await fetch('https://us.i.posthog.com/static/array.js', { mode: 'no-cors', cache: 'no-store' });
-                } catch (e) {
-                    console.warn('[Notification] Proactive AdBlocker detection triggered.');
-                    adBlocked = true;
-                }
-            }
-        }
-
-        // 如果是手动检查，尝试强制刷新 PostHog 配置以获取最新数据
-        if (isManual && typeof posthog !== 'undefined' && !adBlocked) {
-            try { posthog.reloadFeatureFlags(); } catch (e) { console.error('[Notification] Reload flags failed:', e); }
-        }
-
-        // 如果服务没加载，或者被 AdBlocker 拦截，或者配置里明确禁用了，直接弹窗提示
-        if (typeof posthog === 'undefined' || (window.CONFIG && window.CONFIG.disableTelemetry) || adBlocked) {
+        if (window.CONFIG && window.CONFIG.disableTelemetry) {
             if (isManual) {
-                const message = adBlocked
-                    ? '由于您的浏览器广告拦截插件（AdBlocker）拦截了更新检查服务，无法在线获取最新版本信息。请暂时关闭插件或将 LX Server 地址加入白名单。'
-                    : '由于在线更新检测服务未加载（可能已禁用统计），请前往 GitHub 检查最新版本。';
-
-                const errorItem = {
+                const disabledItem = {
                     id: 'manual_check_disabled',
                     type: 'warning',
                     ui: {
-                        title: '检查更新受阻',
-                        message: message,
+                        title: '检查更新已禁用',
+                        message: '当前配置已禁用匿名统计与在线更新检查，请前往 bobcc4/lxserver 的 GitHub 发布页面查看最新版本。',
                         confirm_text: '确定',
                         cancel_text: ''
                     },
                     action: { type: 'close' },
                     logic: { interval_hours: 0 }
                 };
-                renderModal(errorItem, 'temp_manual_disabled', null);
+                renderModal(disabledItem, 'temp_manual_disabled', null);
             }
             return;
         }
-
-        let checked = false;
-        for (const key of CONFIG.PRIORITY_KEYS) {
-            const isEnabled = posthog.isFeatureEnabled(key);
-            if (isEnabled) {
-                const payload = posthog.getFeatureFlagPayload(key);
-                if (payload) {
-                    handlePayload(payload, key, isManual);
-                    checked = true;
-                    return;
-                }
-            }
-        }
-
-        if (isManual && !checked) {
-            // 如果 Feature Flags 里没东西，仅显示提示即可
-            const upToDateItem = {
-                id: 'manual_check_uptodate',
-                type: 'info',
-                ui: {
-                    title: '当前已是最新版本',
-                    message: `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion().replace(/^v+/, 'v')}。`,
-                    confirm_text: '确定',
-                    cancel_text: ''
-                },
-                action: { type: 'close' },
-                logic: { interval_hours: 0 }
-            };
-            renderModal(upToDateItem, 'temp_manual_check', null);
-        }
+        await fetchRemoteConfig(CONFIG.UPDATE_CONFIG_URL, isManual);
     }
 
     // 暴露给全局的方法

@@ -1,6 +1,6 @@
 appId: com.lxserver.desktop
 productName: LX Music Server
-copyright: "Copyright © 2026 2406498704@qq.com"
+copyright: "Copyright © 2026 bobcc4"
 
 # 覆盖 package.json 的 main 字段，让 Electron 使用 electron/main.js 而非 index.js
 extraMetadata:
@@ -20,6 +20,8 @@ files:
   - index.js
   - config.js
   - package.json
+  - LICENSE
+  - NOTICE.md
   - electron/main.js
   - electron/icons/**/*
   - "!src"

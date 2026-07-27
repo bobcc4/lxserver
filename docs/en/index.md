@@ -14,7 +14,7 @@ hero:
       link: /en/guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/XCQ0607/lxserver
+      link: https://github.com/bobcc4/lxserver
 
 features:
   - title: Brand New Web Player

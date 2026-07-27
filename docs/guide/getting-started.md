@@ -24,7 +24,7 @@
 
 对于桌面用户，我们强烈推荐使用基于 Electron 的**桌面客户端**。它集成了服务器管理与播放器，且具备系统托盘常驻功能。
 
-1. **前往下载**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+1. **前往下载**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
 2. **选择版本**:
    - **Windows**: 下载 `Universal.exe` (全架构合一) 或 `portable.exe` (绿色版)。
    - **macOS**: 下载 `universal.dmg` (支持 Intel/M1/M2)。
@@ -35,8 +35,8 @@
 
 本项目支持从 Docker Hub 或 GitHub Packages 拉取镜像：
 
-- **Docker Hub**: `xcq0607/lxserver:latest`
-- **GitHub Packages**: `ghcr.io/xcq0607/lxserver:latest`
+- **Docker Hub**: `bobcc4/lxserver:v1`
+- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
 
 执行以下指令启动容器：
 
@@ -49,7 +49,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name lx-sync-server \
   --restart unless-stopped \
-  xcq0607/lxserver:latest
+  bobcc4/lxserver:v1
 ```
 
 **容器挂载卷 (Volume Mappings) ：**
@@ -66,7 +66,7 @@ docker run -d \
 version: '3'
 services:
   lx-sync-server:
-    image: xcq0607/lxserver:latest
+    image: bobcc4/lxserver:v1
     container_name: lx-sync-server
     restart: unless-stopped
     ports:
@@ -91,7 +91,7 @@ services:
 
 ```bash
 # 1. 由远端代码仓库提取代码的 Main 主线状态至当前目录
-git clone https://github.com/XCQ0607/lxserver.git 
+git clone https://github.com/bobcc4/lxserver.git
 cd lxserver
 
 # 2. 调用严格解析流程初始化模块依赖库

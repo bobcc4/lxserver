@@ -206,7 +206,7 @@ jobs:
       - name: Build and Zip Server
         run: |
           mkdir -p release/lx-music-sync-server
-          cp -r server node_modules public scripts index.js package.json release/lx-music-sync-server/
+          cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/lx-music-sync-server/
           [ -f "config.js" ] && cp config.js release/lx-music-sync-server/
           cd release
           zip -r lx-music-sync-server-${{ needs.init.outputs.VERSION }}-server.zip lx-music-sync-server

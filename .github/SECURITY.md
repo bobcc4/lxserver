@@ -15,7 +15,7 @@
 **发现严重的安全漏洞时，请不要公开提交 Issue！**
 
 请直接发送邮件与我们取得联系：
-📧 **[xcq0607@gmail.com](mailto:xcq0607@gmail.com)**
+📧 **[bobcc4@users.noreply.github.com](mailto:bobcc4@users.noreply.github.com)**
 
 报告中请尽量包含以下信息：
 

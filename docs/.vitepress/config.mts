@@ -8,7 +8,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/icon.svg',
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/XCQ0607/lxserver' }
+      { icon: 'github', link: 'https://github.com/bobcc4/lxserver' }
     ],
     search: {
       provider: 'local'
@@ -58,7 +58,7 @@ export default defineConfig({
         ],
         footer: {
           message: 'Released under the Apache-2.0 License.',
-          copyright: 'Copyright © 2026 xcq0607 & Contributors'
+          copyright: 'Copyright © 2026 bobcc4 & Contributors'
         }
       }
     },
@@ -106,7 +106,7 @@ export default defineConfig({
         ],
         footer: {
           message: 'Released under the Apache-2.0 License.',
-          copyright: 'Copyright © 2026 xcq0607 & Contributors'
+          copyright: 'Copyright © 2026 bobcc4 & Contributors'
         }
       }
     }

@@ -63,9 +63,9 @@ LX Music Sync Server 内置的高性能 Web 播放器，提供原生 App 般的�
 核心接口基于 `musicsdk` 实现。
 
 <div align="center" style="margin-top: 20px;">
-  <a href="https://github.com/XCQ0607/lxserver" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+  <a href="https://github.com/bobcc4/lxserver" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
     <i class="fab fa-github"></i> GitHub 仓库
   </a>
 </div>
 
-Copyright © 2026 [xcq0607](https://github.com/xcq0607)
+Copyright © 2026 [bobcc4](https://github.com/bobcc4)

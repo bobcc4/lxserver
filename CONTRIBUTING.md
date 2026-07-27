@@ -9,11 +9,10 @@
 
 为了保证主分支的稳定性，我们采用以下分支策略：
 
-*   **`main`**: 生产环境分支，时刻保持稳定，**严禁直接提交代码**。
-*   **`dev`**: 开发主分支，包含最新的功能。**所有的 Pull Request (PR) 都必须合并到 `dev` 分支**。
+*   **`main`**: 生产环境与开发主分支，时刻保持稳定。**所有的 Pull Request (PR) 都必须合并到 `main` 分支**。
 *   **`feature/xxx` 或 `fix/xxx`**: 你的开发分支。
 
-> ⚠️ **注意**：请不要向 `main` 分支提交 PR，否则会被自动关闭。
+> ⚠️ **注意**：请不要直接向 `main` 推送代码，应通过独立开发分支提交 PR。
 
 ## 🛠️ 开发流程 (Workflow)
 
@@ -27,17 +26,17 @@ cd lxserver
 ```
 
 ### 3. 设置上游仓库 (Upstream)
-你需要链接到源仓库 (XCQ0607/lxserver)，以便同步最新的代码：
+你需要链接到源仓库 (bobcc4/lxserver)，以便同步最新的代码：
 ```bash
-git remote add upstream https://github.com/XCQ0607/lxserver.git
+git remote add upstream https://github.com/bobcc4/lxserver.git
 ```
 
 ### 4. 创建分支
-在开始工作前，请基于 `dev` 分支创建一个新的分支：
+在开始工作前，请基于 `main` 分支创建一个新的分支：
 ```bash
-# 先切换到 dev 并更新
-git checkout dev
-git pull upstream dev
+# 先切换到 main 并更新
+git checkout main
+git pull upstream main
 
 # 创建新分支 (例如: feat/add-login 或 fix/memory-leak)
 git checkout -b feat/你的功能名称
@@ -52,25 +51,25 @@ git commit -m "feat: 添加了用户登录接口"
 
 ## ⚔️ 关于合并冲突 (Resolving Conflicts)
 
-在你开发的过程中，源仓库的 `dev` 分支可能已经更新了。在提交 PR 之前，**你需要负责解决所有的冲突**，确保你的代码能顺利运行。
+在你开发的过程中，源仓库的 `main` 分支可能已经更新了。在提交 PR 之前，**你需要负责解决所有的冲突**，确保你的代码能顺利运行。
 
 如果你提交 PR 后 GitHub 提示 "This branch has conflicts that must be resolved"，请按以下步骤在本地解决：
 
-1.  **拉取上游最新的 dev 代码**：
+1.  **拉取上游最新的 main 代码**：
     ```bash
     git fetch upstream
     ```
-2.  **将最新的 dev 合并到你的分支**：
+2.  **将最新的 main 合并到你的分支**：
     ```bash
     # 确保你在你的开发分支上
-    git merge upstream/dev
+    git merge upstream/main
     ```
 3.  **手动解决冲突**：
     打开编辑器，找到标记为 `<<<<<<<` 和 `>>>>>>>` 的地方，修改代码，保留正确的部分。
 4.  **提交解决后的代码**：
     ```bash
     git add .
-    git commit -m "chore: resolve merge conflicts with dev"
+    git commit -m "chore: resolve merge conflicts with main"
     git push origin feat/你的功能名称
     ```
 
@@ -83,7 +82,7 @@ git commit -m "feat: 添加了用户登录接口"
     git push origin feat/你的功能名称
     ```
 2.  在 GitHub 界面上，点击 "Compare & pull request"。
-3.  **关键步骤**：确保 `base repository` 的目标分支选择的是 **`dev`** (而不是 main)。
+3.  **关键步骤**：确保 `base repository` 的目标分支选择的是 **`main`**。
 4.  填写 PR 描述，说明你做了什么修改、解决了什么 Issue。
 5.  等待 Maintainer 审查。如果需要修改，请直接在本地修改并 push，PR 会自动更新。
 

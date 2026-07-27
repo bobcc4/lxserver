@@ -24,7 +24,7 @@ Before starting this service project, please ensure that the host system (or vir
 
 For desktop users, we strongly recommend using the **Desktop Client** based on Electron. It integrates the server management and player, featuring system tray support.
 
-1. **Download**: [GitHub Releases](https://github.com/XCQ0607/lxserver/releases/latest)
+1. **Download**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
 2. **Choose Version**:
    - **Windows**: Download `Universal.exe` (All-in-one) or `portable.exe` (Portable version).
    - **macOS**: Download `universal.dmg` (Supports Intel/M1/M2).
@@ -35,8 +35,8 @@ For desktop users, we strongly recommend using the **Desktop Client** based on E
 
 This project supports pulling images from Docker Hub or GitHub Packages:
 
-- **Docker Hub**: `xcq0607/lxserver:latest`
-- **GitHub Packages**: `ghcr.io/xcq0607/lxserver:latest`
+- **Docker Hub**: `bobcc4/lxserver:v1`
+- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
 
 Execute the following command to start the container:
 
@@ -49,7 +49,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name lx-sync-server \
   --restart unless-stopped \
-  xcq0607/lxserver:latest
+  bobcc4/lxserver:v1
 ```
 
 **Container Volume Mappings:**
@@ -66,7 +66,7 @@ For standardized long-term management in production implementation, create a def
 version: '3'
 services:
   lx-sync-server:
-    image: xcq0607/lxserver:latest
+    image: bobcc4/lxserver:v1
     container_name: lx-sync-server
     restart: unless-stopped
     ports:
@@ -91,7 +91,7 @@ For restricted non-containerized environments or secondary research and developm
 
 ```bash
 # 1. Extract the code from the remote code repository to the current directory in the Main branch state
-git clone https://github.com/XCQ0607/lxserver.git 
+git clone https://github.com/bobcc4/lxserver.git
 cd lxserver
 
 # 2. Call the strict analysis process to initialize the module dependency library

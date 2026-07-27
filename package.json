@@ -24,17 +24,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/XCQ0607/lxserver.git"
+    "url": "git+https://github.com/bobcc4/lxserver.git"
   },
   "author": {
-    "name": "XCQ",
-    "email": "2406498704@qq.com"
+    "name": "bobcc4",
+    "email": "bobcc4@users.noreply.github.com"
   },
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/XCQ0607/lxserver/issues"
+    "url": "https://github.com/bobcc4/lxserver/issues"
   },
-  "homepage": "https://github.com/XCQ0607/lxserver#readme",
+  "homepage": "https://github.com/bobcc4/lxserver#readme",
   "dependencies": {
     "@foobar404/wave": "^2.0.5",
     "@types/formidable": "^3.5.1",

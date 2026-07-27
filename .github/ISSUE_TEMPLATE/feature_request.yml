@@ -3,7 +3,7 @@ description: 建议添加新功能改进用户体验
 title: "[Feature] "
 labels: ["enhancement"]
 assignees:
-  - XCQ0607
+  - bobcc4
 body:
   - type: markdown
     attributes:
@@ -14,7 +14,7 @@ body:
     attributes:
       label: 提交前核对 (Pre-submission Checklist)
       options:
-        - label: 我已经搜索过 [Issue Tracker](https://github.com/XCQ0607/lxserver/issues)，确保没有重复的功能请求。
+        - label: 我已经搜索过 [Issue Tracker](https://github.com/bobcc4/lxserver/issues)，确保没有重复的功能请求。
           required: true
         - label: 我已经查阅了设置，确认目前版本确实没有这个功能。
           required: true

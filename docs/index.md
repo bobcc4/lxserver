@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: 查看 GitHub
-      link: https://github.com/XCQ0607/lxserver
+      link: https://github.com/bobcc4/lxserver
 
 features:
   - title: 全新 Web 播放器
