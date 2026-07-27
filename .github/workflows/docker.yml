@@ -46,15 +46,8 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Generate and Commit Build Hash
-        run: |
-          node scripts/update-build-hash.js
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/js/config.js
-          # Only commit if there are changes
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update build hash [skip ci]" && git push)
-        continue-on-error: true
+      - name: Generate build hash
+        run: node scripts/update-build-hash.js
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
