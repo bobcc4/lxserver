@@ -1,6 +1,6 @@
 {
   "name": "lx-music-sync-server",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "prebuild": "node scripts/download-binary.js && node scripts/update-build-hash.js",
@@ -59,6 +59,7 @@
     "ws": "8.21.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@tsconfig/node16": "^16.1.1",
     "@tsconfig/recommended": "^1.0.13",
     "@types/archiver": "^8.0.0",

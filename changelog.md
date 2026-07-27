@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.0 (2026-07-27)
+
+### V1 正式发布
+
+- **版本线独立**：V1 以可直接查看和管理下载源文件为核心，与采用媒体仓库和 SQLite 索引的 V2 分开维护。
+- **桌面客户端**：新增由 GitHub Actions 编译的 Windows x64、macOS x64/ARM64 和 Linux x64 客户端安装包。
+- **服务端压缩包**：Release 同时提供已编译的 Server ZIP，适合不使用 Docker 的部署场景。
+- **更新检查**：Web 管理端与播放器改为直接读取 `bobcc4/lxserver` 最新 GitHub Release。
+- **发布规范**：正式 Docker 镜像固定为 `bobcc4/lxserver:v1`，GitHub Release 使用语义版本标签。
+
+### 升级说明
+
+- 这是 bobcc4 维护的 V1 产品线首个正式版本，内部版本从历史 `v2.0.0` 重新基线为 `v1.0.0`。
+- Docker 用户继续使用 `bobcc4/lxserver:v1`；持久化目录和现有 V1 数据结构不变。
+
 ## v2.0.0 (2026-07-22)
 
 ### 🌟 新增功能

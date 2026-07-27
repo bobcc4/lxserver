@@ -8,7 +8,7 @@
 (function () {
     // ================= 1. 基础配置与资源 =================
     const CONFIG = {
-        UPDATE_CONFIG_URL: 'https://raw.githubusercontent.com/bobcc4/lxserver/main/notice/notification.json',
+        LATEST_RELEASE_URL: 'https://api.github.com/repos/bobcc4/lxserver/releases/latest',
         getLocalVersion: () => (window.CONFIG && window.CONFIG.version) ? window.CONFIG.version : '0.0.0'
     };
 
@@ -298,89 +298,59 @@
         return true;
     }
 
-    // ================= 4. 数据获取与处理 =================
-    async function handlePayload(payload, sourceKey, isManual = false) {
-        if (!payload) return false;
-        let hasUpdate = false;
+    // ================= 4. GitHub Release 检查 =================
+    async function fetchLatestRelease(isManual = false) {
         try {
-            if (typeof payload === 'object' && payload.url && typeof payload.url === 'string') {
-                await fetchRemoteConfig(payload.url, isManual);
-                return; // fetchRemoteConfig 会处理结果，这里不好直接返回 hasUpdate，简化处理
-            }
-            if (typeof payload === 'string' && payload.startsWith('http')) {
-                await fetchRemoteConfig(payload, isManual);
-                return;
-            }
-            const data = (typeof payload === 'string') ? JSON.parse(payload) : payload;
-            let latestItem = null;
-            if (Array.isArray(data)) {
-                data.forEach(item => {
-                    if (item.type === 'version' && (!latestItem || compareVersions(item.logic.target_version, latestItem.logic.target_version) > 0)) latestItem = item;
-                    if (processItem(item, isManual)) hasUpdate = true;
-                });
-            } else {
-                if (data.type === 'version') latestItem = data;
-                if (processItem(data, isManual)) hasUpdate = true;
+            const res = await fetch(CONFIG.LATEST_RELEASE_URL, {
+                cache: 'no-store',
+                headers: { Accept: 'application/vnd.github+json' }
+            });
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const release = await res.json();
+            const latestVersion = release.tag_name;
+            if (!latestVersion || !/^v?\d+\.\d+\.\d+/.test(latestVersion)) {
+                throw new Error('GitHub Release did not return a valid version');
             }
 
+            const publishedDate = release.published_at
+                ? new Date(release.published_at).toLocaleDateString('zh-CN')
+                : '';
+            const releaseItem = {
+                id: `github_release_${latestVersion}`,
+                status: 'active',
+                type: 'version',
+                logic: {
+                    target_version: latestVersion,
+                    operator: '<',
+                    interval_hours: 24
+                },
+                ui: {
+                    title: `发现新版本 ${latestVersion}`,
+                    message: publishedDate
+                        ? `GitHub Release 已于 ${publishedDate} 发布，点击下方按钮查看更新说明和安装包。`
+                        : 'GitHub Release 已发布，点击下方按钮查看更新说明和安装包。',
+                    confirm_text: '查看发布页',
+                    cancel_text: '稍后提醒'
+                },
+                action: {
+                    type: 'link',
+                    url: release.html_url || 'https://github.com/bobcc4/lxserver/releases/latest'
+                }
+            };
+            const hasUpdate = processItem(releaseItem, isManual);
+
             if (isManual && !hasUpdate) {
-                const msg = latestItem && latestItem.ui && latestItem.ui.message
-                    ? latestItem.ui.message
-                    : `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion()}。`;
                 const upToDateItem = {
                     id: 'manual_check_uptodate',
                     type: 'info',
                     ui: {
                         title: '当前已是最新版本',
-                        message: msg,
+                        message: `GitHub Release 最新版本为 ${latestVersion}，当前版本为 ${CONFIG.getLocalVersion()}。`,
                         confirm_text: '确定',
                         cancel_text: ''
                     },
                     action: { type: 'close' },
-                    logic: { interval_hours: 0 }
-                };
-                renderModal(upToDateItem, 'temp_manual_check', null);
-            }
-        } catch (e) {
-            console.error(`[Notification] Error processing payload from ${sourceKey}:`, e);
-        }
-        return hasUpdate;
-    }
-
-    async function fetchRemoteConfig(url, isManual = false) {
-        try {
-            const bustUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-            const res = await fetch(bustUrl, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            const data = await res.json();
-            let hasUpdate = false;
-            let latestItem = null;
-            if (Array.isArray(data)) {
-                data.forEach(item => {
-                    if (item.type === 'version' && (!latestItem || compareVersions(item.logic.target_version, latestItem.logic.target_version) > 0)) latestItem = item;
-                    if (processItem(item, isManual)) hasUpdate = true;
-                });
-            } else {
-                if (data.type === 'version') latestItem = data;
-                if (processItem(data, isManual)) hasUpdate = true;
-            }
-
-            if (isManual && !hasUpdate) {
-                const msg = latestItem && latestItem.ui && latestItem.ui.message
-                    ? latestItem.ui.message
-                    : `无法从服务器获取到版本发布详情，您的系统当前版本为 ${CONFIG.getLocalVersion()}。`;
-                // Construct a temporary item for "Up to date"
-                const upToDateItem = {
-                    id: 'manual_check_uptodate',
-                    type: 'info', // Will use Success/Check icon based on title match in getStyleConfig
-                    ui: {
-                        title: '当前已是最新版本',
-                        message: msg,
-                        confirm_text: '确定',
-                        cancel_text: ''
-                    },
-                    action: { type: 'close' },
-                    logic: { interval_hours: 0 }
+                    logic: { interval_hours: 0, target_version: latestVersion }
                 };
                 renderModal(upToDateItem, 'temp_manual_check', null);
             }
@@ -390,11 +360,10 @@
                 let errorTitle = '检查更新失败';
                 let errorMessage = '无法连接到更新服务器，请检查网络连接或稍后重试。';
 
-                // 更精确的错误提示
                 if (e.message.includes('404')) {
-                    errorMessage = '当前服务器未发现预设的更新通知文件，且在线更新检查功能已关闭。';
-                } else if (!window.CONFIG || window.CONFIG.disableTelemetry) {
-                    errorMessage = '由于你已在设置或环境变量中禁用了「数据收集与统计」，系统无法自动连接到远程更新服务器。请直接前往 GitHub 发布页面下载最新版本。';
+                    errorMessage = 'GitHub 暂未发布正式版本，请稍后重试。';
+                } else if (e.message.includes('403')) {
+                    errorMessage = 'GitHub 更新接口请求次数已达上限，请稍后重试或直接打开项目发布页面。';
                 }
 
                 const errorItem = {
@@ -438,7 +407,7 @@
             }
             return;
         }
-        await fetchRemoteConfig(CONFIG.UPDATE_CONFIG_URL, isManual);
+        await fetchLatestRelease(isManual);
     }
 
     // 暴露给全局的方法

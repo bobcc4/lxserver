@@ -18,25 +18,25 @@
         }
     },
     {
-        "comment": "=== 版本更新 v2.0.0 ===",
-        "id": "update_v2_0_0",
+        "comment": "=== V1 正式版迁移通知 ===",
+        "id": "migrate_to_v1_1_0_0",
         "status": "active",
         "type": "version",
         "logic": {
-            "target_version": "v2.0.0",
+            "target_version": "v2.0.1",
             "operator": "<",
             "interval_hours": 24
         },
         "ui": {
-            "title": "发现新版本 v2.0.0",
-            "date": "2026-07-23",
-            "message": "本次更新包含核心重磅升级与多项功能增强：\n1. 🎵 本地音乐精准洗版与高品质音质记忆 (@bobcc4)\n2. 🔎 高级布尔逻辑搜索（中英文运算符、冒号激活）与错误提醒\n3. 🎶 本地歌曲平台校验收藏至歌单、共享曲库与权限细化\n4. 🚀 登出自动全量清理缓存、WebDAV 与 Subsonic 协议全面优化",
-            "confirm_text": "查看日志",
+            "title": "V1 正式版 v1.0.0 已发布",
+            "date": "2026-07-27",
+            "message": "项目已切换到独立的 V1 版本线。现有 v2.0.0 属于历史内部版本号，请更新到 V1 正式版 v1.0.0；数据结构和持久化目录保持不变。",
+            "confirm_text": "查看发布页",
             "cancel_text": "稍后提醒"
         },
         "action": {
             "type": "link",
-            "url": "https://github.com/bobcc4/lxserver/releases"
+            "url": "https://github.com/bobcc4/lxserver/releases/latest"
         }
     }
 ]
