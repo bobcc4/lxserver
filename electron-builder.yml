@@ -54,12 +54,8 @@ win:
   # 统一命名：文件名会根据架构自动变化，例如：LX Music Server 1.8.0 x64.exe
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
-    # ── 独立架构安装包 ──
-    - target: nsis
-      arch: [x64, ia32, arm64]
-    # ── 便携绿色版 (分架构) ──
-    - target: portable
-      arch: [x64, ia32, arm64]
+    - nsis
+    - portable
   requestedExecutionLevel: asInvoker
 
 nsis:
@@ -80,9 +76,7 @@ mac:
   # 统一命名文件名
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
-    # 产生独立架构镜像 (x64 和 arm64 分开)
-    - target: dmg
-      arch: [x64, arm64]
+    - dmg
   category: public.app-category.utilities
 
 # ── Linux ────────────────────────────────────────────────────────────────────
@@ -90,9 +84,6 @@ linux:
   # 统一命名文件名
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
-    # 为 x64 和 arm64 创建独立包 (deb 和 AppImage)
-    - target: AppImage
-      arch: [x64, arm64]
-    - target: deb
-      arch: [x64, arm64]
+    - AppImage
+    - deb
   category: Utility

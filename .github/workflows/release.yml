@@ -73,11 +73,19 @@ jobs:
             platform: win
             arch: x64
             artifact: windows-x64
-          - os: macos-latest
+          - os: windows-latest
+            platform: win
+            arch: ia32
+            artifact: windows-ia32
+          - os: windows-11-arm
+            platform: win
+            arch: arm64
+            artifact: windows-arm64
+          - os: macos-15-intel
             platform: mac
             arch: x64
             artifact: macos-x64
-          - os: macos-latest
+          - os: macos-15
             platform: mac
             arch: arm64
             artifact: macos-arm64
@@ -85,6 +93,10 @@ jobs:
             platform: linux
             arch: x64
             artifact: linux-x64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            artifact: linux-arm64
     runs-on: ${{ matrix.os }}
     name: Desktop ${{ matrix.platform }}-${{ matrix.arch }}
     steps:
@@ -105,6 +117,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          npm_config_cpu: ${{ matrix.arch }}
 
       - name: Read Electron version
         id: electron
@@ -196,13 +210,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.init.outputs.version }}
         run: |
-          gh release create "$VERSION" \
-            release-assets/*.exe \
-            release-assets/*.dmg \
-            release-assets/*.AppImage \
-            release-assets/*.deb \
-            release-assets/*.zip \
-            --target "$GITHUB_SHA" \
-            --title "LX Music Sync Server V1 $VERSION" \
-            --notes-file release-assets/RELEASE_NOTES.md \
-            --latest
+          ASSETS=(
+            release-assets/*.exe
+            release-assets/*.dmg
+            release-assets/*.AppImage
+            release-assets/*.deb
+            release-assets/*.zip
+          )
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" "${ASSETS[@]}" --clobber
+            gh release edit "$VERSION" \
+              --title "LX Music Sync Server V1 $VERSION" \
+              --notes-file release-assets/RELEASE_NOTES.md \
+              --latest
+          else
+            gh release create "$VERSION" "${ASSETS[@]}" \
+              --target "$GITHUB_SHA" \
+              --title "LX Music Sync Server V1 $VERSION" \
+              --notes-file release-assets/RELEASE_NOTES.md \
+              --latest
+          fi
