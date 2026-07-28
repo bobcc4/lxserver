@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "LX Sync Server"
-  text: "云端同步与播放的完美结合"
-  tagline: "一个支持各大音乐平台搜索、在线播放以及数据云端同步的服务系统"
+  text: "V1 使用帮助"
+  tagline: "部署、同步、播放、下载、曲库管理和第三方客户端连接手册"
   image:
     src: /icon.svg
     alt: LX Sync Server
@@ -13,26 +13,36 @@ hero:
       text: 快速上手
       link: /guide/getting-started
     - theme: alt
-      text: 查看 GitHub
-      link: https://github.com/bobcc4/lxserver
+      text: 浏览全部功能
+      link: /guide/features
 
 features:
-  - title: 全新 Web 播放器
-    details: 内置先进的无缝播放器，支持多种显示模式、深色主题、聚合搜索与动态歌词，无论在哪都可以享受音乐。
-  - title: 完善的同步后端
-    details: 兼容 LX Music 的客户端，实现了歌单的无缝同步，随时随地备份您的音乐资产。支持多设备与多用户管理。
-  - title: 强大的数据视图
-    details: 在线控制台可视化管理设备状态、用户数据，提供完备的数据控制权及系统配置管理。
-  - title: 一键式多端连接
-    details: 通过 Docker 或简单命令行即可部署，并自持 WebDAV 增量云备份。
-  - title: 全平台桌面支持
-    details: 提供针对 Win/Mac/Linux 的桌面客户端，支持系统托盘常驻、自动避让端口及便携模式运行。
+  - title: 部署与管理
+    details: Docker、桌面客户端、源码部署、数据持久化、用户管理、快照、WebDAV 和日志排查。
+    link: /guide/getting-started
+  - title: Web 播放与下载
+    details: 多平台搜索、八档音质、播放队列、歌词、音效、服务器下载、缓存和断点续传队列。
+    link: /guide/web-player
+  - title: 本地曲库
+    details: 多层目录扫描、布尔搜索、批量筛选、元数据与封面歌词补全、歌单收藏和歌曲洗版。
+    link: /guide/library-downloads
+  - title: 多端连接
+    details: LX Music 数据同步、账户设置同步，以及音流、LMP、Feishin 等 Subsonic 客户端接入。
+    link: /guide/accounts-sync
+  - title: 分享与音源
+    details: 用户间歌单邀请、管理员音源共享、自定义源隔离、代理与安全设置。
+    link: /guide/sharing
+  - title: 故障排查
+    details: 登录、播放、下载、曲库扫描、歌词封面、Subsonic 和桌面客户端常见问题。
+    link: /guide/troubleshooting
 
 ---
 
-<style>
-:root {
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #bd34fe 30%, #41d1ff);
-}
-</style>
+## 使用顺序
+
+1. 按照[快速开始](/guide/getting-started)完成部署和目录持久化。
+2. 修改默认管理密码，创建同步用户并确认播放器登录正常。
+3. 阅读[账户与 LX 同步](/guide/accounts-sync)或[Subsonic 客户端](/guide/subsonic)连接其他设备。
+4. 下载前阅读[本地曲库与下载](/guide/library-downloads)，明确 `/cache` 与 `/music` 的区别。
+
+> 本文档对应 `bobcc4/lxserver:v1`。V2 已停止维护，不建议新部署。

@@ -1,73 +1,22 @@
-# 快速启动部署指南
+# 快速开始
 
-欢迎使用 LX Music 数据同步与 Web 播放中枢服务。该平台提供私有化云端数据同步集成方案，并随附功能齐备的在线媒体高品质流播放能力。
+V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使用可读文件名，能够直接在 NAS 文件系统中查看和管理。
 
-## 基础设施依赖
+## 部署前准备
 
-在启动本服务项目前，请确保承载该实例的主机系统（或虚拟机、容器化设施）符合以下最低先决条件：
+- 推荐：Docker 24 或更高版本、Docker Compose v2。
+- 源码运行：Node.js 22.12 或更高版本，推荐 Node.js 24 LTS。
+- 默认端口：`9527`。
+- 正式镜像：`bobcc4/lxserver:v1`。
+- 至少持久化 `/server/data`；需要下载和管理源文件时，还应持久化 `/server/cache`、`/server/music` 和 `/server/logs`。
 
-**直接基于源码运行：**
-
-- **Node.js**: `v22.12.0` 或更高版本（生产环境推荐采用 Node.js 24 LTS）。
-- **网络资源**: 确保业务所需的监听端口（默认配置为 `9527`）已在主机防火墙策略及云服务商安全组规则中正确放行入口流量。
-
-**基于容器化设施运行（生产首选）：**
-
-- `Docker Engine` 引擎运行时。
-- `Docker Compose`（当涉及声明式服务编排时必需）。
-
----
-
-## 部署执行方案与最佳实践
-
-### 方案一：使用桌面客户端
-
-对于桌面用户，我们强烈推荐使用基于 Electron 的**桌面客户端**。它集成了服务器管理与播放器，且具备系统托盘常驻功能。
-
-1. **前往下载**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
-2. **选择版本**:
-   - **Windows**: 下载 `Universal.exe` (全架构合一) 或 `portable.exe` (绿色版)。
-   - **macOS**: 下载 `universal.dmg` (支持 Intel/M1/M2)。
-   - **Linux**: 提供 `.deb` (Debian/Ubuntu) 和 `.AppImage` 格式。
-3. **初始化**: 首次运行将引导你选择数据存储位置，随后服务将自动在后台启动并在系统托盘可见。
-
-### 方案二：基于 Docker 引擎的容器化部署
-
-本项目支持从 Docker Hub 或 GitHub Packages 拉取镜像：
-
-- **Docker Hub**: `bobcc4/lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
-
-执行以下指令启动容器：
-
-```bash
-docker run -d \
-  -p 9527:9527 \
-  -v $(pwd)/data:/server/data \
-  -v $(pwd)/logs:/server/logs \
-  -v $(pwd)/cache:/server/cache \
-  -v $(pwd)/music:/server/music \
-  --name lx-sync-server \
-  --restart unless-stopped \
-  bobcc4/lxserver:v1
-```
-
-**容器挂载卷 (Volume Mappings) ：**
-
-- `-v $(pwd)/data:/server/data`：该项配置为**核心必选项**。负责将实例内生成的所有应用层状态数据导出宿主机持久保存。
-- `-v $(pwd)/logs:/server/logs`：用于承接并输出服务应用层所有分级审计日志的物理挂载点。
-- `-v $(pwd)/cache:/server/cache`：用于存放音乐缓存文件，极大提升重复播放时的加载速度。
-- `-v $(pwd)/music:/server/music`：用于存放仅下载歌曲文件。
-
-**声明式 Docker Compose ：**
-针对需标准化长久管理的生产实施，创建名为 `docker-compose.yml` 的定义配置：
+## Docker Compose 部署
 
 ```yaml
-version: '3'
 services:
-  lx-sync-server:
+  lxserver:
     image: bobcc4/lxserver:v1
-    container_name: lx-sync-server
+    container_name: lxserver
     restart: unless-stopped
     ports:
       - "9527:9527"
@@ -77,72 +26,92 @@ services:
       - ./cache:/server/cache
       - ./music:/server/music
     environment:
-      - NODE_ENV=production
-      # - FRONTEND_PASSWORD=123456
-      # - ENABLE_WEBPLAYER_AUTH=true
-      # - WEBPLAYER_PASSWORD=yourpassword
+      NODE_ENV: production
+      # FRONTEND_PASSWORD: change-me
+      # ENABLE_WEBPLAYER_AUTH: "true"
+      # WEBPLAYER_PASSWORD: change-me
 ```
 
-配置审查无误后，通过指令 `docker-compose up -d` 启动基础架构实例集。
-
-### 方案二：基于物理环境的源码编译部署
-
-针对受限非容器化环境或二次研发拓展场景，需于操作系统直接组装并拉起进程：
+启动：
 
 ```bash
-# 1. 由远端代码仓库提取代码的 Main 主线状态至当前目录
+docker compose up -d
+```
+
+升级：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+升级容器不会删除已挂载目录。不要在未确认挂载正确前删除旧容器数据。
+
+## 桌面客户端部署
+
+从 [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest) 下载与系统和 CPU 对应的安装包。首次启动且没有有效历史路径时，程序会提示选择存储位置。
+
+桌面客户端关闭窗口后默认缩到系统托盘，服务仍继续运行。存储路径的查看和迁移请阅读[桌面客户端](/guide/desktop)。
+
+## 源码运行
+
+```bash
 git clone https://github.com/bobcc4/lxserver.git
 cd lxserver
-
-# 2. 调用严格解析流程初始化模块依赖库
-npm ci 
-
-# 3. 对 TypeScript 类型及 Vue DOM 模板进行预编译聚合处理
+npm ci
 npm run build
-
-# 4. 执行基于内置调度器的生产节点启动命令
 npm start
 ```
 
-*工程实践提示：在无人值守的服务器环境中执行原生应用托管，建议引入譬如 `pm2` 的进程级调度与重启控制系统：`pm2 start npm --name "lxserver" -- start`。*
+源码部署需要自行负责进程守护、开机启动和数据目录持久化。
 
----
+## 首次访问
 
-## 负载前置与 Nginx 反向代理接入策略
+| 功能 | 默认地址 | 默认凭据 |
+| --- | --- | --- |
+| 管理后台 | `http://服务器IP:9527/` | 管理密码 `123456` |
+| Web 播放器 | `http://服务器IP:9527/music` | 同步账户 `admin` / `password` |
+| Subsonic | `http://服务器IP:9527/rest` | 同步账户用户名与密码 |
 
-在暴露至公网的主流程节点前，强烈建议接驳成熟的 Web 守护网关实例。此举旨在安全地应用 SSL 加密以及隐藏内部分发端口特性。
+首次登录后立即完成以下操作：
 
-以下为适配系统 WebSocket 双工链接机制及追踪用户源端 IP Header 解析的标准化 Nginx 反派配置参考示例（承接通配 `80 / 443` 端向本服务 `9527` 进行流量穿网与隧道接管转发）：
+1. 在管理后台修改默认管理密码。
+2. 修改 `admin` 同步账户密码，或创建自己的同步账户。
+3. 确认 `/data`、`/cache`、`/music`、`/logs` 均映射到 NAS 持久化目录。
+4. 登录 Web 播放器并导入仅来自可信来源的音源脚本。
+5. 需要外网访问时配置 HTTPS 反向代理，不要直接暴露管理后台。
+
+## 访问路径说明
+
+- `ADMIN_PATH` 修改管理后台路径。
+- `PLAYER_PATH` 修改播放器路径，默认 `/music`。
+- `SUBSONIC_PATH` 修改 Subsonic 路径，默认 `/rest`。
+- `USER_ENABLE_ROOT=true` 时，LX 同步地址可直接填写服务根地址。
+- `USER_ENABLE_PATH=true` 时，LX 同步地址使用 `服务地址/用户名`。
+
+根路径与用户路径的选择详见[账户与 LX 同步](/guide/accounts-sync)。
+
+## 反向代理要点
+
+反向代理必须支持 WebSocket、Range 请求和较长的流媒体连接。建议保留以下请求头：
 
 ```nginx
-server {
-    listen 80;
-    server_name music.yourdomain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:9527;
-  
-        # 定义 Header 头传递策略以确保 Node 层可取到客户端外网层 IP
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  
-        # 补全长连接升级特性定义（对内部的同步通信套接字服务必要条件）
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_http_version 1.1;
+proxy_read_timeout 3600s;
 ```
 
----
+## 部署检查
 
-## 验证交付组件健康度
+1. 管理后台能够登录并显示服务状态。
+2. Web 播放器能使用同步账户登录。
+3. 下载一首测试歌曲后，NAS 的 `music/<用户名>` 中出现音频文件。
+4. 清理缓存时只影响 `cache/<用户名>`，不影响下载目录。
+5. 重建容器后，账户、歌单、设置和下载队列仍存在。
 
-在服务实例注册调度完成、且流量隧道建立后，管理员可分别在浏览器检查两个子服务系统的连通状态：
-
-| 模块系统标识                       | 挂载之应用节点层级 | 默认入域核查                                                     | 核心应用能力与操作基建                                                                 |
-| ---------------------------------- | ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **基础运维监控与同步服务端** | `/` (域名 Root)  | 要求输入缺省密钥:`123456`                                      | 执行账户角色控制授权、审查连接端点存活状态，并执行全局 WebDAV 的异地备份调度配置重置。 |
-| **富客户端 Web 串流控制台**  | `/music`         | 可调整（依据管理员是否配置门罗防护环境变量强开启防盗链安全密钥） | 提供多栈音乐信息流汇聚点检引擎并完成终端用户界面的视听业务渲染逻辑。                   |
-
-有关在实例化生命周期早期实现底层变量的静默导入、以及配置层级重写的更多前序细节知识，请移步浏览查阅《[配置引擎及环境变量注入指南](./configuration.md)》。
+遇到异常请先查看[故障排查](/guide/troubleshooting)。

@@ -19,9 +19,9 @@
   </p>
 </div>
 
-[Documentation](https://bobcc4.github.io/lxserver/) | [WebPlayer](../README_EN.md) | [Changelog](changelog.md)
+[Documentation](https://bobcc4.github.io/lxserver/) | [WebPlayer](../README_EN.md) | [Changelog](../changelog.md)
 
-This project provides both a powerful [WebPlayer](../README_EN.md) and a professional **LX Music Data Sync Service** with a Web visualization dashboard.
+This project provides both a powerful WebPlayer and a professional **LX Music Data Sync Service** with a Web visualization dashboard.
 
 ## ✨ Sync Server Key Features
 

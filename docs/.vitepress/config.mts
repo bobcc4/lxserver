@@ -1,7 +1,9 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  base: "/lxserver/",
+  base: '/lxserver/',
+  cleanUrls: true,
+  lastUpdated: true,
   head: [
     ['link', { rel: 'icon', href: '/lxserver/icon.svg' }]
   ],
@@ -23,24 +25,44 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
-          { text: '用户指南', link: '/guide/getting-started' },
+          { text: '功能总览', link: '/guide/features' },
+          { text: '使用指南', link: '/guide/getting-started' },
           { text: '配置指南', link: '/guide/configuration' },
           { text: 'API 文档', link: '/api/reference' },
-          { text: '关于', link: '/about' }
+          { text: '更新日志', link: 'https://github.com/bobcc4/lxserver/blob/main/changelog.md' }
         ],
         sidebar: [
           {
-            text: '用户指南',
+            text: '开始使用',
             items: [
               { text: '快速开始', link: '/guide/getting-started' },
-              { text: 'V1 与 V2 版本选择', link: '/guide/version-selection' }
+              { text: '全部功能', link: '/guide/features' },
+              { text: '桌面客户端', link: '/guide/desktop' }
             ]
           },
           {
-            text: '核心功能',
+            text: '播放器与音乐管理',
             items: [
-              { text: '同步服务器设置', link: '/guide/sync-server' },
-              { text: 'Web 播放器指南', link: '/guide/web-player' }
+              { text: 'Web 播放器', link: '/guide/web-player' },
+              { text: '本地曲库与下载', link: '/guide/library-downloads' },
+              { text: '歌曲洗版', link: '/guide/remaster' },
+              { text: '自定义音源', link: '/guide/custom-sources' }
+            ]
+          },
+          {
+            text: '账户与客户端',
+            items: [
+              { text: '账户与 LX 同步', link: '/guide/accounts-sync' },
+              { text: '歌单与音源分享', link: '/guide/sharing' },
+              { text: 'Subsonic 客户端', link: '/guide/subsonic' }
+            ]
+          },
+          {
+            text: '服务器管理',
+            items: [
+              { text: '管理后台', link: '/guide/sync-server' },
+              { text: '备份与数据目录', link: '/guide/storage-backup' },
+              { text: '故障排查', link: '/guide/troubleshooting' }
             ]
           },
           {
@@ -59,7 +81,13 @@ export default defineConfig({
         footer: {
           message: 'Released under the Apache-2.0 License.',
           copyright: 'Copyright © 2026 bobcc4 & Contributors'
-        }
+        },
+        outline: { level: [2, 3], label: '本页目录' },
+        docFooter: { prev: '上一篇', next: '下一篇' },
+        lastUpdated: { text: '最后更新' },
+        returnToTopLabel: '返回顶部',
+        sidebarMenuLabel: '菜单',
+        darkModeSwitchLabel: '外观'
       }
     },
     en: {

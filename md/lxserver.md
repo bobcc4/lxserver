@@ -20,9 +20,9 @@
   </p>
 </div>
 
-[帮助文档 Documentation](https://bobcc4.github.io/lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](changelog.md)
+[帮助文档 Documentation](https://bobcc4.github.io/lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](../changelog.md)
 
-本项目不仅内置了功能强大的 [网页播放器](../README.md)，还提供了专业的 **LX Music 数据同步服务**，支持 Web 可视化管理。
+本项目不仅内置了功能强大的网页播放器，还提供了专业的 **LX Music 数据同步服务**，支持 Web 可视化管理。
 
 ## ✨ 同步服务器核心特性
 

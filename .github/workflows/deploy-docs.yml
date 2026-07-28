@@ -2,7 +2,13 @@ name: Deploy VitePress site to Pages
 
 on:
   workflow_dispatch:
-    
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yml'
+
 permissions:
   contents: read
   pages: write
@@ -27,14 +33,12 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: |
-          cd docs
-          npm install
+        working-directory: docs
+        run: npm ci
 
       - name: Build with VitePress
-        run: |
-          cd docs
-          npm run docs:build
+        working-directory: docs
+        run: npm run docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
