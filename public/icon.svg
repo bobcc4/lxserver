@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">音云 Yinyun</title>
-  <rect width="512" height="512" rx="112" fill="#16222d"/>
+  <rect width="512" height="512" rx="112" fill="#10b981"/>
   <circle cx="151" cy="316" r="78" fill="#fff"/>
   <circle cx="269" cy="252" r="119" fill="#fff"/>
   <circle cx="382" cy="321" r="72" fill="#fff"/>
   <rect x="126" y="310" width="278" height="96" rx="48" fill="#fff"/>
-  <path d="M218 193c0-12 8-22 20-25l109-24c16-4 32 9 32 26v129c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3v-66l-87 19v108c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3V193z" fill="#16222d"/>
+  <path d="M218 193c0-12 8-22 20-25l109-24c16-4 32 9 32 26v129c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3v-66l-87 19v108c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3V193z" fill="#10b981"/>
 </svg>

@@ -1,7 +1,6 @@
 # 音云 Yinyun
 
-<!-- ![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=1&issues=1&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=1&stargazers=1&theme=Auto) -->
-![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+<p align="center"><img src="../public/icon.svg" width="120" height="120" alt="音云 Yinyun"></p>
 
 <div align="center">
   <p>
