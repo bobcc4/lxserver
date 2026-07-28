@@ -1,6 +1,6 @@
 # About
 
-**Yintuan** is based on [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) and extends it into a private music platform with playback, downloads, library management, multiple users, and third-party client access.
+**Yinyun** is based on [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) and extends it into a private music platform with playback, downloads, library management, multiple users, and third-party client access.
 
 ## Development Intent
 

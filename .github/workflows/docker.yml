@@ -60,8 +60,8 @@ jobs:
             type=raw,value=v1
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.title=Yintuan
-            org.opencontainers.image.description=音云 Yintuan private music server and Web player
+            org.opencontainers.image.title=Yinyun
+            org.opencontainers.image.description=音云 Yinyun private music server and Web player
             org.opencontainers.image.licenses=Apache-2.0
 
       - name: Delete old Docker image versions

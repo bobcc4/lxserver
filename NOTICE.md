@@ -1,6 +1,6 @@
 # Notices
 
-Yintuan
+Yinyun
 Copyright 2026 bobcc4
 
 Current project and maintenance:

@@ -1,6 +1,6 @@
 # Sync Management Console Guide
 
-Yintuan includes a Web management console at `/` for viewing service status, managing users and data, and configuring server functions.
+Yinyun includes a Web management console at `/` for viewing service status, managing users and data, and configuring server functions.
 
 ## Login and Authentication
 

@@ -1,10 +1,10 @@
-# Yintuan Architecture and Configuration Guide
+# Yinyun Architecture and Configuration Guide
 
-Yintuan follows a **zero-configuration, ready-to-use** design while providing flexible configuration files and environment-variable overrides for advanced deployments.
+Yinyun follows a **zero-configuration, ready-to-use** design while providing flexible configuration files and environment-variable overrides for advanced deployments.
 
 ## Configuration Loading Hierarchy and Execution Priority
 
-Yintuan defines its defaults in `src/defaultConfig.ts`. During startup, the configuration parser distributes values to the server runtime and the browser configuration exposed through `/js/config.js`.
+Yinyun defines its defaults in `src/defaultConfig.ts`. During startup, the configuration parser distributes values to the server runtime and the browser configuration exposed through `/js/config.js`.
 
 The loading and merging of configurations follow the priority sequence from high to low below. High-priority options will **hardly override** the corresponding keys of low-priority ones:
 

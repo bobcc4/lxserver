@@ -5,7 +5,7 @@
 module.exports = {
   // 同步服务名称
   // 环境变量: SERVER_NAME
-  "serverName": "yintuan",
+  "serverName": "yinyun",
 
   // 是否使用代理转发请求到本服务器 (如果配置了 proxy.header，此项会自动设为 true)
   // 环境变量: 无 (通过 PROXY_HEADER 隐式开启)

@@ -20,7 +20,7 @@ export default defineConfig({
     root: {
       label: '简体中文',
       lang: 'zh-CN',
-      title: "音云 Yintuan",
+      title: "音云 Yinyun",
       description: "支持 Web 播放、下载、本地曲库、LX Music 同步与 Subsonic 的私有音乐服务器",
       themeConfig: {
         nav: [
@@ -94,7 +94,7 @@ export default defineConfig({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
-      title: "Yintuan",
+      title: "Yinyun",
       description: "A self-hosted music server with Web playback, downloads, LX Music sync, and Subsonic support",
       themeConfig: {
         nav: [

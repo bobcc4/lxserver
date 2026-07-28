@@ -1,9 +1,9 @@
-# 音云 Yintuan
+# 音云 Yinyun
 
 <div align="center">
-  <img src="/icon.svg" width="100" height="100" alt="Yintuan Logo">
+  <img src="/icon.svg" width="100" height="100" alt="Yinyun Logo">
   <br>
-  <h1>音云 Yintuan</h1>
+  <h1>音云 Yinyun</h1>
   <p>
     <img src="https://img.shields.io/badge/hash-{{buildHash}}-%2310b981?style=flat-square" alt="Build Hash">
     <img src="https://img.shields.io/badge/version-{{version}}-blue?style=flat-square" alt="Version">

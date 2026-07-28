@@ -142,7 +142,7 @@ jobs:
       - name: Upload desktop package
         uses: actions/upload-artifact@v7
         with:
-          name: yintuan-${{ matrix.artifact }}
+          name: yinyun-${{ matrix.artifact }}
           path: |
             dist-electron/*.exe
             dist-electron/*.dmg
@@ -177,16 +177,16 @@ jobs:
         env:
           VERSION: ${{ needs.init.outputs.version }}
         run: |
-          mkdir -p release/yintuan
-          cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yintuan/
-          [[ -f config.js ]] && cp config.js release/yintuan/
+          mkdir -p release/yinyun
+          cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yinyun/
+          [[ -f config.js ]] && cp config.js release/yinyun/
           cd release
-          zip -r "yintuan-${VERSION}-linux-x64.zip" yintuan
+          zip -r "yinyun-${VERSION}-linux-x64.zip" yinyun
 
       - name: Upload server package
         uses: actions/upload-artifact@v7
         with:
-          name: yintuan-server
+          name: yinyun-server
           path: release/*.zip
           if-no-files-found: error
           retention-days: 7
@@ -222,13 +222,20 @@ jobs:
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh release edit "$VERSION" \
-              --title "音云 Yintuan $VERSION" \
+              --target "$GITHUB_SHA" \
+              --title "音云 Yinyun $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
+
+            gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
+              case "$ASSET" in
+                Yintuan.*|yintuan-*) gh release delete-asset "$VERSION" "$ASSET" --yes ;;
+              esac
+            done
           else
             gh release create "$VERSION" "${ASSETS[@]}" \
               --target "$GITHUB_SHA" \
-              --title "音云 Yintuan $VERSION" \
+              --title "音云 Yinyun $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           fi

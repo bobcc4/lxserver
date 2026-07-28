@@ -1,6 +1,6 @@
 # Quick Start Deployment Guide
 
-Welcome to Yintuan, a self-hosted music server for Web playback, downloads, local-library management, LX Music synchronization, and Subsonic clients.
+Welcome to Yinyun, a self-hosted music server for Web playback, downloads, local-library management, LX Music synchronization, and Subsonic clients.
 
 ## Infrastructure Dependencies
 
@@ -47,7 +47,7 @@ docker run -d \
   -v $(pwd)/logs:/server/logs \
   -v $(pwd)/cache:/server/cache \
   -v $(pwd)/music:/server/music \
-  --name yintuan \
+  --name yinyun \
   --restart unless-stopped \
   bobcc4/lxserver:v1
 ```
@@ -65,9 +65,9 @@ For standardized long-term management in production implementation, create a def
 ```yaml
 version: '3'
 services:
-  yintuan:
+  yinyun:
     image: bobcc4/lxserver:v1
-    container_name: yintuan
+    container_name: yinyun
     restart: unless-stopped
     ports:
       - "9527:9527"
@@ -104,7 +104,7 @@ npm run build
 npm start
 ```
 
-*Engineering Practice Tip: For native application hosting in unattended server environments, use a process supervisor such as `pm2`: `pm2 start npm --name "yintuan" -- start`.*
+*Engineering Practice Tip: For native application hosting in unattended server environments, use a process supervisor such as `pm2`: `pm2 start npm --name "yinyun" -- start`.*
 
 ---
 

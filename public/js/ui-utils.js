@@ -1,5 +1,5 @@
 /* 
-   UI Utilities for Yintuan Management Console
+   UI Utilities for Yinyun Management Console
    Standardizes notifications (Toasts) and Dialogs
    Requires: Tailwind CSS, FontAwesome
 */

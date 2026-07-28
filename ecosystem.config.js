@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'yintuan',
+      name: 'yinyun',
       script: './index.js',
       // node_args: '-r ts-node/register -r tsconfig-paths/register',
       // script: './bin/www',

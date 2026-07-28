@@ -164,7 +164,7 @@ async function main() {
   const login = await loginResponse.json()
   if (!loginResponse.ok || !login.success || !login.token) throw new Error('Sync account login failed.')
 
-  const profileDir = path.join(os.tmpdir(), `yintuan-doc-shots-${process.pid}`)
+  const profileDir = path.join(os.tmpdir(), `yinyun-doc-shots-${process.pid}`)
   const chrome = spawn(chromePath, [
     '--headless=new',
     '--disable-gpu',

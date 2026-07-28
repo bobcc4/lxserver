@@ -91,7 +91,7 @@ class SubsonicHandler {
         const base: any = {
             status: 'ok',
             version: this.VERSION,
-            type: 'yintuan',
+            type: 'yinyun',
             serverVersion: this.SERVER_VERSION,
             openSubsonic: true,
         }
@@ -168,7 +168,7 @@ class SubsonicHandler {
                 'subsonic-response': {
                     status: 'failed',
                     version: this.VERSION,
-                    type: 'yintuan',
+                    type: 'yinyun',
                     serverVersion: this.SERVER_VERSION,
                     openSubsonic: true,
                     error: { code, message },
@@ -179,7 +179,7 @@ class SubsonicHandler {
             res.end(
                 `<?xml version="1.0" encoding="UTF-8"?>\n` +
                 `<subsonic-response xmlns="http://subsonic.org/restapi" status="failed" version="${this.VERSION}"` +
-                ` type="yintuan" serverVersion="${this.SERVER_VERSION}" openSubsonic="true">` +
+                ` type="yinyun" serverVersion="${this.SERVER_VERSION}" openSubsonic="true">` +
                 `<error code="${code}" message="${this.escapeXml(message)}"/></subsonic-response>`,
             )
         }
@@ -630,14 +630,14 @@ class SubsonicHandler {
 
     private mapLibraryAlbum(album: any) {
         const source = album.source || 'wy'
-        const primarySinger = (album.artistName || '').split('\u3001')[0] || 'Yintuan'
+        const primarySinger = (album.artistName || '').split('\u3001')[0] || 'Yinyun'
         const artistId = album.singerId ? `art_${source}_${album.singerId}` : `artist_${primarySinger}`
         return {
             id: `alb_${source}_${album.id}`,
             name: album.name,
             title: album.name,
             album: album.name,
-            artist: album.artistName || 'Yintuan',
+            artist: album.artistName || 'Yinyun',
             artistId,
             isDir: true,
             coverArt: album.picUrl || album.meta?.picUrl || `alb_${source}_${album.id}`,
@@ -767,22 +767,22 @@ class SubsonicHandler {
     private handleGetLicense(res: http.ServerResponse, format: string) {
         if (format === 'json') {
             return this.sendResponse(res, {
-                license: { valid: true, email: 'support@yintuan.local', licenseExpires: '2099-12-31T00:00:00.000Z' },
+                license: { valid: true, email: 'support@yinyun.local', licenseExpires: '2099-12-31T00:00:00.000Z' },
             }, format)
         }
         return this.sendResponse(res, {
-            license: { attrs: { valid: true, email: 'support@yintuan.local', licenseExpires: '2099-12-31T00:00:00.000Z' } },
+            license: { attrs: { valid: true, email: 'support@yinyun.local', licenseExpires: '2099-12-31T00:00:00.000Z' } },
         }, format)
     }
 
     private handleGetMusicFolders(res: http.ServerResponse, format: string) {
         if (format === 'json') {
             return this.sendResponse(res, {
-                musicFolders: { musicFolder: [{ id: 1, name: 'Yintuan' }] },
+                musicFolders: { musicFolder: [{ id: 1, name: 'Yinyun' }] },
             }, format)
         }
         return this.sendResponse(res, {
-            musicFolders: { children: { musicFolder: [{ attrs: { id: 1, name: 'Yintuan' } }] } },
+            musicFolders: { children: { musicFolder: [{ attrs: { id: 1, name: 'Yinyun' } }] } },
         }, format)
     }
 
@@ -903,7 +903,7 @@ class SubsonicHandler {
 
         if (!playlistId) return this.sendError(res, 10, 'Required parameter is missing: playlistId', format)
 
-        // Yintuan currently implements deletion through the index (OpenSubsonic core specification).
+        // Yinyun currently implements deletion through the index (OpenSubsonic core specification).
         if (songIndexToRemove !== null) {
             const index = parseInt(songIndexToRemove)
             if (isNaN(index)) return this.sendError(res, 0, 'Invalid songIndexToRemove', format)
@@ -1124,7 +1124,7 @@ class SubsonicHandler {
             name: listName,
             title: listName,
             album: listName,
-            artist: (musics.length === 1) ? musics[0].singer : 'Yintuan',
+            artist: (musics.length === 1) ? musics[0].singer : 'Yinyun',
             artistId: (musics.length === 1) ? ((musics[0] as any).singerId ? `art_${musics[0].source}_${(musics[0] as any).singerId}` : `artist_${(musics[0].singer || '').split('、')[0]}`) : 'artist_lxmusic',
             songCount: musics.length,
             duration: musics.reduce((sum: number, m: any) => sum + this.parseDuration(m.interval), 0),
@@ -2358,7 +2358,7 @@ class SubsonicHandler {
                 const requestHeaders: http.OutgoingHttpHeaders = {
                     'Accept': req.headers.accept || 'audio/*,*/*;q=0.8',
                     'Accept-Encoding': 'identity',
-                    'User-Agent': req.headers['user-agent'] || 'Yintuan',
+                    'User-Agent': req.headers['user-agent'] || 'Yinyun',
                     'Referer': `${parsedUrl.origin}/`,
                 }
                 if (req.headers.range) requestHeaders.Range = req.headers.range

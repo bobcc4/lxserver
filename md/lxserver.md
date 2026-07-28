@@ -1,7 +1,7 @@
-# 音云 Yintuan
+# 音云 Yinyun
 
-<!-- ![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=1&issues=1&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=1&stargazers=1&theme=Auto) -->
-![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+<!-- ![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=1&issues=1&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=1&stargazers=1&theme=Auto) -->
+![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <p>

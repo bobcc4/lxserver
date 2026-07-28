@@ -1,6 +1,6 @@
-# Yintuan
+# Yinyun
 
-![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <p>
@@ -22,7 +22,7 @@
 [Documentation](https://bobcc4.github.io/lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
 
 ---
-**Yintuan** is a self-hosted music server with a Web player, downloads, local-library management, LX Music data synchronization, and Subsonic client support.
+**Yinyun** is a self-hosted music server with a Web player, downloads, local-library management, LX Music data synchronization, and Subsonic client support.
 
 ## ✨ Web Player Key Features
 
@@ -118,7 +118,7 @@ Running from source requires Node.js `22.12.0` or later. Node.js 24 LTS is recom
 
 ### Option 1: Desktop Client
 
-Run Yintuan through the desktop client on Windows, macOS, and Linux.
+Run Yinyun through the desktop client on Windows, macOS, and Linux.
 
 - **📦 Download Latest**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
 - **✨ Key Advantages**:
@@ -143,7 +143,7 @@ docker run -d \
   -v $(pwd)/logs:/server/logs \
   -v $(pwd)/cache:/server/cache \
   -v $(pwd)/music:/server/music \
-  --name yintuan \
+  --name yinyun \
   --restart unless-stopped \
   bobcc4/lxserver:v1
 ```
@@ -155,9 +155,9 @@ Create a `docker-compose.yml` file:
 ```yaml
 version: '3'
 services:
-  yintuan:
+  yinyun:
     image: bobcc4/lxserver:v1
-    container_name: yintuan
+    container_name: yinyun
     restart: unless-stopped
     ports:
       - "9527:9527"
@@ -224,7 +224,7 @@ Edit `config.js` directly. Environment variables take precedence:
 | `SUBSONIC_ENABLE` | `subsonic.enable` | Enable Subsonic protocol support | `true` |
 | `SUBSONIC_PATH` | `subsonic.path` | Subsonic access path | `/rest` |
 | `FRONTEND_PASSWORD` | `frontend.password` | Web dashboard password | `123456` |
-| `SERVER_NAME` | `serverName` | Sync service name | `yintuan` |
+| `SERVER_NAME` | `serverName` | Sync service name | `yinyun` |
 | `MAX_SNAPSHOT_NUM` | `maxSnapshotNum` | Max snapshots to keep | `10` |
 | `CONFIG_PATH` | - | Absolute path to external config file | - |
 | `DATA_PATH` | - | Absolute path to data storage directory | `./data` |
@@ -308,7 +308,7 @@ This project is released under the Apache License 2.0. The following agreement i
 
 Apache License 2.0 copyright (c) 2026 [bobcc4](https://github.com/bobcc4)
 
-**Terminology**: "This Project" refers to Yintuan; "User" refers to the user who agrees to this agreement; "Official Music Platforms" refers to the collective official platforms of the music sources built into this project, including Kuwo, Kugou, Migu, etc.; "Copyrighted Data" refers to data owned by others, including but not limited to images, audio, names, etc.
+**Terminology**: "This Project" refers to Yinyun; "User" refers to the user who agrees to this agreement; "Official Music Platforms" refers to the collective official platforms of the music sources built into this project, including Kuwo, Kugou, Migu, etc.; "Copyrighted Data" refers to data owned by others, including but not limited to images, audio, names, etc.
 
 ### I. Data Sources
 

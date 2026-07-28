@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  yintuan:
+  yinyun:
     build: .
-    container_name: yintuan
+    container_name: yinyun
     restart: always
     ports:
       - "9527:9527"

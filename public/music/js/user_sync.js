@@ -1,5 +1,5 @@
 /**
- * Yintuan Web Sync Client
+ * Yinyun Web Sync Client
  * Ported from lx-music-desktop to support Pairing & Sync
  * Updated: Uses Web Crypto API for RSA-OAEP (SPKI) compatibility
  */

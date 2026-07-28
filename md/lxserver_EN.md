@@ -1,6 +1,6 @@
-# Yintuan
+# Yinyun
 
-![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <p>
@@ -21,7 +21,7 @@
 
 [Documentation](https://bobcc4.github.io/lxserver/) | [WebPlayer](../README_EN.md) | [Changelog](../changelog.md)
 
-Yintuan provides a powerful Web player, **LX Music data synchronization**, and a visual management dashboard.
+Yinyun provides a powerful Web player, **LX Music data synchronization**, and a visual management dashboard.
 
 ## ✨ Sync Server Key Features
 

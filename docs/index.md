@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "音云 Yintuan"
+  name: "音云 Yinyun"
   text: "使用帮助"
   tagline: "部署、同步、播放、下载、曲库管理和第三方客户端连接手册"
   image:
     src: /icon.svg
-    alt: Yintuan
+    alt: Yinyun
   actions:
     - theme: brand
       text: 快速上手

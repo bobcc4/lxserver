@@ -1,6 +1,6 @@
 # Server API Reference
 
-Yintuan provides RESTful APIs for retrieving and managing synchronization data and server status.
+Yinyun provides RESTful APIs for retrieving and managing synchronization data and server status.
 
 ## Overview
 To ensure security, all APIs require authentication. Currently, two main authentication methods are supported:

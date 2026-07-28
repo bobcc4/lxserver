@@ -1,5 +1,5 @@
 /**
- * Song List Manager for Yintuan Web
+ * Song List Manager for Yinyun Web
  * Handles fetching, rendering and interactions for the "Song List" (Playlist) feature.
  */
 

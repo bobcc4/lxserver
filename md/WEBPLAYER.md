@@ -1,4 +1,4 @@
-# 音云 Yintuan Web 播放器
+# 音云 Yinyun Web 播放器
 
 The full documentation for the Web Player has been moved to the [main README](../README.md).
 

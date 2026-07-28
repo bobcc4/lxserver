@@ -1,5 +1,5 @@
 /**
- * Leaderboard Manager for Yintuan Web
+ * Leaderboard Manager for Yinyun Web
  * 排行榜功能模块 — 风格与 SongListManager 保持一致
  */
 

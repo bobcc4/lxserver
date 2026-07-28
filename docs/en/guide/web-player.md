@@ -1,6 +1,6 @@
 # Web Player Usage Guide
 
-Yintuan provides a modern Web music player at `/music` for remote playback, search, downloads, and multi-device synchronization.
+Yinyun provides a modern Web music player at `/music` for remote playback, search, downloads, and multi-device synchronization.
 
 ## Core Feature List
 

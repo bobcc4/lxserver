@@ -414,7 +414,7 @@
     function drawWatermark(ctx, W, H, colors) {
         const iconSize = Math.round(W * 0.028), fontSize = Math.round(W * 0.022);
         const padR = Math.round(W * 0.04), padB = Math.round(H * 0.04);
-        const text = 'Yintuan';
+        const text = 'Yinyun';
         const iconColor = colors.isDark !== false ? 'rgba(255,255,255,0.7)' : 'rgba(30,30,30,0.6)';
         const textColor = colors.isDark !== false ? 'rgba(255,255,255,0.6)' : 'rgba(30,30,30,0.5)';
 

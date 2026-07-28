@@ -146,7 +146,7 @@ const margeConfig = (p: string) => {
     }
     newConfig.users = users
   }
-  if (newConfig.serverName === 'lxserver') newConfig.serverName = 'yintuan'
+  if (['lxserver', 'yintuan'].includes(newConfig.serverName)) newConfig.serverName = 'yinyun'
   global.lx.config = newConfig
 
   mergeConfigFileEnv(config)

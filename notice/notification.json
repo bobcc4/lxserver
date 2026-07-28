@@ -19,7 +19,7 @@
     },
     {
         "comment": "=== 音云品牌发布通知 ===",
-        "id": "yintuan_v1_1_0",
+        "id": "yinyun_v1_1_0",
         "status": "active",
         "type": "version",
         "logic": {
@@ -28,9 +28,9 @@
             "interval_hours": 24
         },
         "ui": {
-            "title": "音云 Yintuan v1.1.0 已发布",
+            "title": "音云 Yinyun v1.1.0 已发布",
             "date": "2026-07-28",
-            "message": "软件已正式命名为音云（Yintuan），并启用全新应用图标。数据结构、持久化目录和现有账户保持兼容。",
+            "message": "软件已正式命名为音云（Yinyun），并启用全新应用图标。数据结构、持久化目录和现有账户保持兼容。",
             "confirm_text": "查看发布页",
             "cancel_text": "稍后提醒"
         },

@@ -1,9 +1,9 @@
-# 音云 Yintuan
+# 音云 Yinyun
 
 <div align="center">
-  <img src="/music/assets/logo.svg" width="120" height="120" alt="Yintuan Logo">
+  <img src="/music/assets/logo.svg" width="120" height="120" alt="Yinyun Logo">
   <br>
-  <h1>音云 Yintuan</h1>
+  <h1>音云 Yinyun</h1>
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/hash-{{buildHash}}-%2310b981?style=flat-square" alt="Build Hash">
@@ -34,7 +34,7 @@
 
 本项目基于 Apache License 2.0 许可证发行，以下协议是对于 Apache License 2.0 的补充，如有冲突，以以下协议为准。
 
-**词语约定**：本协议中的“本项目”指音云 Yintuan；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
+**词语约定**：本协议中的“本项目”指音云 Yinyun；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
 
 ### 一、数据来源
 

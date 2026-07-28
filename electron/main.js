@@ -24,10 +24,10 @@ if (!gotTheLock) {
 const defaultStorageRoot = app.getPath('userData')
 const basePathConfigFile = path.join(defaultStorageRoot, 'base_path.json')
 
-// Preserve the storage selection made by desktop releases published before the Yintuan rename.
+// Preserve the storage selection made by desktop releases published before the Yinyun rename.
 if (!fs.existsSync(basePathConfigFile)) {
     const appDataRoot = app.getPath('appData')
-    const legacyConfigFiles = ['LX Music Server', 'LX Music Sync Server', 'lx-music-sync-server']
+    const legacyConfigFiles = ['Yintuan', 'LX Music Server', 'LX Music Sync Server', 'lx-music-sync-server']
         .map(name => path.join(appDataRoot, name, 'base_path.json'))
     const legacyConfigFile = legacyConfigFiles.find(file => fs.existsSync(file))
     if (legacyConfigFile) {
@@ -244,7 +244,7 @@ function showPlayerWindow() {
 
     if (!playerWindow || playerWindow.isDestroyed()) {
         playerWindow = new BrowserWindow({
-            title: '音云 Yintuan',
+            title: '音云 Yinyun',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -261,7 +261,7 @@ function showPlayerWindow() {
         })
         playerWindow.once('ready-to-show', () => playerWindow.show())
         playerWindow.on('page-title-updated', (e) => e.preventDefault())
-        handleRendererFailure(playerWindow, 'Yintuan Player')
+        handleRendererFailure(playerWindow, 'Yinyun Player')
         // 关闭时只隐藏，保持后台播放
         playerWindow.on('close', (event) => {
             if (!app.isQuiting) {
@@ -269,7 +269,7 @@ function showPlayerWindow() {
                 playerWindow.hide()
             }
         })
-        loadWindowURL(playerWindow, playerURL, 'Yintuan Player')
+        loadWindowURL(playerWindow, playerURL, 'Yinyun Player')
     } else {
         // 窗口已存在：若已显示且在播放器页，直接聚焦；否则 show+focus
         playerWindow.show()
@@ -284,7 +284,7 @@ function showAdminWindow() {
 
     if (!adminWindow || adminWindow.isDestroyed()) {
         adminWindow = new BrowserWindow({
-            title: '音云 Yintuan - 管理后台',
+            title: '音云 Yinyun - 管理后台',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -296,12 +296,12 @@ function showAdminWindow() {
         })
         adminWindow.once('ready-to-show', () => adminWindow.show())
         adminWindow.on('page-title-updated', (e) => e.preventDefault())
-        handleRendererFailure(adminWindow, 'Yintuan Admin')
+        handleRendererFailure(adminWindow, 'Yinyun Admin')
         // 管理后台直接关闭即可（不需要保持后台）
         adminWindow.on('closed', () => {
             adminWindow = null
         })
-        loadWindowURL(adminWindow, adminURL, 'Yintuan Admin')
+        loadWindowURL(adminWindow, adminURL, 'Yinyun Admin')
     } else {
         adminWindow.show()
         adminWindow.focus()
@@ -312,7 +312,7 @@ function showAdminWindow() {
 function createTray() {
     const icon = getIcon('tray.png') || nativeImage.createEmpty()
     tray = new Tray(icon)
-    tray.setToolTip(`音云 Yintuan (${SERVER_PORT})`)
+    tray.setToolTip(`音云 Yinyun (${SERVER_PORT})`)
 
     const menu = Menu.buildFromTemplate([
         { label: `● 运行中 (端口: ${SERVER_PORT})`, enabled: false },
@@ -451,7 +451,7 @@ app.whenReady().then(async () => {
         await startServer()
     } catch (err) {
         dialog.showErrorBox(
-            'Yintuan startup failed',
+            'Yinyun startup failed',
             `${err && err.message ? err.message : err}\n\nStorage path: ${storageRoot}`,
         )
         app.quit()

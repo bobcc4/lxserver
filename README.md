@@ -1,11 +1,11 @@
-# 音云 Yintuan
+# 音云 Yinyun
 
-![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+![Yinyun](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <!-- <img src="public/icon.svg" width="120" height="120" alt="Icon"> -->
   <!-- <br>
-  <h1>音云 Yintuan</h1> -->
+  <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
@@ -26,7 +26,7 @@
 
 ---
 
-**音云（Yintuan）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，并兼容 LX Music 数据同步和 Subsonic 客户端。
+**音云（Yinyun）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，并兼容 LX Music 数据同步和 Subsonic 客户端。
 
 ## ✨ Web 播放器核心特性
 
@@ -148,7 +148,7 @@ docker run -d \
   -v $(pwd)/logs:/server/logs \
   -v $(pwd)/cache:/server/cache \
   -v $(pwd)/music:/server/music \
-  --name yintuan \
+  --name yinyun \
   --restart unless-stopped \
   bobcc4/lxserver:v1
 ```
@@ -160,9 +160,9 @@ docker run -d \
 ```yaml
 version: '3'
 services:
-  yintuan:
+  yinyun:
     image: bobcc4/lxserver:v1
-    container_name: yintuan
+    container_name: yinyun
     restart: unless-stopped
     ports:
       - "9527:9527"
@@ -229,7 +229,7 @@ npm start
 | `SUBSONIC_ENABLE`                     | `subsonic.enable`                  | 是否启用 Subsonic 协议支持 (服务默认开启)                          | `true`           |
 | `SUBSONIC_PATH`                       | `subsonic.path`                    | Subsonic 访问路径 (默认为 `/rest`)                               | `/rest`          |
 | `FRONTEND_PASSWORD`                   | `frontend.password`                | Web 管理界面访问密码                                               | `123456`         |
-| `SERVER_NAME`                         | `serverName`                       | 同步服务名称                                                       | `yintuan`        |
+| `SERVER_NAME`                         | `serverName`                       | 同步服务名称                                                       | `yinyun`        |
 | `MAX_SNAPSHOT_NUM`                    | `maxSnapshotNum`                   | 保留的最大快照数量                                                 | `10`             |
 | `CONFIG_PATH`                         | -                                    | 指定外部配置文件的绝对路径                                         | -                  |
 | `DATA_PATH`                           | -                                    | 指定数据存储目录的绝对路径                                         | `./data`         |
@@ -313,7 +313,7 @@ npm start
 
 Apache License 2.0 copyright (c) 2026 [bobcc4](https://github.com/bobcc4)
 
-**词语约定**：本协议中的“本项目”指音云 Yintuan；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
+**词语约定**：本协议中的“本项目”指音云 Yinyun；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
 
 ### 一、数据来源
 
