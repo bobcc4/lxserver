@@ -4,10 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example, v1.0.0)
-        required: true
-        default: v1.0.0
+        description: Optional release version (for example, v1.0.0)
+        required: false
         type: string
+      publish:
+        description: Create a GitHub Release after the build
+        required: true
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -42,8 +46,10 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             VERSION="$GITHUB_REF_NAME"
-          else
+          elif [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
+          else
+            VERSION="v$(node -p "require('./package.json').version")"
           fi
 
           node scripts/prepare-release.js "$VERSION"
@@ -172,6 +178,7 @@ jobs:
           retention-days: 7
 
   publish:
+    if: github.event_name == 'push' || inputs.publish
     needs: [init, build_desktop, build_server]
     runs-on: ubuntu-latest
     permissions:
