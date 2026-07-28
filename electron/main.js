@@ -109,16 +109,115 @@ async function startServer() {
 
     try {
         require('../index.js')
+        await waitForServer(SERVER_PORT)
     } catch (err) {
         console.error('Server Failed:', err)
+        throw err
     }
 }
 
 // ─── 工具函数 ──────────────────────────────────────────────────────────────
+async function waitForServer(port, timeoutMs = 60000) {
+    const deadline = Date.now() + timeoutMs
+
+    while (Date.now() < deadline) {
+        const ready = await new Promise((resolve) => {
+            let settled = false
+            const socket = net.createConnection({ host: '127.0.0.1', port })
+            const finish = (result) => {
+                if (settled) return
+                settled = true
+                socket.destroy()
+                resolve(result)
+            }
+
+            socket.setTimeout(1000)
+            socket.once('connect', () => finish(true))
+            socket.once('timeout', () => finish(false))
+            socket.once('error', () => finish(false))
+        })
+
+        if (ready) return
+        await new Promise(resolve => setTimeout(resolve, 250))
+    }
+
+    throw new Error(`Server did not start within ${Math.round(timeoutMs / 1000)} seconds (port ${port})`)
+}
+
 function getIcon(name) {
     const p = path.join(appRoot, 'electron', 'icons', name)
     if (fs.existsSync(p)) return nativeImage.createFromPath(p)
     return null
+}
+
+function loadWindowURL(window, url, label) {
+    let retryCount = 0
+    let retryTimer = null
+    const maxRetries = 5
+
+    const load = () => {
+        if (window.isDestroyed()) return
+        void window.loadURL(url).catch(() => { })
+    }
+
+    window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        if (!isMainFrame || errorCode === -3 || window.isDestroyed()) return
+        console.error(`${label} load failed:`, { errorCode, errorDescription, validatedURL })
+
+        if (retryCount < maxRetries) {
+            retryCount += 1
+            clearTimeout(retryTimer)
+            retryTimer = setTimeout(load, 1000)
+            return
+        }
+
+        void dialog.showMessageBox(window, {
+            type: 'error',
+            title: `${label} load failed`,
+            message: `Unable to load ${url}`,
+            detail: `${errorDescription} (${errorCode})`,
+            buttons: ['Retry', 'Close'],
+            defaultId: 0,
+            cancelId: 1,
+        }).then(({ response }) => {
+            if (response === 0) {
+                retryCount = 0
+                load()
+            } else if (!window.isDestroyed()) {
+                window.destroy()
+            }
+        })
+    })
+
+    window.webContents.on('did-navigate', () => {
+        retryCount = 0
+        clearTimeout(retryTimer)
+    })
+    window.on('closed', () => clearTimeout(retryTimer))
+    load()
+}
+
+function handleRendererFailure(window, label) {
+    window.webContents.on('render-process-gone', (_event, details) => {
+        if (app.isQuiting || details.reason === 'clean-exit') return
+        console.error(`${label} renderer stopped:`, details)
+
+        const response = dialog.showMessageBoxSync({
+            type: 'error',
+            title: `${label} rendering failed`,
+            message: 'The interface renderer stopped unexpectedly.',
+            detail: `Reason: ${details.reason}. You can restart with hardware acceleration disabled.`,
+            buttons: ['Disable acceleration and restart', 'Exit'],
+            defaultId: 0,
+            cancelId: 1,
+        })
+
+        if (response === 0) {
+            updateAppConfig({ disableAcceleration: true })
+            app.relaunch()
+        }
+        app.exit()
+    })
 }
 
 
@@ -136,6 +235,7 @@ function showPlayerWindow() {
             minHeight: 650,
             icon: getIcon('icon.png'),
             autoHideMenuBar: true,
+            show: false,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -143,7 +243,9 @@ function showPlayerWindow() {
                 webSecurity: false,
             }
         })
+        playerWindow.once('ready-to-show', () => playerWindow.show())
         playerWindow.on('page-title-updated', (e) => e.preventDefault())
+        handleRendererFailure(playerWindow, 'LX Music Player')
         // 关闭时只隐藏，保持后台播放
         playerWindow.on('close', (event) => {
             if (!app.isQuiting) {
@@ -151,7 +253,7 @@ function showPlayerWindow() {
                 playerWindow.hide()
             }
         })
-        playerWindow.loadURL(playerURL)
+        loadWindowURL(playerWindow, playerURL, 'LX Music Player')
     } else {
         // 窗口已存在：若已显示且在播放器页，直接聚焦；否则 show+focus
         playerWindow.show()
@@ -173,14 +275,17 @@ function showAdminWindow() {
             minHeight: 650,
             icon: getIcon('icon.png'),
             autoHideMenuBar: true,
+            show: false,
             webPreferences: { nodeIntegration: false, contextIsolation: true }
         })
+        adminWindow.once('ready-to-show', () => adminWindow.show())
         adminWindow.on('page-title-updated', (e) => e.preventDefault())
+        handleRendererFailure(adminWindow, 'LX Music Server Admin')
         // 管理后台直接关闭即可（不需要保持后台）
         adminWindow.on('closed', () => {
             adminWindow = null
         })
-        adminWindow.loadURL(adminURL)
+        loadWindowURL(adminWindow, adminURL, 'LX Music Server Admin')
     } else {
         adminWindow.show()
         adminWindow.focus()
@@ -326,7 +431,16 @@ app.whenReady().then(async () => {
         saveStoredPath(storageRoot)
     }
 
-    await startServer()
+    try {
+        await startServer()
+    } catch (err) {
+        dialog.showErrorBox(
+            'LX Music Server startup failed',
+            `${err && err.message ? err.message : err}\n\nStorage path: ${storageRoot}`,
+        )
+        app.quit()
+        return
+    }
     if (process.platform === 'darwin' && app.dock) app.dock.hide()
     createTray()
 
