@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">Yintuan</title>
-  <rect x="48" y="48" width="928" height="928" rx="232" fill="#17212b"/>
-  <path d="M310 318 512 520 714 318M512 520v240" fill="none" stroke="#f8fafc" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="310" cy="318" r="78" fill="#2dd4bf"/>
-  <circle cx="714" cy="318" r="78" fill="#ff765f"/>
-  <circle cx="512" cy="760" r="78" fill="#f6c85f"/>
+  <rect width="512" height="512" rx="112" fill="#16222d"/>
+  <path d="M125 265c-20 24-20 60 0 84M91 231c-38 44-38 108 0 152" fill="none" stroke="#fff" stroke-width="25" stroke-linecap="round"/>
+  <path d="M220 165c0-15 10-27 25-31l136-30c19-4 37 10 37 30v194c0 39-32 70-72 70-37 0-66-22-66-51s29-51 66-51c10 0 20 2 29 5V205l-112 25v151c0 40-32 71-72 71-37 0-66-23-66-52s29-51 66-51c10 0 20 2 29 5V165z" fill="#fff"/>
 </svg>
