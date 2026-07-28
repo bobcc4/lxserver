@@ -19,9 +19,9 @@ V1 以文件目录为核心。正确的持久化和备份比容器本身更重�
 
 ```text
 music/admin/
-music/xiangyun/
+music/user01/
 cache/admin/
-cache/xiangyun/
+cache/user01/
 ```
 
 用户名不区分大小写，并统一使用小写目录。不要手动创建大小写不同但实际代表同一用户的目录。

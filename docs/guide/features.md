@@ -2,6 +2,10 @@
 
 本页是 V1 当前用户功能的索引。具体操作与限制请进入对应专题。
 
+![Web 播放器搜索与播放界面](/screenshots/web-search.png)
+
+当前 V1 Web 播放器同时面向在线搜索、歌单、本地曲库和服务器下载场景。
+
 ## 部署与运行
 
 - Docker、Docker Compose、源码和 Release 压缩包部署。

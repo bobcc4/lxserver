@@ -46,3 +46,13 @@ features:
 4. 下载前阅读[本地曲库与下载](/guide/library-downloads)，明确 `/cache` 与 `/music` 的区别。
 
 > 本文档对应 `bobcc4/lxserver:v1`。V2 已停止维护，不建议新部署。
+
+## 界面预览
+
+![Web 播放器在线搜索页面](/screenshots/web-search.png)
+
+Web 播放器可在同一界面完成平台选择、在线搜索、播放、收藏和下载。
+
+![服务器管理后台仪表盘](/screenshots/admin-dashboard.png)
+
+管理后台集中显示服务状态、资源占用、用户和服务器维护入口。

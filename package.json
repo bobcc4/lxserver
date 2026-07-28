@@ -15,6 +15,7 @@
     "dev2": "nodemon --exec \"cmd /c start /affinity 1 /b /wait tsx --inspect=127.0.0.1:9302 ./src/index.ts\"",
     "prd": "pm2 start ecosystem.config.js --env production",
     "publish": "node publish",
+    "docs:screenshots": "node scripts/capture-doc-screenshots.mjs",
     "electron:build": "npm run build",
     "electron:dist": "npm run electron:build && electron-builder"
   },
