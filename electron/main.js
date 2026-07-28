@@ -24,6 +24,22 @@ if (!gotTheLock) {
 const defaultStorageRoot = app.getPath('userData')
 const basePathConfigFile = path.join(defaultStorageRoot, 'base_path.json')
 
+// Preserve the storage selection made by desktop releases published before the Yintuan rename.
+if (!fs.existsSync(basePathConfigFile)) {
+    const appDataRoot = app.getPath('appData')
+    const legacyConfigFiles = ['LX Music Server', 'LX Music Sync Server', 'lx-music-sync-server']
+        .map(name => path.join(appDataRoot, name, 'base_path.json'))
+    const legacyConfigFile = legacyConfigFiles.find(file => fs.existsSync(file))
+    if (legacyConfigFile) {
+        try {
+            fs.mkdirSync(defaultStorageRoot, { recursive: true })
+            fs.copyFileSync(legacyConfigFile, basePathConfigFile)
+        } catch (error) {
+            console.error('Migrate legacy desktop config failed:', error)
+        }
+    }
+}
+
 function getAppConfig() {
     try {
         if (fs.existsSync(basePathConfigFile)) {
@@ -228,7 +244,7 @@ function showPlayerWindow() {
 
     if (!playerWindow || playerWindow.isDestroyed()) {
         playerWindow = new BrowserWindow({
-            title: 'LX Music Player',
+            title: '音团 Yintuan',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -245,7 +261,7 @@ function showPlayerWindow() {
         })
         playerWindow.once('ready-to-show', () => playerWindow.show())
         playerWindow.on('page-title-updated', (e) => e.preventDefault())
-        handleRendererFailure(playerWindow, 'LX Music Player')
+        handleRendererFailure(playerWindow, 'Yintuan Player')
         // 关闭时只隐藏，保持后台播放
         playerWindow.on('close', (event) => {
             if (!app.isQuiting) {
@@ -253,7 +269,7 @@ function showPlayerWindow() {
                 playerWindow.hide()
             }
         })
-        loadWindowURL(playerWindow, playerURL, 'LX Music Player')
+        loadWindowURL(playerWindow, playerURL, 'Yintuan Player')
     } else {
         // 窗口已存在：若已显示且在播放器页，直接聚焦；否则 show+focus
         playerWindow.show()
@@ -268,7 +284,7 @@ function showAdminWindow() {
 
     if (!adminWindow || adminWindow.isDestroyed()) {
         adminWindow = new BrowserWindow({
-            title: 'LX Music Server Admin',
+            title: '音团 Yintuan - 管理后台',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -280,12 +296,12 @@ function showAdminWindow() {
         })
         adminWindow.once('ready-to-show', () => adminWindow.show())
         adminWindow.on('page-title-updated', (e) => e.preventDefault())
-        handleRendererFailure(adminWindow, 'LX Music Server Admin')
+        handleRendererFailure(adminWindow, 'Yintuan Admin')
         // 管理后台直接关闭即可（不需要保持后台）
         adminWindow.on('closed', () => {
             adminWindow = null
         })
-        loadWindowURL(adminWindow, adminURL, 'LX Music Server Admin')
+        loadWindowURL(adminWindow, adminURL, 'Yintuan Admin')
     } else {
         adminWindow.show()
         adminWindow.focus()
@@ -296,7 +312,7 @@ function showAdminWindow() {
 function createTray() {
     const icon = getIcon('tray.png') || nativeImage.createEmpty()
     tray = new Tray(icon)
-    tray.setToolTip(`LX Music Server (${SERVER_PORT})`)
+    tray.setToolTip(`音团 Yintuan (${SERVER_PORT})`)
 
     const menu = Menu.buildFromTemplate([
         { label: `● 运行中 (端口: ${SERVER_PORT})`, enabled: false },
@@ -435,7 +451,7 @@ app.whenReady().then(async () => {
         await startServer()
     } catch (err) {
         dialog.showErrorBox(
-            'LX Music Server startup failed',
+            'Yintuan startup failed',
             `${err && err.message ? err.message : err}\n\nStorage path: ${storageRoot}`,
         )
         app.quit()

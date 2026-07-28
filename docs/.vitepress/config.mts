@@ -20,8 +20,8 @@ export default defineConfig({
     root: {
       label: '简体中文',
       lang: 'zh-CN',
-      title: "LX Sync Server",
-      description: "一个增强版的 LX Music 数据同步服务端与 Web 播放器",
+      title: "音团 Yintuan",
+      description: "支持 Web 播放、下载、本地曲库、LX Music 同步与 Subsonic 的私有音乐服务器",
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
@@ -94,8 +94,8 @@ export default defineConfig({
       label: 'English',
       lang: 'en-US',
       link: '/en/',
-      title: "LX Sync Server",
-      description: "An enhanced data synchronization server and Web player for LX Music",
+      title: "Yintuan",
+      description: "A self-hosted music server with Web playback, downloads, LX Music sync, and Subsonic support",
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },

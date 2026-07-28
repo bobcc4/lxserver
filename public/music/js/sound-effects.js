@@ -1,5 +1,5 @@
 /**
- * Sound Effects Manager for LX Music Web Player
+ * Sound Effects Manager for Yintuan Web Player
  * Handles EQ, 3D Surround, Pitch Shifting, and Environment Reverb.
  */
 window.soundEffects = (function () {

@@ -1,6 +1,6 @@
 # About
 
-**LX Music Sync Server** is modified from the original [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server), and integrates the extraction and improvement of various capabilities on the basis of the original version, making it go from a simple local data exchange transit station to a fully functional personal private cloud music platform.
+**Yintuan** is based on [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) and extends it into a private music platform with playback, downloads, library management, multiple users, and third-party client access.
 
 ## Development Intent
 

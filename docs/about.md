@@ -1,6 +1,6 @@
 # 关于
 
-**LX Music Sync Server** 修改自原版的 [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server)，并在原版基础上，额外集成和改进了各项能力，使其从一个简单的本地数据交换中转站变为了全功能的个人私有云音乐平台。
+**音团（Yintuan）** 修改自原版的 [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server)，并在原版基础上扩展为支持播放、下载、曲库管理、多用户和多端连接的个人私有云音乐平台。
 
 ## 开发意图
 

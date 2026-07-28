@@ -8,7 +8,7 @@
             "interval_hours": -1
         },
         "ui": {
-            "title": "🎉 欢迎使用lxserver",
+            "title": "🎉 欢迎使用音团",
             "message": "在这个纯净的音乐世界里，每一秒都是享受。\n祝您听歌愉快！",
             "confirm_text": "开始探索",
             "cancel_text": ""
@@ -18,19 +18,19 @@
         }
     },
     {
-        "comment": "=== V1 正式版迁移通知 ===",
-        "id": "migrate_to_v1_1_0_0",
+        "comment": "=== 音团品牌发布通知 ===",
+        "id": "yintuan_v1_1_0",
         "status": "active",
         "type": "version",
         "logic": {
-            "target_version": "v2.0.1",
+            "target_version": "v1.1.0",
             "operator": "<",
             "interval_hours": 24
         },
         "ui": {
-            "title": "V1 正式版 v1.0.0 已发布",
-            "date": "2026-07-27",
-            "message": "项目已切换到独立的 V1 版本线。现有 v2.0.0 属于历史内部版本号，请更新到 V1 正式版 v1.0.0；数据结构和持久化目录保持不变。",
+            "title": "音团 Yintuan v1.1.0 已发布",
+            "date": "2026-07-28",
+            "message": "软件已正式命名为音团（Yintuan），并启用全新应用图标。数据结构、持久化目录和现有账户保持兼容。",
             "confirm_text": "查看发布页",
             "cancel_text": "稍后提醒"
         },

@@ -70,7 +70,7 @@
 
 ## 日志位置
 
-- Docker：宿主机映射的 `logs` 目录，或运行 `docker logs lxserver`。
+- Docker：宿主机映射的 `logs` 目录，或运行 `docker logs yintuan`。
 - 桌面端：托盘菜单打开存储位置后查看日志目录。
 - 管理后台：系统日志页面可在线查看和检索。
 

@@ -19,7 +19,7 @@ V1 可以通过环境变量、外部配置文件、项目根目录 `config.js` �
 | --- | --- | --- | --- |
 | `PORT` | `port` | `9527` | 服务端口 |
 | `BIND_IP` | `bindIP` | `0.0.0.0` | 监听地址 |
-| `SERVER_NAME` | `serverName` | `lxserver` | 服务名称 |
+| `SERVER_NAME` | `serverName` | `yintuan` | 服务名称 |
 | `ADMIN_PATH` | `admin.path` | 空 | 管理后台路径，空表示 `/` |
 | `PLAYER_PATH` | `player.path` | `/music` | Web 播放器路径 |
 | `SUBSONIC_PATH` | `subsonic.path` | `/rest` | Subsonic API 路径 |

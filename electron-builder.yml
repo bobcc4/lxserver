@@ -1,11 +1,11 @@
 appId: com.lxserver.desktop
-productName: LX Music Server
+productName: Yintuan
 copyright: "Copyright © 2026 bobcc4"
 
 # 覆盖 package.json 的 main 字段，让 Electron 使用 electron/main.js 而非 index.js
 extraMetadata:
   main: electron/main.js
-  description: LX Music Sync Server Desktop
+  description: Yintuan private music server and player
 
 # [核心修复] 禁用打包时的原生模块自动重编，防止本地因缺少 C++ 编译环境而报错
 npmRebuild: false
@@ -51,7 +51,7 @@ icon: electron/icons/icon.png
 
 # ── Windows ──────────────────────────────────────────────────────────────────
 win:
-  # 统一命名：文件名会根据架构自动变化，例如：LX Music Server 1.8.0 x64.exe
+  # 统一命名：文件名会根据架构自动变化，例如：Yintuan 1.1.0 x64.exe
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
     - nsis
@@ -66,7 +66,7 @@ nsis:
   allowElevation: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: "LX Music Server"
+  shortcutName: "Yintuan"
 
 portable:
   artifactName: "${productName} ${version} ${arch} Portable.${ext}"

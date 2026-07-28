@@ -1,11 +1,11 @@
-# LX Music Sync Server (Enhanced Edition)
+# Yintuan
 
-![lxserver](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -21,7 +21,7 @@
 
 [Documentation](https://bobcc4.github.io/lxserver/) | [WebPlayer](../README_EN.md) | [Changelog](../changelog.md)
 
-This project provides both a powerful WebPlayer and a professional **LX Music Data Sync Service** with a Web visualization dashboard.
+Yintuan provides a powerful Web player, **LX Music data synchronization**, and a visual management dashboard.
 
 ## ✨ Sync Server Key Features
 

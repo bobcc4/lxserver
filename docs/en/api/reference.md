@@ -1,6 +1,6 @@
 # Server API Reference
 
-LX Sync Server provides a variety of RESTful API interfaces for automatically obtaining and controlling sync server data and statuses.
+Yintuan provides RESTful APIs for retrieving and managing synchronization data and server status.
 
 ## Overview
 To ensure security, all APIs require authentication. Currently, two main authentication methods are supported:

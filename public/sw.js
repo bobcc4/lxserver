@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lx-sync-server-v3';
+const CACHE_NAME = 'yintuan-v1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

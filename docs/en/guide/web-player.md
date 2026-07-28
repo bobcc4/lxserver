@@ -1,6 +1,6 @@
 # Web Player Usage Guide
 
-LX Music Sync Server provides a modern Web music player at the route `/music`. It can achieve remote playback, search, and multi-terminal synchronization interaction.
+Yintuan provides a modern Web music player at `/music` for remote playback, search, downloads, and multi-device synchronization.
 
 ## Core Feature List
 

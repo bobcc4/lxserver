@@ -28,7 +28,7 @@ const musicSdk = musicSdkRaw as any
  */
 class SubsonicHandler {
     private readonly VERSION = '1.16.1'
-    private readonly SERVER_VERSION = '1.0.0'
+    private readonly SERVER_VERSION = '1.1.0'
 
     // 预缓存歌曲 ID -> 封面 URL，避免 getCoverArt 重新请求 SDK
     private songPicUrlCache = new Map<string, string>()
@@ -91,7 +91,7 @@ class SubsonicHandler {
         const base: any = {
             status: 'ok',
             version: this.VERSION,
-            type: 'lxserver',
+            type: 'yintuan',
             serverVersion: this.SERVER_VERSION,
             openSubsonic: true,
         }
@@ -168,7 +168,7 @@ class SubsonicHandler {
                 'subsonic-response': {
                     status: 'failed',
                     version: this.VERSION,
-                    type: 'lxserver',
+                    type: 'yintuan',
                     serverVersion: this.SERVER_VERSION,
                     openSubsonic: true,
                     error: { code, message },
@@ -179,7 +179,7 @@ class SubsonicHandler {
             res.end(
                 `<?xml version="1.0" encoding="UTF-8"?>\n` +
                 `<subsonic-response xmlns="http://subsonic.org/restapi" status="failed" version="${this.VERSION}"` +
-                ` type="lxserver" serverVersion="${this.SERVER_VERSION}" openSubsonic="true">` +
+                ` type="yintuan" serverVersion="${this.SERVER_VERSION}" openSubsonic="true">` +
                 `<error code="${code}" message="${this.escapeXml(message)}"/></subsonic-response>`,
             )
         }
@@ -630,14 +630,14 @@ class SubsonicHandler {
 
     private mapLibraryAlbum(album: any) {
         const source = album.source || 'wy'
-        const primarySinger = (album.artistName || '').split('\u3001')[0] || 'LX Music'
+        const primarySinger = (album.artistName || '').split('\u3001')[0] || 'Yintuan'
         const artistId = album.singerId ? `art_${source}_${album.singerId}` : `artist_${primarySinger}`
         return {
             id: `alb_${source}_${album.id}`,
             name: album.name,
             title: album.name,
             album: album.name,
-            artist: album.artistName || 'LX Music',
+            artist: album.artistName || 'Yintuan',
             artistId,
             isDir: true,
             coverArt: album.picUrl || album.meta?.picUrl || `alb_${source}_${album.id}`,
@@ -767,22 +767,22 @@ class SubsonicHandler {
     private handleGetLicense(res: http.ServerResponse, format: string) {
         if (format === 'json') {
             return this.sendResponse(res, {
-                license: { valid: true, email: 'lxserver@lxmusic.com', licenseExpires: '2099-12-31T00:00:00.000Z' },
+                license: { valid: true, email: 'support@yintuan.local', licenseExpires: '2099-12-31T00:00:00.000Z' },
             }, format)
         }
         return this.sendResponse(res, {
-            license: { attrs: { valid: true, email: 'lxserver@lxmusic.com', licenseExpires: '2099-12-31T00:00:00.000Z' } },
+            license: { attrs: { valid: true, email: 'support@yintuan.local', licenseExpires: '2099-12-31T00:00:00.000Z' } },
         }, format)
     }
 
     private handleGetMusicFolders(res: http.ServerResponse, format: string) {
         if (format === 'json') {
             return this.sendResponse(res, {
-                musicFolders: { musicFolder: [{ id: 1, name: 'LX Music' }] },
+                musicFolders: { musicFolder: [{ id: 1, name: 'Yintuan' }] },
             }, format)
         }
         return this.sendResponse(res, {
-            musicFolders: { children: { musicFolder: [{ attrs: { id: 1, name: 'LX Music' } }] } },
+            musicFolders: { children: { musicFolder: [{ attrs: { id: 1, name: 'Yintuan' } }] } },
         }, format)
     }
 
@@ -903,7 +903,7 @@ class SubsonicHandler {
 
         if (!playlistId) return this.sendError(res, 10, 'Required parameter is missing: playlistId', format)
 
-        // 目前 lxserver 下暂时只实现了通过索引删除 (OpenSubsonic 核心规范)
+        // Yintuan currently implements deletion through the index (OpenSubsonic core specification).
         if (songIndexToRemove !== null) {
             const index = parseInt(songIndexToRemove)
             if (isNaN(index)) return this.sendError(res, 0, 'Invalid songIndexToRemove', format)
@@ -1124,7 +1124,7 @@ class SubsonicHandler {
             name: listName,
             title: listName,
             album: listName,
-            artist: (musics.length === 1) ? musics[0].singer : 'LX Music',
+            artist: (musics.length === 1) ? musics[0].singer : 'Yintuan',
             artistId: (musics.length === 1) ? ((musics[0] as any).singerId ? `art_${musics[0].source}_${(musics[0] as any).singerId}` : `artist_${(musics[0].singer || '').split('、')[0]}`) : 'artist_lxmusic',
             songCount: musics.length,
             duration: musics.reduce((sum: number, m: any) => sum + this.parseDuration(m.interval), 0),
@@ -2358,7 +2358,7 @@ class SubsonicHandler {
                 const requestHeaders: http.OutgoingHttpHeaders = {
                     'Accept': req.headers.accept || 'audio/*,*/*;q=0.8',
                     'Accept-Encoding': 'identity',
-                    'User-Agent': req.headers['user-agent'] || 'LX Music Sync Server',
+                    'User-Agent': req.headers['user-agent'] || 'Yintuan',
                     'Referer': `${parsedUrl.origin}/`,
                 }
                 if (req.headers.range) requestHeaders.Range = req.headers.range

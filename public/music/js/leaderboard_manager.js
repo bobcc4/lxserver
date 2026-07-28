@@ -1,5 +1,5 @@
 /**
- * Leaderboard Manager for LX Music Web
+ * Leaderboard Manager for Yintuan Web
  * 排行榜功能模块 — 风格与 SongListManager 保持一致
  */
 
@@ -535,4 +535,3 @@ function toggleLbSidebar(force) {
         }, 300);
     }
 }
-

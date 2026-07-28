@@ -1,6 +1,6 @@
 # Sync Management Console Guide
 
-LX Music Sync Server includes a Web Management Console (located at the system root path `/`), mainly used for viewing service status, managing user data, and configuring server-side functions.
+Yintuan includes a Web management console at `/` for viewing service status, managing users and data, and configuring server functions.
 
 ## Login and Authentication
 

@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "LX Sync Server"
-  text: "V1 使用帮助"
+  name: "音团 Yintuan"
+  text: "使用帮助"
   tagline: "部署、同步、播放、下载、曲库管理和第三方客户端连接手册"
   image:
     src: /icon.svg
-    alt: LX Sync Server
+    alt: Yintuan
   actions:
     - theme: brand
       text: 快速上手

@@ -142,7 +142,7 @@ jobs:
       - name: Upload desktop package
         uses: actions/upload-artifact@v7
         with:
-          name: lxserver-${{ matrix.artifact }}
+          name: yintuan-${{ matrix.artifact }}
           path: |
             dist-electron/*.exe
             dist-electron/*.dmg
@@ -177,16 +177,16 @@ jobs:
         env:
           VERSION: ${{ needs.init.outputs.version }}
         run: |
-          mkdir -p release/lx-music-sync-server
-          cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/lx-music-sync-server/
-          [[ -f config.js ]] && cp config.js release/lx-music-sync-server/
+          mkdir -p release/yintuan
+          cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yintuan/
+          [[ -f config.js ]] && cp config.js release/yintuan/
           cd release
-          zip -r "lx-music-sync-server-${VERSION}-linux-x64.zip" lx-music-sync-server
+          zip -r "yintuan-${VERSION}-linux-x64.zip" yintuan
 
       - name: Upload server package
         uses: actions/upload-artifact@v7
         with:
-          name: lxserver-server
+          name: yintuan-server
           path: release/*.zip
           if-no-files-found: error
           retention-days: 7
@@ -222,13 +222,13 @@ jobs:
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh release edit "$VERSION" \
-              --title "LX Music Sync Server V1 $VERSION" \
+              --title "音团 Yintuan $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           else
             gh release create "$VERSION" "${ASSETS[@]}" \
               --target "$GITHUB_SHA" \
-              --title "LX Music Sync Server V1 $VERSION" \
+              --title "音团 Yintuan $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           fi

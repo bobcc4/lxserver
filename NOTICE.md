@@ -1,6 +1,6 @@
 # Notices
 
-LX Music Sync Server V1
+Yintuan
 Copyright 2026 bobcc4
 
 Current project and maintenance:

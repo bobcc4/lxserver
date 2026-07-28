@@ -1,10 +1,10 @@
-# LX Music Sync Server Architecture and Configuration Guide
+# Yintuan Architecture and Configuration Guide
 
-LX Music Sync Server adheres to the design principle of **zero configuration and out-of-the-box use**, while providing a highly flexible **multi-level configuration injection engine and environment variable reading mechanism** to meet the needs of advanced deployment scenarios. When the Node.js backend service process starts, the system will follow strict hierarchical rules to merge and rewrite various configuration items.
+Yintuan follows a **zero-configuration, ready-to-use** design while providing flexible configuration files and environment-variable overrides for advanced deployments.
 
 ## Configuration Loading Hierarchy and Execution Priority
 
-LX Music Sync Server has built a unified basic model skeleton (located in `src/defaultConfig.ts`). During the initialization of the service instance, the configuration parser will streamingly distribute parameters to the **service-side underlying environment** (such as network binding, WebDAV settings, etc.) and the **front-end running environment** (injected into the browser execution sandbox `/js/config.js`) respectively.
+Yintuan defines its defaults in `src/defaultConfig.ts`. During startup, the configuration parser distributes values to the server runtime and the browser configuration exposed through `/js/config.js`.
 
 The loading and merging of configurations follow the priority sequence from high to low below. High-priority options will **hardly override** the corresponding keys of low-priority ones:
 

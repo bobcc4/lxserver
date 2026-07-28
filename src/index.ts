@@ -146,6 +146,7 @@ const margeConfig = (p: string) => {
     }
     newConfig.users = users
   }
+  if (newConfig.serverName === 'lxserver') newConfig.serverName = 'yintuan'
   global.lx.config = newConfig
 
   mergeConfigFileEnv(config)

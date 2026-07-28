@@ -1,6 +1,6 @@
 
 const config: LX.Config = {
-  serverName: 'lxserver', // 同步服务名称
+  serverName: 'yintuan', // 同步服务名称
   'proxy.enabled': false, // 是否使用代理转发请求到本服务器
   'proxy.header': 'x-real-ip', // 代理转发的请求头 原始IP
   bindIP: '0.0.0.0', // 绑定IP

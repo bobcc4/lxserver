@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  lx-sync-server:
+  yintuan:
     build: .
-    container_name: lx-sync-server
+    container_name: yintuan
     restart: always
     ports:
       - "9527:9527"

@@ -14,9 +14,9 @@ V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使�
 
 ```yaml
 services:
-  lxserver:
+  yintuan:
     image: bobcc4/lxserver:v1
-    container_name: lxserver
+    container_name: yintuan
     restart: unless-stopped
     ports:
       - "9527:9527"

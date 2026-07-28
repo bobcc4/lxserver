@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LX Music Web</title>
+    <title>音团 Yintuan</title>
     <!-- Config MUST be loaded before PostHog -->
     <script>
         (function () {
@@ -51,14 +51,8 @@
         <aside id="main-sidebar"
             class="w-64 t-bg-panel shadow-lg flex flex-col z-[60] fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 md:z-30 h-full pb-28 transition-all duration-300">
             <div class="h-16 flex items-center justify-center border-b t-border-main relative">
-                <svg viewBox="0 0 447.942 447.943" class="w-8 h-8 mr-2 rounded-lg shadow-sm"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path style="fill: var(--c-400)"
-                        d="M203.806.482c-19.668-3.346-35.76 11.139-35.76 31.086v206.166c-11.642-4.271-24.165-6.725-37.281-6.725-59.905 0-108.469 48.566-108.469 108.473 0 59.903 48.564 108.461 108.469 108.461 34.141 0 64.54-15.82 84.406-40.482l-49.658-49.664c-15.116-15.112-11.708-28.901-9.542-34.14 2.166-5.233 9.514-17.4 30.883-17.4h18.082v-56.885c0-21.132 14.617-38.862 34.266-43.745.032-44.373.032-81.808.032-81.808 140.147 0 131.724 83.974 115.325 132.196-6.42 18.884-2.601 22.05 10.893 7.354C536.473 77.106 298.38 16.566 203.806.482z" />
-                    <path style="fill: var(--c-600)"
-                        d="M301.061 223.876h-50.994c-3.911 0-7.574.95-10.889 2.523-8.616 4.09-14.615 12.798-14.615 22.973v76.51h-37.708c-14.082 0-17.428 8.071-7.466 18.029l46.893 46.898 31.25 31.246a25.424 25.424 0 0 0 18.033 7.474c6.523 0 13.052-2.484 18.029-7.474l78.152-78.145c9.951-9.958 6.608-18.029-7.47-18.029h-37.71v-76.51c.001-14.078-11.42-25.495-25.505-25.495z" />
-                </svg>
-                <h1 class="text-xl font-bold text-emerald-600 tracking-wider">LX MUSIC</h1>
+                <img src="/music/assets/logo.svg" class="w-8 h-8 mr-2 rounded-lg shadow-sm" alt="Yintuan">
+                <h1 class="text-xl font-bold text-emerald-600 tracking-wider">音团 YINTUAN</h1>
                 <!-- Close button for mobile -->
                 <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-500 hover:text-red-500">
                     <i class="fas fa-times"></i>
@@ -231,7 +225,7 @@
                             class="t-text-muted hover:t-text-muted transition-colors" title="GitHub">
                             <i class="fab fa-github text-xl"></i>
                         </a>
-                        <div class="text-sm t-text-muted" id="app-version">v1.0.0 Web</div>
+                        <div class="text-sm t-text-muted" id="app-version">v1.1.0 Web</div>
                     </div>
                 </div>
             </header>
@@ -961,7 +955,7 @@
                         </div>
                         <h2 class="text-2xl md:text-3xl font-bold t-text-main tracking-tight">开启云端收藏之旅</h2>
                         <p class="text-gray-500 mt-4 mb-10 text-center max-w-md leading-relaxed px-6">
-                            您的收藏暂时无法同步。请前往设置页面登录，同步您的LX MUSIC歌单，享受跨设备的一致体验。
+                            您的收藏暂时无法同步。请前往设置页面登录，同步您的音团歌单，享受跨设备的一致体验。
                         </p>
                         <button
                             onclick="switchTab('settings'); setTimeout(() => { document.getElementById('btn-mode-local').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);"
@@ -4669,7 +4663,7 @@
                     </button>
                 </div>
                 <div id="remote-overwrite-step1" class="space-y-4">
-                    <p class="text-xs t-text-muted leading-relaxed">连接 LX Music 远程服务器，连接成功后可选择数据同步方向。</p>
+                    <p class="text-xs t-text-muted leading-relaxed">连接远程同步服务器，连接成功后可选择数据同步方向。</p>
                     <div>
                         <label
                             class="block text-[11px] uppercase tracking-[0.1em] font-bold t-text-muted mb-2 ml-1 opacity-80">服务器地址
@@ -4979,7 +4973,7 @@
             <h2 class="text-2xl font-black t-text-main text-center mb-4">项目使用声明</h2>
             <div
                 class="t-text-muted text-sm space-y-4 mb-8 leading-relaxed max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                <p>欢迎使用 LX Music Web 播放器。本项目是一个 <a href="https://github.com/bobcc4/lxserver" target="_blank"
+                <p>欢迎使用音团 Web 播放器。本项目是一个 <a href="https://github.com/bobcc4/lxserver" target="_blank"
                         class="t-text-main hover:text-emerald-500 underline decoration-dotted transition-colors">开源</a>
                     的音乐同步管理辅助工具，在您开始使用之前，请知晓以下声明：</p>
                 <ul class="list-disc pl-5 space-y-2">

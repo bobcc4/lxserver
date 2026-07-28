@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "LX Sync Server"
+  name: "Yintuan"
   text: "Playback, downloads, and synchronization"
   tagline: "Deploy and manage a private music service with a Web player, local library, LX synchronization, and Subsonic support"
   image:
     src: /icon.svg
-    alt: LX Sync Server
+    alt: Yintuan
   actions:
     - theme: brand
       text: Get Started

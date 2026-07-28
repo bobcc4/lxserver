@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LX Music Sync Server - 管理控制台</title>
+    <title>音团 Yintuan - 管理控制台</title>
     <!-- Config MUST be loaded before PostHog -->
     <script>
         (function () {
@@ -61,10 +61,8 @@
     <div id="login-overlay" class="overlay">
         <div class="login-box glass">
             <div class="login-header">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 18V5l12-2v13M6 15v8m6-8v8" />
-                </svg>
-                <h1>LX Sync Server</h1>
+                <img src="/icon.svg" class="logo-icon" alt="Yintuan">
+                <h1>音团 Yintuan</h1>
             </div>
             <p class="login-subtitle">管理控制台</p>
             <input type="password" id="access-password" placeholder="请输入访问密码" autocomplete="off" />
@@ -84,11 +82,11 @@
                 <div style="display: flex; align-items: center;">
                     <img src="/icon.svg" class="logo-icon" alt="Logo"
                         style="width: 32px; height: 32px; margin-right: 8px;">
-                    <h2>LX Sync</h2>
+                    <h2>音团</h2>
                 </div>
                 <div id="sidebar-version"
                     style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); margin-left: 40px; margin-top: 2px;">
-                    v1.0.0</div>
+                    v1.1.0</div>
             </div>
 
             <nav class="sidebar-nav">
@@ -264,7 +262,7 @@
                 <div id="view-dashboard" class="view active">
                     <div class="welcome-section">
                         <h1><span id="greeting-text" class="greeting-text">你好</span>，管理员 👋</h1>
-                        <p id="dashboard-date">欢迎回到 LX Sync Server 管理控制台</p>
+                        <p id="dashboard-date">欢迎回到音团管理控制台</p>
                     </div>
 
                     <div class="stats-grid">
@@ -568,7 +566,7 @@
                                 <div class="config-field">
                                     <label class="config-label">服务器名称</label>
                                     <input type="text" name="serverName" class="form-input config-input"
-                                        placeholder="LX Sync Server" />
+                                        placeholder="Yintuan" />
                                 </div>
                                 <div class="config-field">
                                     <label class="config-label">最大快照数</label>

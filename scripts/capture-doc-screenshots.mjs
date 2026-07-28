@@ -164,7 +164,7 @@ async function main() {
   const login = await loginResponse.json()
   if (!loginResponse.ok || !login.success || !login.token) throw new Error('Sync account login failed.')
 
-  const profileDir = path.join(os.tmpdir(), `lxserver-doc-shots-${process.pid}`)
+  const profileDir = path.join(os.tmpdir(), `yintuan-doc-shots-${process.pid}`)
   const chrome = spawn(chromePath, [
     '--headless=new',
     '--disable-gpu',
@@ -234,19 +234,29 @@ async function main() {
     await cdp.evaluate(sanitizePage)
     await cdp.screenshot('web-search.png')
 
-    await cdp.evaluate(`switchTab('localmusic')`)
-    await cdp.waitFor("!document.querySelector('#view-localmusic').classList.contains('hidden')")
-    await cdp.waitFor("Number((document.querySelector('#lm-total-count')?.textContent || '').match(/\\d+/)?.[0] || 0) > 0", 30000)
-    await delay(1200)
-    await cdp.evaluate(sanitizePage)
-    await cdp.screenshot('web-local-music.png')
-
     await cdp.evaluate(`switchTab('settings')`)
     await cdp.waitFor("!document.querySelector('#view-settings').classList.contains('hidden')")
     await cdp.evaluate(`document.querySelector('#quality-select')?.scrollIntoView({ block: 'center' })`)
     await delay(500)
     await cdp.evaluate(sanitizePage)
     await cdp.screenshot('web-settings.png')
+
+    await cdp.evaluate(`switchTab('search')`)
+    await cdp.waitFor("!document.querySelector('#view-search').classList.contains('hidden')")
+    await cdp.evaluate(`void downloadSong(window.__docScreenshotSong, null, false, '浏览器下载')`)
+    await cdp.waitFor("Array.from(document.querySelectorAll('h3')).some(el => el.textContent.includes('选择下载音质'))", 60000)
+    await cdp.evaluate(sanitizePage)
+    await cdp.screenshot('web-download-quality.png')
+
+    await cdp.navigate(`${baseUrl}/music`)
+    await cdp.waitFor("typeof switchTab === 'function' && document.querySelector('#view-localmusic')")
+    await delay(1200)
+    await cdp.evaluate(`switchTab('localmusic')`)
+    await cdp.waitFor("!document.querySelector('#view-localmusic').classList.contains('hidden')")
+    await cdp.waitFor("Number((document.querySelector('#lm-total-count')?.textContent || '').match(/\\d+/)?.[0] || 0) > 0", 30000)
+    await delay(1200)
+    await cdp.evaluate(sanitizePage)
+    await cdp.screenshot('web-local-music.png')
 
     await cdp.evaluate(`(() => {
       window.settings.enableRemaster = true;
@@ -258,12 +268,6 @@ async function main() {
     await cdp.evaluate(sanitizePage)
     await cdp.screenshot('web-remaster.png')
 
-    await cdp.evaluate(`window.LocalMusicManager.closeRemasterModal(); switchTab('search')`)
-    await cdp.waitFor("!document.querySelector('#view-search').classList.contains('hidden')")
-    await cdp.evaluate(`void downloadSong(window.__docScreenshotSong, null, false, '浏览器下载')`)
-    await cdp.waitFor("Array.from(document.querySelectorAll('h3')).some(el => el.textContent.includes('选择下载音质'))", 60000)
-    await cdp.evaluate(sanitizePage)
-    await cdp.screenshot('web-download-quality.png')
   } finally {
     cdp?.close()
     chrome.kill()

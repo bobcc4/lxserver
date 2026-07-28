@@ -1,6 +1,6 @@
 {
-    "name": "LX Music Web",
-    "short_name": "LX Music",
+    "name": "音团 Yintuan",
+    "short_name": "Yintuan",
     "start_url": "./",
     "display": "standalone",
     "background_color": "#ffffff",

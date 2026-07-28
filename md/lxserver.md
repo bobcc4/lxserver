@@ -1,12 +1,12 @@
-# LX Music Sync Server (Enhanced Edition)
+# 音团 Yintuan
 
-<!-- ![lxserver](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=1&issues=1&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=1&stargazers=1&theme=Auto) -->
-![lxserver](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
+<!-- ![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=1&issues=1&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=1&stargazers=1&theme=Auto) -->
+![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -22,7 +22,7 @@
 
 [帮助文档 Documentation](https://bobcc4.github.io/lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](../changelog.md)
 
-本项目不仅内置了功能强大的网页播放器，还提供了专业的 **LX Music 数据同步服务**，支持 Web 可视化管理。
+音团不仅内置了功能强大的网页播放器，还提供 **LX Music 数据同步服务**与 Web 可视化管理。
 
 ## ✨ 同步服务器核心特性
 

@@ -1,4 +1,4 @@
-# LX Music Web Player
+# 音团 Yintuan Web 播放器
 
 The full documentation for the Web Player has been moved to the [main README](../README.md).
 

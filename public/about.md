@@ -1,9 +1,9 @@
-# LX Music Sync Server
+# 音团 Yintuan
 
 <div align="center">
-  <img src="/icon.svg" width="100" height="100" alt="LX Sync Logo">
+  <img src="/icon.svg" width="100" height="100" alt="Yintuan Logo">
   <br>
-  <h1>LX Music Sync Server</h1>
+  <h1>音团 Yintuan</h1>
   <p>
     <img src="https://img.shields.io/badge/hash-{{buildHash}}-%2310b981?style=flat-square" alt="Build Hash">
     <img src="https://img.shields.io/badge/version-{{version}}-blue?style=flat-square" alt="Version">
@@ -11,7 +11,7 @@
   </p>
 </div>
 
-基于 [lyswhut/lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) 开发的增强版 LX Music 数据同步服务端。
+音团是基于 [lyswhut/lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) 开发的私有音乐服务器，并兼容 LX Music 数据同步。
 
 本项目在原版基础上增加了强大的 **Web 管理界面**，支持用户管理、数据查看、快照回滚、WebDAV 备份等高级功能，让私有化部署更加便捷易用。
 

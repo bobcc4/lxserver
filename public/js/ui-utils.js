@@ -1,5 +1,5 @@
 /* 
-   UI Utilities for LX Sync Server Management Console
+   UI Utilities for Yintuan Management Console
    Standardizes notifications (Toasts) and Dialogs
    Requires: Tailwind CSS, FontAwesome
 */
