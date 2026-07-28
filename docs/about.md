@@ -1,6 +1,6 @@
 # 关于
 
-**音团（Yintuan）** 修改自原版的 [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server)，并在原版基础上扩展为支持播放、下载、曲库管理、多用户和多端连接的个人私有云音乐平台。
+**音云（Yintuan）** 修改自原版的 [lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server)，并在原版基础上扩展为支持播放、下载、曲库管理、多用户和多端连接的个人私有云音乐平台。
 
 ## 开发意图
 

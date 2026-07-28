@@ -1,11 +1,11 @@
-# 音团 Yintuan
+# 音云 Yintuan
 
 ![Yintuan](https://socialify.git.ci/bobcc4/lxserver/image?description=1&forks=0&issues=0&logo=https://raw.githubusercontent.com/bobcc4/lxserver/refs/heads/main/public/icon.svg&owner=1&pulls=0&stargazers=0&theme=Auto)
 
 <div align="center">
   <!-- <img src="public/icon.svg" width="120" height="120" alt="Icon"> -->
   <!-- <br>
-  <h1>音团 Yintuan</h1> -->
+  <h1>音云 Yintuan</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
@@ -26,7 +26,7 @@
 
 ---
 
-**音团（Yintuan）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，并兼容 [LX Music 数据同步](md/lxserver.md)和 Subsonic 客户端。
+**音云（Yintuan）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，并兼容 LX Music 数据同步和 Subsonic 客户端。
 
 ## ✨ Web 播放器核心特性
 
@@ -124,7 +124,7 @@ Web 播放器针对移动端进行了深度优化，手机浏览器访问也能�
 
 ### 方式一：桌面客户端
 
-可以通过桌面端更方便地运行音团，支持 Windows、macOS 和 Linux。
+可以通过桌面端更方便地运行音云，支持 Windows、macOS 和 Linux。
 
 - **📦 最新版本下载**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
 - **✨ 桌面端优势**:
@@ -313,7 +313,7 @@ npm start
 
 Apache License 2.0 copyright (c) 2026 [bobcc4](https://github.com/bobcc4)
 
-**词语约定**：本协议中的“本项目”指音团 Yintuan；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
+**词语约定**：本协议中的“本项目”指音云 Yintuan；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。
 
 ### 一、数据来源
 

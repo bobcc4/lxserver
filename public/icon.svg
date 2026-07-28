@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title id="title">Yintuan</title>
+  <title id="title">音云 Yintuan</title>
   <rect width="512" height="512" rx="112" fill="#16222d"/>
-  <path d="M125 265c-20 24-20 60 0 84M91 231c-38 44-38 108 0 152" fill="none" stroke="#fff" stroke-width="25" stroke-linecap="round"/>
-  <path d="M220 165c0-15 10-27 25-31l136-30c19-4 37 10 37 30v194c0 39-32 70-72 70-37 0-66-22-66-51s29-51 66-51c10 0 20 2 29 5V205l-112 25v151c0 40-32 71-72 71-37 0-66-23-66-52s29-51 66-51c10 0 20 2 29 5V165z" fill="#fff"/>
+  <circle cx="151" cy="316" r="78" fill="#fff"/>
+  <circle cx="269" cy="252" r="119" fill="#fff"/>
+  <circle cx="382" cy="321" r="72" fill="#fff"/>
+  <rect x="126" y="310" width="278" height="96" rx="48" fill="#fff"/>
+  <path d="M218 193c0-12 8-22 20-25l109-24c16-4 32 9 32 26v129c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3v-66l-87 19v108c0 31-25 56-57 56-29 0-52-18-52-40s23-40 52-40c7 0 14 1 20 3V193z" fill="#16222d"/>
 </svg>

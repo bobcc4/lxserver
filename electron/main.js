@@ -244,7 +244,7 @@ function showPlayerWindow() {
 
     if (!playerWindow || playerWindow.isDestroyed()) {
         playerWindow = new BrowserWindow({
-            title: '音团 Yintuan',
+            title: '音云 Yintuan',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -284,7 +284,7 @@ function showAdminWindow() {
 
     if (!adminWindow || adminWindow.isDestroyed()) {
         adminWindow = new BrowserWindow({
-            title: '音团 Yintuan - 管理后台',
+            title: '音云 Yintuan - 管理后台',
             width: 1200,
             height: 850,
             minWidth: 900,
@@ -312,7 +312,7 @@ function showAdminWindow() {
 function createTray() {
     const icon = getIcon('tray.png') || nativeImage.createEmpty()
     tray = new Tray(icon)
-    tray.setToolTip(`音团 Yintuan (${SERVER_PORT})`)
+    tray.setToolTip(`音云 Yintuan (${SERVER_PORT})`)
 
     const menu = Menu.buildFromTemplate([
         { label: `● 运行中 (端口: ${SERVER_PORT})`, enabled: false },

@@ -22,7 +22,7 @@
 [Documentation](https://bobcc4.github.io/lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
 
 ---
-**Yintuan** is a self-hosted music server with a Web player, downloads, local-library management, [LX Music data synchronization](md/lxserver_EN.md), and Subsonic client support.
+**Yintuan** is a self-hosted music server with a Web player, downloads, local-library management, LX Music data synchronization, and Subsonic client support.
 
 ## ✨ Web Player Key Features
 

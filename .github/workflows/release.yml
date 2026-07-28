@@ -222,13 +222,13 @@ jobs:
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh release edit "$VERSION" \
-              --title "音团 Yintuan $VERSION" \
+              --title "音云 Yintuan $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           else
             gh release create "$VERSION" "${ASSETS[@]}" \
               --target "$GITHUB_SHA" \
-              --title "音团 Yintuan $VERSION" \
+              --title "音云 Yintuan $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           fi
