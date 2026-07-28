@@ -51,7 +51,7 @@ icon: electron/icons/icon.png
 
 # ── Windows ──────────────────────────────────────────────────────────────────
 win:
-  # 统一命名：文件名会根据架构自动变化，例如：Yintuan 1.1.0 x64.exe
+  # 统一命名：文件名会根据架构自动变化，例如：Yintuan 1.1.1 x64.exe
   artifactName: "${productName} ${version} ${arch}.${ext}"
   target:
     - nsis

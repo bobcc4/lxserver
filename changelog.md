@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.1 (2026-07-28)
+
+### Icon and documentation refresh
+
+- Replaced the abstract brand mark with the selected A1 white music-note and sound-wave icon.
+- Regenerated Web, PWA, documentation, Electron, tray, and installer icon assets from one source.
+- Regenerated all documentation screenshots so the published interface matches the current product branding.
+
 ## v1.1.0 (2026-07-28)
 
 ### 音团 Yintuan 品牌发布
