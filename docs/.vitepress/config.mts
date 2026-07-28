@@ -108,8 +108,7 @@ export default defineConfig({
           {
             text: 'Usage Guide',
             items: [
-              { text: 'Getting Started', link: '/en/guide/getting-started' },
-              { text: 'Choosing V1 or V2', link: '/en/guide/version-selection' }
+              { text: 'Getting Started', link: '/en/guide/getting-started' }
             ]
           },
           {

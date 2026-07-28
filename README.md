@@ -28,110 +28,75 @@
 
 本项目内置了一个功能强大的 **Web 播放器**，让你可以随时随地在浏览器中享受音乐。同时，它也是一个增强版的 [LX Music 数据同步服务端](md/lxserver.md)。
 
-## V1 与 V2 如何选择
-
-本仓库 `main` 分支发布 **V1**。V1 和 V2 都支持播放与下载歌曲，主要区别在于文件管理方式和多用户能力。
-
-| 对比项 | V1（本仓库） | [V2](https://github.com/bobcc4/lxserver-v2) |
-| --- | --- | --- |
-| 适用群体 | 个人 NAS、单用户或少量用户 | 家庭 NAS、多账号及共享使用场景 |
-| 下载歌曲 | 支持 | 支持 |
-| 源文件可见性 | 下载和缓存目录中是可读文件名，可直接查看、复制、备份或交给其他工具处理 | 文件由媒体仓库统一管理，物理文件使用内容哈希命名，不建议直接操作 |
-| 存储方式 | 以 `/music`、`/cache` 文件目录为核心 | SQLite 索引与 `DATA_PATH/media` 内容寻址仓库 |
-| 多用户 | 各用户目录相对独立，适合简单部署 | 用户隔离、音源分享、歌单分享和跨用户文件去重更完善 |
-| 推荐理由 | **希望下载歌曲后直接看到和管理源文件，优先选择 V1** | **需要家庭成员或多个账号共同使用，优先选择 V2** |
-
-V1 与 V2 的持久化数据结构不兼容，不能共用同一个数据目录；V2 也不是 V1 的原地升级版本。部署前请阅读[完整版本对比与迁移说明](docs/guide/version-selection.md)。
-
 ## ✨ Web 播放器核心特性
 
-### 1. 现代化界面
+### 1. 多平台搜索与播放
 
-采用清爽的现代化 UI 设计，支持深色模式，提供极致的视觉体验。
-
-<p align="center">
-  <img src="md/player.png" width="800" alt="Web Player Interface">
-</p>
-
-### 2. 多源搜索
-
-支持聚合搜索各大音乐平台的资源，想听什么搜什么。
+支持聚合搜索主流音乐平台，搜索结果可直接播放、收藏或下载，并可按平台和内容类型快速切换。
 
 <p align="center">
-  <img src="md/search.png" width="800" alt="Search Interface">
+  <img src="docs/public/screenshots/web-search.png" width="900" alt="Web 播放器在线搜索">
 </p>
 
-### 3. 内容与播放列表
+### 2. 本地曲库管理
 
-支持**多平台歌单**的浏览、搜索与一键播放，提供直观的**歌单详情**面板，包含封面、作者、简介等完整信息。**播放队列**支持拖拽排序、批量管理及快速定位当前播放。
+自动扫描 `/music` 与 `/cache`，支持多层目录、快速搜索、高级布尔筛选、批量选择、歌单收藏和元数据管理。
 
 <p align="center">
-  <img src="md/musiclist.png" width="800" alt="歌单浏览">
+  <img src="docs/public/screenshots/web-local-music.png" width="900" alt="本地音乐曲库">
 </p>
+
+### 3. 八档音质与服务器下载
+
+支持标准、高品、无损、24bit 无损、高解析度、空间音频、增强空间音频和母带音质。下载前会显示解析到的文件大小及最终来源平台，服务端下载队列可在关闭浏览器后继续运行。
 
 <p align="center">
-  <img src="md/musiclist-detail.png" width="400" alt="歌单详情">
-  <img src="md/playlist.png" width="400" alt="播放队列管理">
+  <img src="docs/public/screenshots/web-download-quality.png" width="900" alt="下载音质、文件大小和来源平台">
 </p>
 
-### 4. 强大的播放控制
+### 4. 本地歌曲洗版
 
-支持播放模式切换、音质选择、歌词显示、睡眠定时、播放倍数等功能。
+可筛选并批量选择本地歌曲，按指定目标音质重新下载；目标音质不可用时可按规则降级，并在任务结果中列出成功与失败歌曲。
 
 <p align="center">
-  <img src="md/controller.png" width="800" alt="Controller">
+  <img src="docs/public/screenshots/web-remaster.png" width="900" alt="歌曲洗版选择页面">
 </p>
 
-### 5. 缓存管理
+### 5. 播放器设置与自定义源
 
-内置**全自动化缓存系统**，可自动保存歌词、链接及歌曲文件，通过专门的**缓存控制面板**实现颗粒化管理，极大提升弱网环境下的播放流畅度。
+支持默认音质、缓存与下载、代理、歌词、主题、音效和播放行为设置。同步账户可管理自己的自定义源，管理员也可向其他用户共享音源。
 
 <p align="center">
-  <img src="md/cache.png" width="800" alt="缓存自动化管理">
+  <img src="docs/public/screenshots/web-settings.png" width="900" alt="播放器设置与自定义源">
 </p>
 
-### 6. 歌词卡片分享
+### 6. 服务状态与维护
 
-新增**歌词卡片分享**功能，支持自定义卡片比例（竖版/横版/方版）、色彩风格（深色/浅色/专辑色）及歌词行数，一键生成精美海报，支持旋转缩放。
+管理后台集中展示连接数、用户数、运行时间和资源占用，并提供数据、快照、WebDAV、日志和系统维护入口。
 
 <p align="center">
-  <img src="md/share.png" width="800" alt="歌词卡片社交分享">
+  <img src="docs/public/screenshots/admin-dashboard.png" width="900" alt="管理后台仪表盘">
 </p>
 
-### 7. 主题定制与系统功能
+### 7. 用户与权限管理
 
-支持**多套现代化主题**（如森之韵、深海鲨、暖阳意、绯红月等），并可根据系统自动切换暗亮模式。系统设置支持**自动更新网络歌单**、**账号设置自动备份**及**多维度代理**配置，确保播放顺滑稳定。
+支持创建和管理同步账户、标识管理员身份、查看连接设备，并隔离各用户的同步数据、自定义源、缓存与下载目录。
 
 <p align="center">
-  <img src="md/theme.png" width="400" alt="现代化主题切换">
-  <img src="md/settings.png" width="400" alt="全方位系统配置">
+  <img src="docs/public/screenshots/admin-users.png" width="900" alt="用户管理页面">
 </p>
 
-### 8. 自定义源管理
+### 8. 服务器配置
 
-支持导入自定义源脚本，扩展更多音乐来源。
+可在后台配置访问路径、同步模式、Subsonic、WebDAV、缓存限制、代理和其他服务端选项，Docker 环境变量仍具有最高优先级。
 
 <p align="center">
-  <img src="md/source.png" width="800" alt="Source Management">
+  <img src="docs/public/screenshots/admin-config.png" width="900" alt="系统配置页面">
 </p>
 
-### 9. 专辑与歌手搜索与收藏
+### 9. Subsonic 协议与全网检索
 
-支持搜索专辑与歌手，并支持一键收藏，方便快速找回你喜爱的音乐人与专辑。
-
-<p align="center">
-  <img src="md/album.png" width="400" alt="专辑展示">
-  <img src="md/singer.png" width="400" alt="歌手展示">
-</p>
-
-### 10. Subsonic 协议与全网检索支持
-
-全面适配 Subsonic 协议，支持使用各类 Subsonic 客户端（如音流、Feishin 等）连接并播放本站资源。支持在 Subsonic 客户端中通过 `wy:`, `kg:`, `tx:`, `kw:`, `mg:` 等指定平台前缀，或 `online:` / `local:` 强制指定全网在线或本地搜索。
-
-<p align="center">
-  <img src="md/subsonic.png" width="400" alt="Subsonic 支持">
-  <img src="md/subsonic-search.png" width="400" alt="Subsonic 在线全网搜索">
-</p>
+适配 Subsonic 协议，可使用音流、LMP、Feishin 等客户端连接本地曲库和歌单。搜索支持 `wy:`、`kg:`、`tx:`、`kw:`、`mg:` 平台前缀，以及 `online:` / `local:` 范围前缀。
 
 ## 🔒 访问控制与安全
 

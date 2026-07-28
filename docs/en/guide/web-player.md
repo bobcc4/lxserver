@@ -14,6 +14,8 @@ Functions currently supported by the Web player:
 - **UI Experience**: Audio waveform display at the bottom, built-in 5 types of themes, sleep timer.
 - **Lyric Extension**: Supports displaying translation and romaji, supports Karaoke word-by-word high-light rendering, and supports sharing lyric images.
 
+![Web player online search](/screenshots/web-search.png)
+
 ---
 
 ## Access the Player
@@ -40,8 +42,11 @@ To prevent users from affecting one another, custom sources are available only t
 
 ### 2. Automatic Quality Downgrade
 
-After selecting the **default audio quality** at the front-end (for example, 320k is selected), if the analysis engine fails when obtaining the target audio quality:
-The system will automatically try downward according to the downgrade order of `flac -> 320k -> 192k -> 128k`. Until an audio quality of one level lower that can be successfully parsed and played is obtained, thereby avoiding playback problems as much as possible.
+The player supports `128k`, `320k`, `flac`, `flac24bit`, `hires`, `atmos`, `atmos_plus`, and `master`, with lossless (`flac`) as the default. If the selected quality is unavailable, the resolver tries lower supported levels instead of failing immediately.
+
+The download dialog resolves and displays the file size and final source platform before a task is created.
+
+![Download quality, file size, and source platform](/screenshots/web-download-quality.png)
 
 ### 3. Data Layer Proxy Forwarding
 
@@ -68,6 +73,12 @@ To reduce repetitive network requests and improve playback speeds, playback requ
 - **Level 1 (Physical File)**: The player first checks for matching physical files in `/music` and `/cache`. If found, the server transfers the local file to the front-end (supporting 206 Partial Content break-point pulling), allowing for lag-free progress bar dragging.
 - **Level 2 (Link Cache)**: Successfully direct link URLs are saved in the browser's LocalStorage.
 - **Level 3 (Real-time Parsing)**: When no physical file is found in local directories and the historical link has expired, the system re-fetches a new link via source scripts.
+
+## Player Settings
+
+The settings page controls quality, caching, downloads, proxy routing, lyrics, themes, audio effects, and account-owned custom sources.
+
+![Player settings and custom sources](/screenshots/web-settings.png)
 
 ---
 

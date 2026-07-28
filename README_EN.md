@@ -24,105 +24,75 @@
 ---
 This project features a powerful built-in **Web Player**, allowing you to enjoy music anywhere in your browser. It also serves as an enhanced [LX Music Data Sync Server](md/lxserver_EN.md).
 
-## Choosing Between V1 and V2
-
-The `main` branch of this repository publishes **V1**. Both V1 and V2 support music playback and downloads; their main differences are file management and multi-user support.
-
-| Item | V1 (this repository) | [V2](https://github.com/bobcc4/lxserver-v2) |
-| --- | --- | --- |
-| Recommended for | Personal NAS, one user, or a small number of users | Family NAS, multiple accounts, and shared deployments |
-| Music downloads | Supported | Supported |
-| Source-file visibility | Downloaded and cached tracks have readable filenames and can be browsed, copied, backed up, or processed with external tools | Files are managed by the media repository and stored under content-hash names; direct manipulation is not recommended |
-| Storage model | File-oriented `/music` and `/cache` directories | SQLite index plus a content-addressed `DATA_PATH/media` repository |
-| Multi-user use | Separate per-user directories for straightforward deployments | Stronger user isolation, source sharing, playlist sharing, and cross-user deduplication |
-| Best reason to choose it | **Choose V1 when you want to download tracks and directly access the source files** | **Choose V2 for a family or other multi-user environment** |
-
-The V1 and V2 persistent-data layouts are incompatible and must not share a data directory. V2 is not an in-place upgrade from V1. Read the [full version comparison and migration notes](docs/en/guide/version-selection.md) before deployment.
-
 ## ✨ Web Player Key Features
 
-### 1. Modern Interface
-Featuring a clean, modern UI design with support for dark mode, providing a top-tier visual experience.
-<p align="center">
-  <img src="md/player.png" width="800" alt="Web Player Interface">
-</p>
+### 1. Multi-platform Search and Playback
 
-### 2. Multi-source Search
-Supports aggregated searching across major music platforms, search and listen to anything you want.
-<p align="center">
-  <img src="md/search.png" width="800" alt="Search Interface">
-</p>
-
-### 3. Content & Playlists
-  
-Browse and search **multi-platform playlists** with ease. View comprehensive **playlist details** including covers, authors, and descriptions. Manage your **playback queue** with drag-and-drop sorting, batch operations, and quick positioning.
+Search across major music platforms from one interface. Results can be played, favorited, or downloaded directly, with quick source and content-type filters.
 
 <p align="center">
-  <img src="md/musiclist.png" width="800" alt="Playlist Browsing">
+  <img src="docs/public/screenshots/web-search.png" width="900" alt="Web player online search">
 </p>
+
+### 2. Local Library Management
+
+Scan `/music` and `/cache`, including nested directories. Use quick search, advanced Boolean filters, batch selection, playlist collection, and metadata management.
 
 <p align="center">
-  <img src="md/musiclist-detail.png" width="400" alt="Playlist Details">
-  <img src="md/playlist.png" width="400" alt="Queue Management">
+  <img src="docs/public/screenshots/web-local-music.png" width="900" alt="Local music library">
 </p>
 
-### 4. Powerful Playback Controls
-Supports playback mode switching, sound quality selection, lyrics display, sleep timer, playback speed control, and more.
+### 3. Eight Quality Levels and Server Downloads
+
+Choose from standard, high, lossless, 24-bit lossless, Hi-Res, Atmos, enhanced Atmos, and master quality. The download dialog shows the resolved file size and source platform, while server-side queues continue after the browser closes.
 
 <p align="center">
-  <img src="md/controller.png" width="800" alt="Controller">
+  <img src="docs/public/screenshots/web-download-quality.png" width="900" alt="Download quality, file size, and source platform">
 </p>
 
-### 5. Cache Management
-  
-Features a **fully automated caching system** for lyrics, links, and song files, managed via a dedicated **cache control panel** for smooth playback even in weak network conditions.
+### 4. Local Track Remastering
+
+Filter and batch-select local tracks for replacement at a chosen target quality. When the target is unavailable, configurable fallback is supported and the result lists successful and failed tracks.
 
 <p align="center">
-  <img src="md/cache.png" width="800" alt="Automated Cache Management">
+  <img src="docs/public/screenshots/web-remaster.png" width="900" alt="Track remaster selection">
 </p>
 
-### 6. Lyric Card Sharing
-  
-Introducing **Lyric Card Sharing**—generate stunning posters with customizable aspect ratios (Portrait/Landscape/Square), color styles (Dark/Light/Album colors), and line counts, with support for rotation and scaling.
+### 5. Player Settings and Custom Sources
+
+Configure default quality, caching, downloads, proxies, lyrics, themes, audio effects, and playback behavior. Sync users manage account-owned custom sources, and administrators can share sources with other users.
 
 <p align="center">
-  <img src="md/share.png" width="800" alt="Social Lyric Card Sharing">
+  <img src="docs/public/screenshots/web-settings.png" width="900" alt="Player settings and custom sources">
 </p>
 
-### 7. Themes & System Configuration
-  
-Choose from multiple **modern themes** (Emerald, Deep Blue, Warm Sun, Nebula, Crimson) with automatic Light/Dark mode switching. Powerful system settings include **auto-updating network playlists**, **automatic config backups**, and multi-dimensional proxy support for seamless playback.
+### 6. Service Status and Maintenance
+
+The dashboard summarizes connections, users, uptime, and resource usage, with direct access to data, snapshots, WebDAV, logs, and maintenance tools.
 
 <p align="center">
-  <img src="md/theme.png" width="400" alt="Modern Theme Switching">
-  <img src="md/settings.png" width="400" alt="System Configuration">
+  <img src="docs/public/screenshots/admin-dashboard.png" width="900" alt="Management dashboard">
 </p>
 
-### 8. Custom Source Management
+### 7. Users and Permissions
 
-Supports importing custom source scripts to expand music sources even further.
+Create and manage sync accounts, identify administrator accounts, inspect connected devices, and keep each user's sync data, custom sources, cache, and download directories isolated.
 
 <p align="center">
-  <img src="md/source.png" width="800" alt="Source Management">
+  <img src="docs/public/screenshots/admin-users.png" width="900" alt="User management">
 </p>
 
-### 9. Album & Artist Search & Collection
+### 8. Server Configuration
 
-Search for albums and artists and favorite them with one click for quick access to your favorite music.
+Configure access paths, synchronization modes, Subsonic, WebDAV, cache limits, proxies, and other server options from the dashboard. Docker environment variables retain the highest priority.
 
 <p align="center">
-  <img src="md/album.png" width="400" alt="Album Display">
-  <img src="md/singer.png" width="400" alt="Artist Display">
+  <img src="docs/public/screenshots/admin-config.png" width="900" alt="Server configuration">
 </p>
 
-### 10. Subsonic Protocol & Global Search Support
+### 9. Subsonic Protocol and Online Search
 
-Fully compatible with the Subsonic protocol, allowing you to use various Subsonic clients (e.g., Yinliu, Feishin, etc.) to connect and play music. Supports specifying platform prefixes such as `wy:`, `kg:`, `tx:`, `kw:`, `mg:`, or using `online:` / `local:` prefixes to force global online or local search within Subsonic clients.
-
-<p align="center">
-  <img src="md/subsonic.png" width="400" alt="Subsonic Support">
-  <img src="md/subsonic-search.png" width="400" alt="Subsonic Online Search">
-</p>
+Connect clients such as Stream Music, LMP, and Feishin to the local library and playlists through the Subsonic API. Search supports `wy:`, `kg:`, `tx:`, `kw:`, and `mg:` platform prefixes, plus `online:` and `local:` scope prefixes.
 
 ## 🔒 Access Control & Security
 To protect your privacy, the Web Player supports password protection.

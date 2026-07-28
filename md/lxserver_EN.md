@@ -5,8 +5,8 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v2.0.0-blue?style=flat-square" alt="Version">
-    <img src="https://img.shields.io/badge/node-%3E%3D16-green?style=flat-square" alt="Node Version">
+    <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
     <br>
@@ -27,33 +27,34 @@ This project provides both a powerful WebPlayer and a professional **LX Music Da
 
 ### 📊 Dashboard
 Intuitive Web interface to monitor service status and connections in real-time.
-![Dashboard](仪表盘.png)
+![Dashboard](../docs/public/screenshots/admin-dashboard.png)
 
 ### 👥 User Management
 Easily add/delete users and modify sync keys via the UI to manage multi-device access permissions.
-![User Management](用户管理.png)
+![User Management](../docs/public/screenshots/admin-users.png)
 
 ### 🎵 Deep Data Management
 - View playlists and song lists online for all users.
 - Support for searching and sorting to quickly locate songs.
 - Support for batch clearing redundant data or deleting playlists.
-  ![Data View](数据查看.png)
 
 ### 💾 Snapshot Management
 - **Auto Backup**: Server automatically generates historical data snapshots.
 - **Local Download**: Snapshots can be downloaded as `lx_backup.json` for direct import into LX Music clients.
 - **One-click Rollback**: Roll back data to a specific snapshot point to prevent data loss.
-  ![Snapshot Management](快照管理.png)
 
 ### 📂 File & System Logs
 Built-in lightweight file management system for viewing, downloading, and searching system logs online.
-![System Logs](系统日志.png)
 
 ### ☁️ WebDAV Real-time Cloud Sync
 - Supports Nutstore, Nextcloud, Alist, and other standard WebDAV drives.
 - Supports scheduled full data backup to the cloud.
 - Supports one-click restoration from cloud after server reset.
-  ![WEBDAV Sync](WEBDAV同步.png)
+
+### ⚙️ System Configuration
+
+Configure access paths, synchronization modes, Subsonic, WebDAV, proxies, cache limits, and other server options from the dashboard.
+![System Configuration](../docs/public/screenshots/admin-config.png)
 
 ---
 

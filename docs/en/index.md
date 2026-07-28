@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "LX Sync Server"
-  text: "Perfect fusion of cloud synchronization and playback"
-  tagline: "A service system that supports searching across major music platforms, online playback, and cloud synchronization of data"
+  text: "Playback, downloads, and synchronization"
+  tagline: "Deploy and manage a private music service with a Web player, local library, LX synchronization, and Subsonic support"
   image:
     src: /icon.svg
     alt: LX Sync Server
@@ -17,18 +17,30 @@ hero:
       link: https://github.com/bobcc4/lxserver
 
 features:
-  - title: Brand New Web Player
-    details: Built-in advanced seamless player, supports multiple display modes, dark theme, aggregated search and dynamic lyrics. Enjoy music anywhere.
-  - title: Perfect Sync Backend
-    details: Compatible with LX Music clients, achieves seamless syncing of playlists, backing up your music assets anytime, anywhere. Supports multi-device and multi-user management.
-  - title: Powerful Data View
-    details: Online console visualizes device status, user data, providing complete data control and system configuration management.
-  - title: One-click Multi-end Connection
-    details: Can be deployed via Docker or simple command line, and natively supports WebDAV incremental cloud backups.
-  - title: Full Desktop Support
-    details: Dedicated clients for Win/Mac/Linux with system tray, auto port-conflict resolution, and portable mode.
+  - title: Web Playback and Downloads
+    details: Search multiple platforms, choose from eight quality levels, manage playlists, lyrics, server downloads, and persistent download queues.
+    link: /en/guide/web-player
+  - title: Local Library
+    details: Scan nested directories under /music and /cache, keep readable source files, and use Boolean search, batch operations, and remastering.
+    link: /en/guide/web-player
+  - title: Synchronization and Clients
+    details: Synchronize LX Music data and connect Stream Music, LMP, Feishin, and other Subsonic clients.
+    link: /en/guide/sync-server
+  - title: Administration
+    details: Manage users, devices, snapshots, WebDAV backups, logs, access paths, proxies, and cache limits from the dashboard.
+    link: /en/guide/sync-server
 
 ---
+
+## Interface Preview
+
+![Web player online search](/screenshots/web-search.png)
+
+Search, play, favorite, and download from one interface.
+
+![Server management dashboard](/screenshots/admin-dashboard.png)
+
+Monitor service status and open user, data, backup, log, and configuration tools from the dashboard.
 
 <style>
 :root {
