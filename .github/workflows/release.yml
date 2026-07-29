@@ -142,7 +142,7 @@ jobs:
       - name: Upload desktop package
         uses: actions/upload-artifact@v7
         with:
-          name: 音云-${{ matrix.artifact }}
+          name: yinyun-${{ matrix.artifact }}
           path: |
             dist-electron/*.exe
             dist-electron/*.dmg
@@ -181,12 +181,12 @@ jobs:
           cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yinyun/
           [[ -f config.js ]] && cp config.js release/yinyun/
           cd release
-          zip -r "音云-${VERSION}-linux-x64.zip" yinyun
+          zip -r "Yinyun-${VERSION#v}-linux-x64.zip" yinyun
 
       - name: Upload server package
         uses: actions/upload-artifact@v7
         with:
-          name: 音云-server
+          name: yinyun-server
           path: release/*.zip
           if-no-files-found: error
           retention-days: 7
@@ -220,18 +220,16 @@ jobs:
           )
 
           if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
+              gh release delete-asset "$VERSION" "$ASSET" --yes
+            done
+
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh release edit "$VERSION" \
               --target "$GITHUB_SHA" \
               --title "音云 Yinyun $VERSION" \
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
-
-            gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
-              case "$ASSET" in
-                Yintuan.*|Yintuan-*|yintuan-*|Yinyun.*|Yinyun-*|yinyun-*) gh release delete-asset "$VERSION" "$ASSET" --yes ;;
-              esac
-            done
           else
             gh release create "$VERSION" "${ASSETS[@]}" \
               --target "$GITHUB_SHA" \
@@ -239,3 +237,13 @@ jobs:
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           fi
+
+          gh api "repos/$GH_REPO/releases/tags/$VERSION" --jq '.assets[] | [.id, .name] | @tsv' |
+            while IFS=$'\t' read -r ASSET_ID ASSET_NAME; do
+              case "$ASSET_NAME" in
+                Yinyun-*)
+                  LABEL="音云-${ASSET_NAME#Yinyun-}"
+                  gh api --method PATCH "repos/$GH_REPO/releases/assets/$ASSET_ID" -f label="$LABEL" >/dev/null
+                  ;;
+              esac
+            done
