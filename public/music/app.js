@@ -63,9 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Settings & Batch Selection
+const DEFAULT_ENTRY_TABS = new Set(['search', 'songlist', 'leaderboard', 'favorites', 'localmusic', 'about']);
 const DEFAULT_SETTINGS = {
     itemsPerPage: 20, // Default 20 items per page, can be 'all'
-    defaultEntry: 'favorites', // 默认入口: 'search' | 'songlist' | 'leaderboard' | 'favorites' | 'localmusic'
+    defaultEntry: 'about', // 默认入口
     preferredQuality: 'flac', // 默认音质偏好
     enableProxyPlayback: false, // 播放音乐代理
     enableProxyDownload: false, // 下载音乐代理
@@ -136,6 +137,9 @@ function normalizeDownloadConcurrency(value) {
 function normalizeStoredSettings(nextSettings) {
     if (!nextSettings || typeof nextSettings !== 'object') return nextSettings;
     delete nextSettings.remasterRetryManifest;
+    if (!DEFAULT_ENTRY_TABS.has(nextSettings.defaultEntry)) {
+        nextSettings.defaultEntry = DEFAULT_SETTINGS.defaultEntry;
+    }
     if (nextSettings.downloadConcurrency !== undefined) {
         nextSettings.downloadConcurrency = normalizeDownloadConcurrency(nextSettings.downloadConcurrency);
     }
@@ -1126,7 +1130,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.0';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.1';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -3440,8 +3444,8 @@ async function findOtherSourceMatches(song, isSilent = false, options = {}) {
         if (Array.isArray(list)) {
             supportedPlatforms = new Set();
             list.forEach(src => {
-                if (src.enabled && src.status === 'success' && Array.isArray(src.supportedSources)) {
-                    src.supportedSources.forEach(platform => {
+                if (src.enabled && src.status === 'success' && Array.isArray(src.enabledSources)) {
+                    src.enabledSources.forEach(platform => {
                         supportedPlatforms.add(platform);
                     });
                 }
@@ -5909,7 +5913,11 @@ async function updateSetting(key, value) {
 // 核心设置项映射表: [key]: { id: 'element-id', type: 'checkbox|value|custom', action: (val) => { ... } }
 const SETTINGS_UI_MAP = {
     // 逻辑 (Logic)
-    defaultEntry: { id: 'setting-default-entry', type: 'value' },
+    defaultEntry: {
+        id: 'setting-default-entry',
+        type: 'value',
+        normalize: value => DEFAULT_ENTRY_TABS.has(value) ? value : DEFAULT_SETTINGS.defaultEntry
+    },
     switchPlaylistOnSearchPlay: { id: 'setting-switch-playlist-search', type: 'checkbox' },
     switchPlaylistOnSongListPlay: { id: 'setting-switch-playlist-songlist', type: 'checkbox' },
     autoResume: { id: 'setting-auto-resume', type: 'checkbox' },
@@ -8408,8 +8416,19 @@ async function fetchSettingsFromServer() {
         if (res.ok) {
             const serverSettings = await res.json();
             console.log('[Settings] 从服务器加载设置成功:', serverSettings);
+            let localDefaultEntry = null;
+            try {
+                const localSettings = JSON.parse(localStorage.getItem('lx_settings') || '{}');
+                if (DEFAULT_ENTRY_TABS.has(localSettings.defaultEntry)) {
+                    localDefaultEntry = localSettings.defaultEntry;
+                }
+            } catch (e) {
+                console.warn('[Settings] 读取本地默认入口失败:', e);
+            }
             // Merge settings
             settings = normalizeStoredSettings({ ...settings, ...serverSettings });
+            // 用户刚在本机修改的入口不能被账户中较旧的设置覆盖。
+            if (localDefaultEntry) settings.defaultEntry = localDefaultEntry;
             // Save to local
             localStorage.setItem('lx_settings', JSON.stringify(settings));
             // Update UI
@@ -10028,7 +10047,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // [New] Switch to the user's default entry tab on load
-    const defaultTab = settings.defaultEntry || 'favorites';
+    const defaultTab = DEFAULT_ENTRY_TABS.has(settings.defaultEntry)
+        ? settings.defaultEntry
+        : DEFAULT_SETTINGS.defaultEntry;
     switchTab(defaultTab);
 
     // 2. Auto-reconnect or auto-login
@@ -10622,6 +10643,23 @@ async function unshareCustomSource() {
 window.saveCustomSourceShare = saveCustomSourceShare;
 window.unshareCustomSource = unshareCustomSource;
 
+async function saveCustomSourcePlatforms(source, enabledSources) {
+    const response = await fetch('/api/custom-source/platforms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
+        body: JSON.stringify({
+            owner: source.owner,
+            sourceId: source.id,
+            enabledSources
+        })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.success === false) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    return data;
+}
+
 async function renderCustomSources() {
     const isUser = isUserLoggedIn();
     const list = await fetchCustomSources();
@@ -10680,7 +10718,7 @@ async function renderCustomSources() {
             div.dataset.index = index;
             div.dataset.readOnly = source.readOnly ? 'true' : 'false';
 
-            // 格式化支持的源
+            // 平台启用设置属于当前用户，共享音源也可以独立选择。
             let supportedBadges = '';
             if (source.supportedSources && source.supportedSources.length > 0) {
                 const sourceMap = {
@@ -10690,11 +10728,20 @@ async function renderCustomSources() {
                     'wy': { name: '网易', color: 't-badge-red' },
                     'mg': { name: '咪咕', color: 't-badge-pink' }
                 };
+                const enabledSources = new Set(Array.isArray(source.enabledSources)
+                    ? source.enabledSources
+                    : source.supportedSources);
+                const platformControlsDisabled = !source.enabled || source.status === 'failed';
 
-                supportedBadges = `<div class="flex flex-wrap gap-1.5 mt-2">
+                supportedBadges = `<div class="flex flex-wrap items-center gap-1.5 mt-2 custom-source-platforms">
+                <span class="text-[10px] t-text-muted mr-0.5">使用平台</span>
                 ${source.supportedSources.map(s => {
                     const info = sourceMap[s] || { name: s, color: 't-badge-gray' };
-                    return `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-medium transition-colors border border-transparent ${info.color}">${info.name}</span>`;
+                    const checked = enabledSources.has(s);
+                    return `<label class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium transition-colors border border-transparent ${checked ? info.color : 't-bg-track t-text-muted'} ${platformControlsDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
+                        <input type="checkbox" class="custom-source-platform-toggle accent-emerald-500 w-3 h-3" data-platform="${escapeHtmlText(s)}" ${checked ? 'checked' : ''} ${platformControlsDisabled ? 'disabled' : ''}>
+                        <span>${escapeHtmlText(info.name)}</span>
+                    </label>`;
                 }).join('')}
             </div>`;
             } else {
@@ -10781,6 +10828,24 @@ async function renderCustomSources() {
             </div>
             `;
             container.appendChild(div);
+            const platformInputs = Array.from(div.querySelectorAll('.custom-source-platform-toggle'));
+            platformInputs.forEach(input => {
+                input.addEventListener('change', async () => {
+                    const enabledSources = platformInputs
+                        .filter(item => item.checked)
+                        .map(item => item.dataset.platform);
+                    platformInputs.forEach(item => { item.disabled = true; });
+                    try {
+                        await saveCustomSourcePlatforms(source, enabledSources);
+                        await renderCustomSources();
+                        showSuccess('音源平台设置已保存');
+                    } catch (error) {
+                        console.error('[CustomSource] Save platform preferences failed:', error);
+                        showError(`保存平台设置失败: ${error.message}`);
+                        await renderCustomSources();
+                    }
+                });
+            });
             const sourceActions = div.querySelector('div.flex.items-center.gap-1');
             if (source.readOnly) {
                 const toggleButton = div.querySelector('button[onclick^="toggleSource"]');

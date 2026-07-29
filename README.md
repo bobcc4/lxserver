@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.1-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -64,7 +64,7 @@
 
 ### 5. 播放器设置与自定义源
 
-支持默认音质、缓存与下载、代理、歌词、主题、音效和播放行为设置。同步账户可管理自己的自定义源，管理员也可向其他用户共享音源。
+支持默认音质、缓存与下载、代理、歌词、主题、音效和播放行为设置。同步账户可按音源选择启用平台；管理员共享完整音源后，接收者可独立配置自己使用的平台。
 
 <p align="center">
   <img src="docs/public/screenshots/web-settings.png" width="900" alt="播放器设置与自定义源">

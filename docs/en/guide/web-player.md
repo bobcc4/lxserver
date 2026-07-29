@@ -38,6 +38,7 @@ To prevent users from affecting one another, custom sources are available only t
 - **Account-owned storage**: Uploaded or imported JavaScript source scripts are stored under `data/users/source/{username}`.
 - **Independent state**: Each user can only view, enable, disable, and delete their own custom sources.
 - **Independent ordering**: Drag-and-drop ordering is saved only in the current user's directory and does not affect other users.
+- **Per-source platform selection**: Each user can independently choose which platforms an owned or shared source may resolve. A shared script exposes all supported platforms without inheriting the owner's selection.
 - **Authentication required**: Custom sources cannot be read or managed without signing in to a sync account.
 
 ### 2. Automatic Quality Downgrade

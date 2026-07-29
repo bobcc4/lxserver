@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.1.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.1-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -60,7 +60,7 @@ Filter and batch-select local tracks for replacement at a chosen target quality.
 
 ### 5. Player Settings and Custom Sources
 
-Configure default quality, caching, downloads, proxies, lyrics, themes, audio effects, and playback behavior. Sync users manage account-owned custom sources, and administrators can share sources with other users.
+Configure default quality, caching, downloads, proxies, lyrics, themes, audio effects, and playback behavior. Each user can select enabled platforms per custom source, including independently configured shared sources.
 
 <p align="center">
   <img src="docs/public/screenshots/web-settings.png" width="900" alt="Player settings and custom sources">

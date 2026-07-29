@@ -1117,7 +1117,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.1.0'
+      let version = 'v1.1.1'
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')
@@ -4916,6 +4916,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         }
         if (pathname === '/api/custom-source/toggle' && req.method === 'POST') {
           return customSourceHandlers.handleToggle(req, res, username)
+        }
+        if (pathname === '/api/custom-source/platforms' && req.method === 'POST') {
+          return customSourceHandlers.handlePlatforms(req, res, username)
         }
         if (pathname === '/api/custom-source/delete' && req.method === 'POST') {
           return customSourceHandlers.handleDelete(req, res, username)

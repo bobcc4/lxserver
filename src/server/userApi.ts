@@ -10,6 +10,7 @@ import { promisify } from 'util'
 import * as tunnel from 'tunnel'
 import { tryNormalizeUsername } from '@/utils/username'
 import { isSourceSharedWithUser } from './customSourceSharing'
+import { isSourcePlatformEnabled } from './customSourcePlatformPreferences'
 const inflate = promisify(zlib.inflate)
 const deflate = promisify(zlib.deflate)
 
@@ -527,6 +528,13 @@ export async function callUserApiGetMusicUrl(
         const isOwner = api.info.owner === clientUsername
         const isShared = !isOwner && isSourceSharedWithUser(api.info.owner, api.info.id, clientUsername)
         if (!isOwner && !isShared) continue
+        if (!isSourcePlatformEnabled(
+            clientUsername,
+            api.info.owner,
+            api.info.id,
+            source,
+            Object.keys(api.info.sources),
+        )) continue
         candidates.push(api)
     }
 
@@ -907,7 +915,10 @@ export function isSourceSupported(source: string, clientUsername?: string): bool
         if (!api.info.enabled || !api.info.sources || !api.info.sources[source]) {
             continue
         }
-        if (api.info.owner === owner || isSourceSharedWithUser(api.info.owner, api.info.id, owner)) {
+        if (
+            (api.info.owner === owner || isSourceSharedWithUser(api.info.owner, api.info.id, owner)) &&
+            isSourcePlatformEnabled(owner, api.info.owner, api.info.id, source, Object.keys(api.info.sources))
+        ) {
             return true
         }
     }

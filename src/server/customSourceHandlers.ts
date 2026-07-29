@@ -6,10 +6,16 @@ import { normalizeUsername } from '@/utils/username'
 import { getUserSourcePath } from '@/user'
 import {
     getSharedUsers,
+    isSourceSharedWithUser,
     readSourceShares,
     removeSourceShare,
     setSourceShare,
 } from './customSourceSharing'
+import {
+    getEnabledSourcePlatforms,
+    removeSourcePlatformPreferences,
+    setEnabledSourcePlatforms,
+} from './customSourcePlatformPreferences'
 
 interface StoredSource {
     id: string
@@ -297,6 +303,7 @@ export async function handleList(_req: IncomingMessage, res: ServerResponse, use
             const status = getApiStatus(owner, source.id)
             return {
                 ...source,
+                enabledSources: getEnabledSourcePlatforms(owner, owner, source.id, source.supportedSources),
                 owner,
                 shared: false,
                 readOnly: false,
@@ -314,6 +321,7 @@ export async function handleList(_req: IncomingMessage, res: ServerResponse, use
                 const status = getApiStatus(share.owner, source.id)
                 return [{
                     ...source,
+                    enabledSources: getEnabledSourcePlatforms(owner, share.owner, source.id, source.supportedSources),
                     owner: share.owner,
                     shared: true,
                     readOnly: true,
@@ -445,6 +453,33 @@ export async function handleToggle(req: IncomingMessage, res: ServerResponse, us
     }
 }
 
+export async function handlePlatforms(req: IncomingMessage, res: ServerResponse, username: string) {
+    try {
+        const currentUser = assertUsername(username)
+        const { id, sourceId, owner, enabledSources } = JSON.parse(await readBody(req))
+        const targetId = id || sourceId
+        const sourceOwner = owner ? assertUsername(owner) : currentUser
+        const sources = readSources(sourceOwner)
+        const target = sources.find(source => source.id === targetId)
+        if (!target) throw new Error('Source not found')
+        if (sourceOwner !== currentUser && !isSourceSharedWithUser(sourceOwner, targetId, currentUser)) {
+            throw new Error('Source is not shared with this user')
+        }
+
+        const selected = setEnabledSourcePlatforms(
+            currentUser,
+            sourceOwner,
+            targetId,
+            enabledSources,
+            target.supportedSources,
+        )
+        sendJson(res, 200, { success: true, enabledSources: selected })
+    } catch (error: any) {
+        console.error('[CustomSource] Platform preference error:', error)
+        sendJson(res, 400, { success: false, error: error.message })
+    }
+}
+
 export async function handleReorder(req: IncomingMessage, res: ServerResponse, username: string) {
     try {
         const owner = assertUsername(username)
@@ -481,6 +516,7 @@ export async function handleDelete(req: IncomingMessage, res: ServerResponse, us
         if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath)
         writeSources(owner, sources.filter(source => source.id !== targetId))
         removeSourceShare(owner, targetId)
+        removeSourcePlatformPreferences(owner, targetId)
         const orderPath = path.join(getSourceDir(owner), 'order.json')
         if (fs.existsSync(orderPath)) {
             try {

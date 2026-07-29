@@ -128,8 +128,12 @@
     <script>
         // 动态确定管理后台基础路径，适配自定义 admin.path
         (function () {
-            var pathname = window.location.pathname;
-            var baseHref = pathname.endsWith('/') ? pathname : pathname + '/';
+            var pathname = window.location.pathname.replace(/\/+$/, '');
+            var suffix = '/filemanager.html';
+            var adminPath = pathname.endsWith(suffix) ? pathname.slice(0, -suffix.length) : pathname;
+            window.FILE_MANAGER_ADMIN_HOME = adminPath || '/';
+
+            var baseHref = (adminPath || '') + '/';
             var baseTag = document.createElement('base');
             baseTag.href = baseHref;
             document.head.prepend(baseTag);
@@ -154,7 +158,7 @@
                 </svg>
                 <span>数据文件夹</span>
             </button>
-            <a href="./" class="btn-quick" title="返回主页">
+            <a href="#" class="btn-quick" title="返回主页" onclick="goToAdminHome(); return false;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="19" y1="12" x2="5" y2="12" />
                     <polyline points="12 19 5 12 12 5" />
@@ -172,7 +176,7 @@
             const authCode = localStorage.getItem('lx_auth');
             if (!authCode) {
                 alert('请先在主页登录');
-                window.location.href = './';
+                goToAdminHome();
                 return;
             }
 
@@ -234,10 +238,14 @@
         });
 
         function goToDataFolder() {
-            // 刷新到数据文件夹
             if (window.elFinderInstance) {
-                window.elFinderInstance.exec('reload');
+                // elFinder 的根目录是服务端工作目录，data 的目标哈希固定由相对路径生成。
+                window.elFinderInstance.exec('open', 'l1_ZGF0YQ');
             }
+        }
+
+        function goToAdminHome() {
+            window.location.assign(window.FILE_MANAGER_ADMIN_HOME || '/');
         }
     </script>
 </body>
