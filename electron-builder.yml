@@ -51,38 +51,38 @@ icon: electron/icons/icon.png
 
 # ── Windows ──────────────────────────────────────────────────────────────────
 win:
-  # 统一命名：文件名会根据架构自动变化，例如：Yinyun 1.1.0 x64.exe
-  artifactName: "${productName} ${version} ${arch}.${ext}"
+  # 统一使用中文产品名，文件名会根据架构自动变化。
+  artifactName: "音云-${version}-${arch}.${ext}"
   target:
     - nsis
     - portable
   requestedExecutionLevel: asInvoker
 
 nsis:
-  artifactName: "${productName} ${version} ${arch} Setup.${ext}"
+  artifactName: "音云-${version}-${arch}-Setup.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   allowElevation: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: "Yinyun"
+  shortcutName: "音云"
 
 portable:
-  artifactName: "${productName} ${version} ${arch} Portable.${ext}"
+  artifactName: "音云-${version}-${arch}-Portable.${ext}"
 
 # ── macOS ────────────────────────────────────────────────────────────────────
 mac:
-  # 统一命名文件名
-  artifactName: "${productName} ${version} ${arch}.${ext}"
+  # 统一使用中文产品名
+  artifactName: "音云-${version}-${arch}.${ext}"
   target:
     - dmg
   category: public.app-category.utilities
 
 # ── Linux ────────────────────────────────────────────────────────────────────
 linux:
-  # 统一命名文件名
-  artifactName: "${productName} ${version} ${arch}.${ext}"
+  # 统一使用中文产品名
+  artifactName: "音云-${version}-${arch}.${ext}"
   target:
     - AppImage
     - deb

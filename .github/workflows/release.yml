@@ -142,7 +142,7 @@ jobs:
       - name: Upload desktop package
         uses: actions/upload-artifact@v7
         with:
-          name: yinyun-${{ matrix.artifact }}
+          name: 音云-${{ matrix.artifact }}
           path: |
             dist-electron/*.exe
             dist-electron/*.dmg
@@ -181,12 +181,12 @@ jobs:
           cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yinyun/
           [[ -f config.js ]] && cp config.js release/yinyun/
           cd release
-          zip -r "yinyun-${VERSION}-linux-x64.zip" yinyun
+          zip -r "音云-${VERSION}-linux-x64.zip" yinyun
 
       - name: Upload server package
         uses: actions/upload-artifact@v7
         with:
-          name: yinyun-server
+          name: 音云-server
           path: release/*.zip
           if-no-files-found: error
           retention-days: 7
@@ -229,7 +229,7 @@ jobs:
 
             gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
               case "$ASSET" in
-                Yintuan.*|yintuan-*) gh release delete-asset "$VERSION" "$ASSET" --yes ;;
+                Yintuan.*|Yintuan-*|yintuan-*|Yinyun.*|Yinyun-*|yinyun-*) gh release delete-asset "$VERSION" "$ASSET" --yes ;;
               esac
             done
           else
