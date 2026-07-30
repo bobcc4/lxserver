@@ -9,7 +9,7 @@ import { callUserApiGetMusicUrl } from '@/server/userApi'
 import { getSingerPic, getSingerDetail, getSingerMid } from '@/server/utils/singer'
 import { fetchRecommendedAlbums } from '@/server/utils/recommendAlbums'
 import { fetchGenres, fetchRadios, fetchPlaylistsByGenre, fetchRadioSongs, fetchPlaylistSongs, fetchSongsByGenre } from '@/server/utils/discovery'
-import { checkCache, serveCacheFile, type CacheFolder } from '@/server/fileCache'
+import { checkCache, getLocalLyrics, serveCacheFile, type CacheFolder } from '@/server/fileCache'
 import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
@@ -206,11 +206,9 @@ class SubsonicHandler {
                         resolve(new URLSearchParams(body))
                     })
                 })
-                // 合并 URL 参数和 Body 参数
+                // 合并 URL 参数和 Body 参数。保留重复参数，例如多个 songIdToAdd/id。
                 const mergedParams = new URLSearchParams(params.toString())
-                bodyParams.forEach((v, k) => {
-                    if (!mergedParams.has(k)) mergedParams.set(k, v)
-                })
+                for (const [key, value] of bodyParams) mergedParams.append(key, value)
                 params = mergedParams
             } catch (e) {
                 console.error('[Subsonic] POST body parse error:', e)
@@ -319,6 +317,12 @@ class SubsonicHandler {
                 case 'getStarred2':
                     return this.handleGetStarred(res, username, format, true)
 
+                case 'star':
+                    return this.handleStar(res, username, params, format, true)
+
+                case 'unstar':
+                    return this.handleStar(res, username, params, format, false)
+
                 case 'getRandomSongs':
                 case 'getSongsByGenre':
                 case 'getSongsByGenre2':
@@ -391,7 +395,7 @@ class SubsonicHandler {
     /**
      * 将 MusicInfo 映射为 Subsonic child/song 的平铺 JS 对象（适用于 JSON 响应）
      */
-    private musicToSongFlat(music: LX.Music.MusicInfo, parentId: string, artistIdOverride?: string) {
+    private musicToSongFlat(music: LX.Music.MusicInfo, parentId: string, artistIdOverride?: string, isStarred = false) {
         const meta = (music as any).meta || {}
 
         const id = music.id
@@ -445,6 +449,7 @@ class SubsonicHandler {
             duration: this.parseDuration(music.interval),
             ...this.getBestQualityMeta(music),
             isVideo: false,
+            ...(isStarred ? { starred: new Date().toISOString() } : {}),
             // 某些客户端 (如 Feishin) 在特定视图下不喜欢非标准字段，可以保留但确保标准字段优先
             type: 'music',
         }
@@ -566,8 +571,8 @@ class SubsonicHandler {
     /**
      * 将 MusicInfo 映射为 XML 渲染格式 {attrs, children?}
      */
-    private musicToSongXml(music: LX.Music.MusicInfo, parentId: string, artistIdOverride?: string) {
-        return { attrs: this.musicToSongFlat(music, parentId, artistIdOverride) }
+    private musicToSongXml(music: LX.Music.MusicInfo, parentId: string, artistIdOverride?: string, isStarred = false) {
+        return { attrs: this.musicToSongFlat(music, parentId, artistIdOverride, isStarred) }
     }
 
     private collectUniqueListSongs(listData: any): Array<{ music: LX.Music.MusicInfo, listId: string }> {
@@ -843,6 +848,7 @@ class SubsonicHandler {
 
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
+        const starredSongIds = new Set(listData.loveList.map(music => music.id))
 
         let musics: LX.Music.MusicInfo[] = []
         let listName = 'Unknown'
@@ -882,7 +888,7 @@ class SubsonicHandler {
             return this.sendResponse(res, {
                 playlist: {
                     ...playlistMeta,
-                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongFlat(m, id)),
+                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongFlat(m, id, undefined, starredSongIds.has(m.id))),
                 },
             }, format)
         }
@@ -891,48 +897,92 @@ class SubsonicHandler {
             playlist: {
                 attrs: playlistMeta,
                 children: {
-                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongXml(m, id)),
+                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongXml(m, id, undefined, starredSongIds.has(m.id))),
                 },
             },
         }, format)
     }
 
+    private async handleStar(
+        res: http.ServerResponse,
+        username: string,
+        params: URLSearchParams,
+        format: string,
+        shouldStar: boolean,
+    ) {
+        const songIds = Array.from(new Set(params.getAll('id').filter(Boolean)))
+        if (songIds.length === 0) {
+            return this.sendError(res, 10, 'Required parameter is missing: id', format)
+        }
+
+        try {
+            const userSpace = getUserSpace(username)
+            if (shouldStar) {
+                const musics: LX.Music.MusicInfo[] = []
+                for (const songId of songIds) {
+                    const found = await this.findMusicById(username, songId)
+                    if (!found) return this.sendError(res, 70, 'Song not found: ' + songId, format)
+                    musics.push(found.music)
+                }
+                await userSpace.listManage.listDataManage.listMusicAdd('love', musics, 'bottom')
+            } else {
+                await userSpace.listManage.listDataManage.listMusicRemove('love', songIds)
+            }
+
+            await userSpace.listManage.createSnapshot()
+            return this.sendResponse(res, {}, format)
+        } catch (err: any) {
+            console.error(`[Subsonic] ${shouldStar ? 'star' : 'unstar'} error:`, err)
+            return this.sendError(res, 0, err.message || `Failed to ${shouldStar ? 'star' : 'unstar'} song`, format)
+        }
+    }
+
     private async handleUpdatePlaylist(res: http.ServerResponse, username: string, params: URLSearchParams, format: string) {
         const playlistId = params.get('playlistId')
-        const songIndexToRemove = params.get('songIndexToRemove')
 
         if (!playlistId) return this.sendError(res, 10, 'Required parameter is missing: playlistId', format)
 
-        // Yinyun currently implements deletion through the index (OpenSubsonic core specification).
-        if (songIndexToRemove !== null) {
-            const index = parseInt(songIndexToRemove)
-            if (isNaN(index)) return this.sendError(res, 0, 'Invalid songIndexToRemove', format)
+        try {
+            const userSpace = getUserSpace(username)
+            const listData = await userSpace.listManage.getListData()
+            const playlistExists = playlistId === 'default' || playlistId === 'love' || listData.userList.some(list => list.id === playlistId)
+            if (!playlistExists) return this.sendError(res, 70, 'Playlist not found: ' + playlistId, format)
 
-            try {
-                const userSpace = getUserSpace(username)
-                const musics = await userSpace.listManage.listDataManage.getListMusics(playlistId)
-
-                if (index < 0 || index >= musics.length) {
-                    return this.sendError(res, 0, 'Index out of bounds', format)
-                }
-
-                const songId = musics[index].id
-                // console.log(`[Subsonic] Removing song at index ${index} (ID: ${songId}) from playlist ${playlistId}`)
-
-                // 执行物理删除
-                await userSpace.listManage.listDataManage.listMusicRemove(playlistId, [songId])
-                // 创建快照持久化
-                await userSpace.listManage.createSnapshot()
-
-                return this.sendResponse(res, {}, format)
-            } catch (err: any) {
-                console.error('[Subsonic] updatePlaylist error:', err)
-                return this.sendError(res, 0, err.message || 'Failed to remove song', format)
+            const currentMusics = await userSpace.listManage.listDataManage.getListMusics(playlistId)
+            const indexesToRemove = params.getAll('songIndexToRemove').map(value => Number(value))
+            if (indexesToRemove.some(index => !Number.isInteger(index))) {
+                return this.sendError(res, 0, 'Invalid songIndexToRemove', format)
             }
-        }
+            if (indexesToRemove.some(index => index < 0 || index >= currentMusics.length)) {
+                return this.sendError(res, 0, 'Index out of bounds', format)
+            }
 
-        // TODO: 支持 songIdToAdd 等其他参数
-        return this.sendResponse(res, {}, format)
+            const songIdsToRemove = new Set(params.getAll('songIdToRemove').filter(Boolean))
+            for (const index of indexesToRemove) songIdsToRemove.add(currentMusics[index].id)
+
+            const songIdsToAdd = Array.from(new Set(params.getAll('songIdToAdd').filter(Boolean)))
+            const musicsToAdd: LX.Music.MusicInfo[] = []
+            for (const songId of songIdsToAdd) {
+                const found = await this.findMusicById(username, songId)
+                if (!found) return this.sendError(res, 70, 'Song not found: ' + songId, format)
+                musicsToAdd.push(found.music)
+            }
+
+            if (songIdsToRemove.size > 0) {
+                await userSpace.listManage.listDataManage.listMusicRemove(playlistId, Array.from(songIdsToRemove))
+            }
+            if (musicsToAdd.length > 0) {
+                await userSpace.listManage.listDataManage.listMusicAdd(playlistId, musicsToAdd, 'bottom')
+            }
+            if (songIdsToRemove.size > 0 || musicsToAdd.length > 0) {
+                await userSpace.listManage.createSnapshot()
+            }
+
+            return this.sendResponse(res, {}, format)
+        } catch (err: any) {
+            console.error('[Subsonic] updatePlaylist error:', err)
+            return this.sendError(res, 0, err.message || 'Failed to update playlist', format)
+        }
     }
 
     // getAlbum: 返回 album + song[] 格式（音流等客户端期望的格式）
@@ -1189,9 +1239,9 @@ class SubsonicHandler {
         if (!music) return this.sendError(res, 70, 'Song not found: ' + id, format)
 
         if (format === 'json') {
-            return this.sendResponse(res, { song: this.musicToSongFlat(music, listId) }, format)
+            return this.sendResponse(res, { song: this.musicToSongFlat(music, listId, undefined, listId === 'love') }, format)
         }
-        return this.sendResponse(res, { song: this.musicToSongXml(music, listId) }, format)
+        return this.sendResponse(res, { song: this.musicToSongXml(music, listId, undefined, listId === 'love') }, format)
     }
 
     private async handleGetMusicDirectory(res: http.ServerResponse, username: string, params: URLSearchParams, format: string) {
@@ -1755,6 +1805,7 @@ class SubsonicHandler {
         // 1. 汇总所有本地歌曲 (去重)
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
+        const starredSongIds = new Set(listData.loveList.map(music => music.id))
 
         const allSongsMap = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
         const collectSongs = (list: LX.Music.MusicInfo[], listId: string) => {
@@ -1899,7 +1950,7 @@ class SubsonicHandler {
                 [wrapKey]: {
                     artist: pagedArtists,
                     album: pagedAlbums,
-                    song: pagedSongs.map(({ music, listId }) => this.musicToSongFlat(music, listId)),
+                    song: pagedSongs.map(({ music, listId }) => this.musicToSongFlat(music, listId, undefined, starredSongIds.has(music.id))),
                 },
             }, format)
         }
@@ -1908,7 +1959,7 @@ class SubsonicHandler {
                 children: {
                     artist: pagedArtists.map(a => ({ attrs: a })),
                     album: pagedAlbums.map(a => ({ attrs: a })),
-                    song: pagedSongs.map(({ music, listId }) => this.musicToSongXml(music, listId)),
+                    song: pagedSongs.map(({ music, listId }) => this.musicToSongXml(music, listId, undefined, starredSongIds.has(music.id))),
                 },
             },
         }, format)
@@ -1918,21 +1969,7 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
 
-        // [汇总所有歌单歌曲]
-        const allSongsMap = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
-        const collect = (list: LX.Music.MusicInfo[], listId: string) => {
-            for (const m of list) {
-                if (!allSongsMap.has(m.id)) {
-                    allSongsMap.set(m.id, { music: m, listId })
-                }
-            }
-        }
-        collect(listData.loveList, 'love')
-        collect(listData.defaultList, 'default')
-        for (const list of listData.userList) {
-            collect((list.list || []) as LX.Music.MusicInfo[], list.id)
-        }
-        const allSongs = Array.from(allSongsMap.values())
+        const starredSongs = listData.loveList
 
         // [新增] 包含收藏的歌手和专辑
         const libArtists = await this.getLibraryData(username, 'artists')
@@ -1965,7 +2002,7 @@ class SubsonicHandler {
         if (format === 'json') {
             return this.sendResponse(res, {
                 [wrapKey]: {
-                    song: allSongs.map(item => this.musicToSongFlat(item.music, item.listId)),
+                    song: starredSongs.map(music => this.musicToSongFlat(music, 'love', undefined, true)),
                     album: mappedAlbums,
                     artist: mappedArtists,
                 },
@@ -1974,7 +2011,7 @@ class SubsonicHandler {
         return this.sendResponse(res, {
             [wrapKey]: {
                 children: {
-                    song: allSongs.map(item => this.musicToSongXml(item.music, item.listId)),
+                    song: starredSongs.map(music => this.musicToSongXml(music, 'love', undefined, true)),
                     album: mappedAlbums.map(a => ({ attrs: a })),
                     artist: mappedArtists.map(a => ({ attrs: a })),
                 },
@@ -2855,10 +2892,6 @@ class SubsonicHandler {
             songmid = id.substring(index + 1)
         }
 
-        if (!source || !musicSdk[source]) {
-            return this.sendError(res, 70, 'Song or source not supported: ' + id, format)
-        }
-
         try {
             // 尝试查找歌曲详情以丰富歌词请求元数据 (KG/MG 特别需要)
             const found = await this.findMusicById(username, id)
@@ -2869,6 +2902,27 @@ class SubsonicHandler {
                 name: params.get('title') || '',
                 singer: params.get('artist') || ''
             } as any
+
+            const localLyrics = getLocalLyrics({
+                ...musicMeta,
+                id,
+                source: musicMeta.source || source,
+                songmid: (musicMeta as any).songmid || songmid,
+            }, username)
+            if (localLyrics.exists && localLyrics.content?.lyric) {
+                return this.sendLyricsResponse(
+                    res,
+                    format,
+                    legacyResponse,
+                    musicMeta,
+                    localLyrics.content.lyric,
+                    localLyrics.content.tlyric,
+                )
+            }
+
+            if (!source || !musicSdk[source]) {
+                return this.sendError(res, 70, 'Song or source not supported: ' + id, format)
+            }
 
             let hash = (musicMeta as any).hash || (musicMeta as any).meta?.hash || ''
             if (source === 'kg' && !hash) {
@@ -2901,87 +2955,89 @@ class SubsonicHandler {
 
             const rawLrc = lyricInfo.lyric || ''
             const transLrc = lyricInfo.tlyric || ''
-
-            const mergedLrc = this.buildMergedLrc(rawLrc, transLrc)
-
-            // 转换结构化歌词
-            const lines = this.parseLrc(rawLrc)
-            const tlines = transLrc ? this.parseLrc(transLrc) : []
-
-            const structuredLyrics: any[] = [
-                {
-                    lang: 'und',
-                    synced: lines.some(l => l.start !== undefined),
-                    line: lines,
-                    displayArtist: musicMeta.singer,
-                    displayTitle: musicMeta.name,
-                }
-            ]
-
-            if (tlines.length > 0) {
-                structuredLyrics.push({
-                    lang: 'zh',
-                    synced: tlines.some(l => l.start !== undefined),
-                    line: tlines,
-                    displayArtist: musicMeta.singer,
-                    displayTitle: musicMeta.name,
-                })
-            }
-
-            // Keep the legacy and OpenSubsonic extension responses separate.
-            // Some clients reject a getLyrics response when lyricsList is present.
-            if (legacyResponse) {
-                if (format === 'json') {
-                    return this.sendResponse(res, {
-                        lyrics: {
-                            artist: musicMeta.singer,
-                            title: musicMeta.name,
-                            value: mergedLrc,
-                        },
-                    }, format)
-                }
-                return this.sendResponse(res, {
-                    lyrics: {
-                        attrs: { artist: musicMeta.singer, title: musicMeta.name },
-                        children: mergedLrc,
-                    },
-                }, format)
-            }
-
-            if (format === 'json') {
-                return this.sendResponse(res, {
-                    lyricsList: { structuredLyrics },
-                }, format)
-            }
-
-            // XML 模式逻辑
-            const structuredLyricsXml = structuredLyrics.map(item => ({
-                attrs: {
-                    lang: item.lang,
-                    synced: item.synced,
-                    displayArtist: item.displayArtist,
-                    displayTitle: item.displayTitle,
-                },
-                children: {
-                    line: item.line.map((line: { value: string, start?: number }) => ({
-                        attrs: line.start === undefined ? undefined : { start: line.start },
-                        children: line.value,
-                    })),
-                },
-            }))
-
-            return this.sendResponse(res, {
-                lyricsList: {
-                    children: {
-                        structuredLyrics: structuredLyricsXml,
-                    },
-                },
-            }, format)
+            return this.sendLyricsResponse(res, format, legacyResponse, musicMeta, rawLrc, transLrc)
 
         } catch (err: any) {
             console.error(`[Subsonic] Lyric fetch error:`, err)
             return this.sendError(res, 0, 'Failed to fetch lyrics: ' + err.message, format)
         }
+    }
+
+    private sendLyricsResponse(
+        res: http.ServerResponse,
+        format: string,
+        legacyResponse: boolean,
+        musicMeta: LX.Music.MusicInfo,
+        rawLrc: string,
+        transLrc = '',
+    ) {
+        const mergedLrc = this.buildMergedLrc(rawLrc, transLrc)
+        const lines = this.parseLrc(rawLrc)
+        const translatedLines = transLrc ? this.parseLrc(transLrc) : []
+        const structuredLyrics: any[] = [{
+            lang: 'und',
+            synced: lines.some(line => line.start !== undefined),
+            line: lines,
+            displayArtist: musicMeta.singer,
+            displayTitle: musicMeta.name,
+        }]
+
+        if (translatedLines.length > 0) {
+            structuredLyrics.push({
+                lang: 'zh',
+                synced: translatedLines.some(line => line.start !== undefined),
+                line: translatedLines,
+                displayArtist: musicMeta.singer,
+                displayTitle: musicMeta.name,
+            })
+        }
+
+        // Keep the legacy and OpenSubsonic extension responses separate.
+        // Some clients reject a getLyrics response when lyricsList is present.
+        if (legacyResponse) {
+            if (format === 'json') {
+                return this.sendResponse(res, {
+                    lyrics: {
+                        artist: musicMeta.singer,
+                        title: musicMeta.name,
+                        value: mergedLrc,
+                    },
+                }, format)
+            }
+            return this.sendResponse(res, {
+                lyrics: {
+                    attrs: { artist: musicMeta.singer, title: musicMeta.name },
+                    children: mergedLrc,
+                },
+            }, format)
+        }
+
+        if (format === 'json') {
+            return this.sendResponse(res, {
+                lyricsList: { structuredLyrics },
+            }, format)
+        }
+
+        return this.sendResponse(res, {
+            lyricsList: {
+                children: {
+                    structuredLyrics: structuredLyrics.map(item => ({
+                        attrs: {
+                            lang: item.lang,
+                            synced: item.synced,
+                            displayArtist: item.displayArtist,
+                            displayTitle: item.displayTitle,
+                        },
+                        children: {
+                            line: item.line.map((line: { value: string, start?: number }) => ({
+                                attrs: line.start === undefined ? undefined : { start: line.start },
+                                children: line.value,
+                            })),
+                        },
+                    })),
+                },
+            },
+        }, format)
     }
 
     private parseLrc(lrc: string): { value: string, start?: number }[] {

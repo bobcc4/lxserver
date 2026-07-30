@@ -150,6 +150,14 @@ export interface DownloadProvenance {
     sourceName?: string
 }
 
+export interface LocalLyricsResult {
+    exists: boolean
+    content?: ReturnType<typeof parseLyrics>
+    path?: string
+    folder?: CacheFolder
+    source?: 'sidecar' | 'embedded'
+}
+
 class CacheIndexManager {
     private indexes: Map<string, Map<string, CacheItem>> = new Map() // "location:username:folder" -> (songId -> CacheItem)
 
@@ -1681,6 +1689,106 @@ export const checkLyricCache = (songInfo: any, username?: string) => {
                         filename: path.relative(dirPath, filePath).replace(/\\/g, '/')
                     }
                 }
+            }
+        }
+    }
+
+    return { exists: false }
+}
+
+/**
+ * Read lyrics already stored with a local audio file. Downloaded music is
+ * preferred over transient cache files, and sidecar LRC files are preferred
+ * over embedded USLT/SYLT metadata.
+ */
+export const getLocalLyrics = (songInfo: any, username?: string): LocalLyricsResult => {
+    const id = normalizeSongId(songInfo)
+    const normalizedUsername = normalizeCacheUsername(username)
+    const folders: CacheFolder[] = ['music', 'cache']
+    const targetName = String(songInfo.name || '').trim().toLowerCase()
+    const targetSinger = String(songInfo.singer || '').trim().toLowerCase()
+    const requestedQuality = String(songInfo.quality || '')
+
+    const readSidecar = (root: string, item: CacheItem) => {
+        const audioPath = resolveCacheRelativePath(root, item.filename)
+        const siblingLyric = audioPath
+            ? audioPath.substring(0, audioPath.length - path.extname(audioPath).length) + '.lrc'
+            : null
+        const indexedLyric = item.lyricFilename
+            ? resolveCacheRelativePath(root, item.lyricFilename)
+            : null
+
+        for (const lyricPath of [indexedLyric, siblingLyric]) {
+            if (!lyricPath || !fs.existsSync(lyricPath)) continue
+            const lyricText = fs.readFileSync(lyricPath, 'utf-8').trim()
+            if (lyricText) return { lyricPath, content: parseLyrics(lyricText) }
+        }
+        return null
+    }
+
+    const readEmbedded = (root: string, item: CacheItem) => {
+        const audioPath = resolveCacheRelativePath(root, item.filename)
+        if (!audioPath || !fs.existsSync(audioPath)) return null
+
+        let tagger: any
+        try {
+            tagger = new MusicTagger()
+            tagger.loadPath(audioPath)
+            const lyricText = typeof tagger.lyrics === 'string' ? tagger.lyrics.trim() : ''
+            return lyricText ? { audioPath, content: parseLyrics(lyricText) } : null
+        } catch {
+            return null
+        } finally {
+            try { if (tagger) tagger.dispose() } catch { }
+        }
+    }
+
+    const exactItems: Array<{ item: CacheItem, folder: CacheFolder }> = []
+    const metadataItems: Array<{ item: CacheItem, folder: CacheFolder }> = []
+    for (const folder of folders) {
+        const exactMatches: CacheItem[] = []
+        const metadataMatches: CacheItem[] = []
+        for (const item of indexManager.getAll(normalizedUsername, folder)) {
+            if (item.id === id) {
+                exactMatches.push(item)
+            } else if (
+                targetName && targetSinger &&
+                item.name.trim().toLowerCase() === targetName &&
+                item.singer.trim().toLowerCase() === targetSinger
+            ) {
+                metadataMatches.push(item)
+            }
+        }
+        const preferQuality = (a: CacheItem, b: CacheItem) => (
+            Number(b.quality === requestedQuality) - Number(a.quality === requestedQuality)
+        )
+        exactMatches.sort(preferQuality)
+        metadataMatches.sort(preferQuality)
+        exactItems.push(...exactMatches.map(item => ({ item, folder })))
+        metadataItems.push(...metadataMatches.map(item => ({ item, folder })))
+    }
+
+    for (const { item, folder } of [...exactItems, ...metadataItems]) {
+        const root = getCacheDir(normalizedUsername, folder === 'music')
+        const sidecar = readSidecar(root, item)
+        if (sidecar) {
+            return {
+                exists: true,
+                content: sidecar.content,
+                path: sidecar.lyricPath,
+                folder,
+                source: 'sidecar',
+            }
+        }
+
+        const embedded = readEmbedded(root, item)
+        if (embedded) {
+            return {
+                exists: true,
+                content: embedded.content,
+                path: embedded.audioPath,
+                folder,
+                source: 'embedded',
             }
         }
     }
