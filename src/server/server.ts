@@ -1117,7 +1117,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.1.1'
+      let version = 'v1.1.2'
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')
@@ -4502,58 +4502,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             // 合并解析尝试记录到响应（前端可用于诊断）
             if (attempts.length > 0) result.attempts = attempts
 
-            // [Fix] Server-side Mixed Content handling & Redirect Resolution
-            // If the upstream URL is HTTP, rewrite it to use our secure proxy OR resolve it if it's a redirect
+            // The custom-source resolver has already followed redirects and verified that
+            // the selected candidate returns media data. Keep the final URL for playback.
             if (result && result.url) {
-              // 1. Resolve Redirects (301, 302, 307, etc.) to get direct link
-              try {
-                // Only try to resolve if it looks like a remote URL and is not already resolved
-                if (result.url.startsWith('http')) {
-                  // console.log(`[MusicUrl] Resolving redirects for: ${songInfo.name} (${quality})`);
-
-                  const checkRedirect = async (u: string, depth: number = 0): Promise<string> => {
-                    if (depth > 3) return u // Max depth 3
-                    try {
-                      const resp = await needle('head', u, null, {
-                        follow_max: 0,
-                        response_timeout: 4000, // Increase timeout slightly
-                        read_timeout: 4000,
-                        headers: {
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                          'Referer': new URL(u).origin
-                        }
-                      })
-                      if (resp.statusCode && [301, 302, 303, 307, 308].includes(resp.statusCode) && resp.headers.location) {
-                        let nextUrl = resp.headers.location
-                        if (!nextUrl.startsWith('http')) {
-                          try { nextUrl = new URL(nextUrl, u).href } catch (e) { }
-                        }
-                        // console.log(`[MusicUrl] Resolve redirect [${resp.statusCode}]: ${u.substring(0, 50)}... -> ${nextUrl.substring(0, 50)}...`)
-                        return checkRedirect(nextUrl, depth + 1)
-                      }
-                      // If error status but not redirect, return original
-                      if (resp.statusCode !== undefined && resp.statusCode >= 400) {
-                        console.warn(`[MusicUrl] Redirect check failed with status ${resp.statusCode}, using original URL`);
-                        return u;
-                      }
-                    } catch (e: any) {
-                      console.warn(`[MusicUrl] head check failed: ${e.message}`);
-                    }
-                    return u
-                  }
-
-                  const finalUrl = await checkRedirect(result.url)
-                  if (finalUrl !== result.url) {
-                    result.url = finalUrl
-                  }
-                  // console.log(`[MusicUrl] Final Resolved URL: ${result.url.substring(0, 100)}...`);
-                }
-              } catch (e) {
-                console.error('[MusicUrl] Resolve Error:', e)
-              }
-
-              // 2. Mixed Content Handling (Optional Proxy) implementation details handled by frontend now
-              // But we can keep the log for debugging
               if (result.url.startsWith('http://')) {
                 // console.log(`[MusicUrl] Note: URL is HTTP, frontend might proxy if enabled: ${result.url}`)
               }

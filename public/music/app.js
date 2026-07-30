@@ -1130,7 +1130,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.1';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.2';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -3161,6 +3161,181 @@ let currentLoadingRequestId = 0; // Track latest request ID
 let currentQuality = null; // 当前播放音质 (从 settings.preferredQuality 动态获取)
 let currentSourceType = 'normal'; // 当前链接来源类型: 'normal' | 'cache' | 'server_cache'
 let hintTimeout = null;
+let activePlaybackGuard = null;
+
+const PLAYBACK_START_TIMEOUT = 15000;
+const PLAYBACK_STALL_TIMEOUT = 20000;
+
+function isUserGesturePlayError(error) {
+    return error && (error.name === 'NotAllowedError' || error.name === 'SecurityError');
+}
+
+function disposeActivePlaybackGuard() {
+    if (activePlaybackGuard) activePlaybackGuard.dispose();
+}
+
+function createPlaybackGuard({ requestId, song, index, quality, sourceType, noPlay }) {
+    let startupTimer = null;
+    let stallTimer = null;
+    let failed = false;
+    let started = false;
+    let playRequested = !noPlay;
+    let lastPlaybackTime = audio.currentTime || 0;
+
+    const guard = {
+        dispose,
+        fail,
+        prepareForPlay() {
+            if (failed) return;
+            playRequested = true;
+            started = false;
+            clearTimeout(startupTimer);
+            startupTimer = setTimeout(() => {
+                void fail(new Error(`播放链接在 ${PLAYBACK_START_TIMEOUT / 1000} 秒内未开始播放`));
+            }, PLAYBACK_START_TIMEOUT);
+        },
+        deferUntilUserGesture() {
+            playRequested = false;
+            clearTimeout(startupTimer);
+            clearTimeout(stallTimer);
+            startupTimer = null;
+            stallTimer = null;
+        }
+    };
+
+    function isCurrent() {
+        return activePlaybackGuard === guard &&
+            (!currentRecoveryState || currentRecoveryState.thisRequestId === requestId);
+    }
+
+    function clearTimers() {
+        clearTimeout(startupTimer);
+        clearTimeout(stallTimer);
+        startupTimer = null;
+        stallTimer = null;
+    }
+
+    function dispose() {
+        clearTimers();
+        audio.removeEventListener('playing', onPlaying);
+        audio.removeEventListener('timeupdate', onTimeUpdate);
+        audio.removeEventListener('waiting', onWaiting);
+        audio.removeEventListener('stalled', onWaiting);
+        audio.removeEventListener('error', onError);
+        audio.removeEventListener('abort', onAbort);
+        audio.removeEventListener('pause', onPause);
+        audio.removeEventListener('ended', onEnded);
+        if (activePlaybackGuard === guard) activePlaybackGuard = null;
+    }
+
+    function stopFailedMediaRequest() {
+        try { audio.pause(); } catch (_) { }
+        try {
+            audio.removeAttribute('src');
+            audio.load();
+        } catch (_) { }
+    }
+
+    async function fail(error) {
+        if (failed || !isCurrent()) return;
+        failed = true;
+        dispose();
+
+        const cacheKey = `lx_url_${cleanSongData(song).id}_${quality}`;
+        localStorage.removeItem(cacheKey);
+        prefetchManager.cache.delete(song.id);
+        stopFailedMediaRequest();
+
+        console.error(`[Player] ${sourceType} playback failed:`, error);
+
+        try {
+            if (sourceType === 'cache') {
+                showInfo('缓存链接已失效，正在重新解析...');
+                await playSong(song, index, quality, !playRequested, true);
+                return;
+            }
+            if (sourceType === 'server_cache') {
+                showInfo('本地文件无法播放，正在尝试在线解析...');
+                await playSong(song, index, quality, !playRequested, 'local_retry');
+                return;
+            }
+            if (currentRecoveryState && currentRecoveryState.thisRequestId === requestId && playRequested) {
+                await runRecoveryFlow(error);
+                return;
+            }
+
+            setPlayerStatus('播放失败');
+            showError(`播放失败: ${error.message || '未知错误'}`);
+            updatePlayButton(false);
+        } catch (recoveryError) {
+            console.error('[Player] Recovery failed:', recoveryError);
+            setPlayerStatus('播放失败');
+            showError(`播放恢复失败: ${recoveryError.message || '未知错误'}`);
+            updatePlayButton(false);
+        }
+    }
+
+    function armStallTimer() {
+        if (failed || !playRequested || !started || audio.paused || stallTimer) return;
+        stallTimer = setTimeout(() => {
+            void fail(new Error(`播放缓冲超过 ${PLAYBACK_STALL_TIMEOUT / 1000} 秒`));
+        }, PLAYBACK_STALL_TIMEOUT);
+    }
+
+    function onPlaying() {
+        if (!isCurrent()) return;
+        started = true;
+        lastPlaybackTime = audio.currentTime || 0;
+        clearTimers();
+    }
+
+    function onTimeUpdate() {
+        if (!isCurrent()) return;
+        const nextTime = audio.currentTime || 0;
+        if (nextTime > lastPlaybackTime + 0.01) {
+            lastPlaybackTime = nextTime;
+            clearTimeout(stallTimer);
+            stallTimer = null;
+        }
+    }
+
+    function onWaiting() {
+        if (isCurrent()) armStallTimer();
+    }
+
+    function onError() {
+        if (!isCurrent() || !playRequested) return;
+        const mediaError = audio.error;
+        const detail = mediaError ? `媒体错误 ${mediaError.code}${mediaError.message ? `: ${mediaError.message}` : ''}` : '媒体加载失败';
+        void fail(new Error(detail));
+    }
+
+    function onAbort() {
+        if (isCurrent() && playRequested && !audio.paused) void fail(new Error('媒体请求被中止'));
+    }
+
+    function onPause() {
+        clearTimers();
+    }
+
+    function onEnded() {
+        dispose();
+    }
+
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('stalled', onWaiting);
+    audio.addEventListener('error', onError);
+    audio.addEventListener('abort', onAbort);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('ended', onEnded);
+
+    activePlaybackGuard = guard;
+    if (noPlay) guard.deferUntilUserGesture();
+    else guard.prepareForPlay();
+    return guard;
+}
 
 // 获取来源类型的中文描述
 function getSourceTypeText(sourceType) {
@@ -4270,6 +4445,7 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
     const thisRequestId = ++loadingRequestCounter;
     currentLoadingSongId = thisRequestSongId;
     currentLoadingRequestId = thisRequestId;
+    disposeActivePlaybackGuard();
 
     if (!isRetry) {
         const order = (settings.playbackErrorPriority || 'platform,quality,next').split(',');
@@ -4387,6 +4563,10 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
     if (!noPlay) {
         try { audio.pause(); } catch (e) { }
     }
+    try {
+        audio.removeAttribute('src');
+        audio.load();
+    } catch (e) { }
     updatePlayButton(false);
 
     try {
@@ -4461,20 +4641,16 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
 
         // [Removed] 这里的代理逻辑已统一移动至 fetchSongUrl 阶段处理，确保预加载地址一致性
 
-        // Pre-handle error for invalid cache links
-        if (currentSourceType !== 'normal') {
-            const retryHandler = () => {
-                console.warn(`[Player] ${currentSourceType} link failed, retrying online...`);
-                if (currentSourceType === 'cache') localStorage.removeItem(`lx_url_${cleanSongData(playbackSong).id}_${currentQuality || targetQuality}`);
-                playSong(playbackSong, index, targetQuality, noPlay, currentSourceType === 'server_cache' ? 'local_retry' : true);
-            };
-            audio.addEventListener('error', retryHandler, { once: true });
-            const cleanup = () => audio.removeEventListener('error', retryHandler);
-            audio.addEventListener('playing', cleanup, { once: true });
-            audio.addEventListener('pause', cleanup, { once: true });
-        }
-
         audio.src = finalUrl;
+
+        const playbackGuard = createPlaybackGuard({
+            requestId: thisRequestId,
+            song: playbackSong,
+            index,
+            quality: currentQuality || targetQuality,
+            sourceType: currentSourceType,
+            noPlay
+        });
 
         if (noPlay) {
             setPlayerStatus('', false);
@@ -4536,7 +4712,13 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
             if (isAbort) return;
 
             console.error('[Player] Playback blocked:', playError);
-            setPlayerStatus('请点击播放按钮');
+            if (isUserGesturePlayError(playError)) {
+                playbackGuard.deferUntilUserGesture();
+                setPlayerStatus('请点击播放按钮');
+            } else {
+                await playbackGuard.fail(playError instanceof Error ? playError : new Error(String(playError)));
+                return;
+            }
         }
 
         // [Trigger Prefetch] 确保即便 play() 被拦截也尝试发起下一首预读
@@ -4946,6 +5128,7 @@ async function togglePlay() {
 
     if (audio.paused) {
         try {
+            if (activePlaybackGuard) activePlaybackGuard.prepareForPlay();
             // [Crossfade] 如果开启了淡入淡出，先将进度置为 0，播放后再淡入
             if (settings.enableCrossfade) {
                 audio.volume = 0;
@@ -4958,6 +5141,10 @@ async function togglePlay() {
             }
         } catch (e) {
             console.error("[Player] Play blocked:", e);
+            if (activePlaybackGuard) {
+                if (isUserGesturePlayError(e)) activePlaybackGuard.deferUntilUserGesture();
+                else await activePlaybackGuard.fail(e instanceof Error ? e : new Error(String(e)));
+            }
         }
     } else {
         // [Crossfade] 如果开启了淡入淡出，先淡出再暂停

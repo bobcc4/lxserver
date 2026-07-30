@@ -14,6 +14,79 @@ import { isSourcePlatformEnabled } from './customSourcePlatformPreferences'
 const inflate = promisify(zlib.inflate)
 const deflate = promisify(zlib.deflate)
 
+const MUSIC_URL_PROBE_TIMEOUT = 6000
+const MUSIC_URL_PROBE_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'audio/*,application/octet-stream;q=0.9,*/*;q=0.8',
+    'Range': 'bytes=0-1',
+}
+
+const validateMusicUrl = async (value: unknown): Promise<string> => {
+    if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) {
+        throw new Error('音源返回了无效的播放链接')
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), MUSIC_URL_PROBE_TIMEOUT)
+
+    try {
+        const parsedUrl = new URL(value)
+        const request = (useRange: boolean) => {
+            const headers: Record<string, string> = {
+                ...MUSIC_URL_PROBE_HEADERS,
+                'Referer': parsedUrl.origin,
+            }
+            if (!useRange) delete headers.Range
+
+            return fetch(value, {
+                method: 'GET',
+                redirect: 'follow',
+                signal: controller.signal,
+                headers,
+            })
+        }
+
+        let response = await request(true)
+        if ([400, 403, 405, 416].includes(response.status)) {
+            await response.body?.cancel().catch(() => undefined)
+            response = await request(false)
+        }
+
+        if (response.status !== 200 && response.status !== 206) {
+            throw new Error(`播放链接返回 HTTP ${response.status}`)
+        }
+
+        const contentType = (response.headers.get('content-type') || '').toLowerCase()
+        if (/text\/html|application\/(?:problem\+)?json|text\/json|application\/xml|text\/xml/.test(contentType)) {
+            throw new Error(`播放链接返回了非音频内容 (${contentType.split(';')[0]})`)
+        }
+
+        const reader = response.body?.getReader()
+        if (reader) {
+            try {
+                const { value: chunk, done } = await reader.read()
+                if (done || !chunk?.byteLength) throw new Error('播放链接未返回音频数据')
+
+                const prefix = Buffer.from(chunk.subarray(0, 256)).toString('utf8').trimStart().toLowerCase()
+                if (prefix.startsWith('<!doctype html') || prefix.startsWith('<html') || prefix.startsWith('{') || prefix.startsWith('[') ||
+                    /^(?:error|not found|forbidden|unauthorized|bad gateway|service unavailable)\b/.test(prefix)) {
+                    throw new Error('播放链接返回了错误页面')
+                }
+            } finally {
+                await reader.cancel().catch(() => undefined)
+            }
+        }
+
+        return response.url || value
+    } catch (error: any) {
+        if (error?.name === 'AbortError') throw new Error(`播放链接探测超时 (${MUSIC_URL_PROBE_TIMEOUT / 1000} 秒)`)
+        throw error
+    } finally {
+        clearTimeout(timeout)
+        controller.abort()
+    }
+}
+
 // 彻底切断与沙箱上下文的联系
 function decontextify(obj: any): any {
     if (obj === null || obj === undefined) return obj
@@ -603,11 +676,12 @@ export async function callUserApiGetMusicUrl(
             try {
                 console.log(`[UserApi] 尝试 ${api.info.name} 获取 ${source} 音乐链接 (第 ${i + 1}/${maxRetries} 次, Owner: ${api.info.owner})`)
 
-                const url = await api.callRequest('musicUrl', source, {
+                const resolvedUrl = await api.callRequest('musicUrl', source, {
                     musicInfo: normalizedSongInfo,
                     quality: quality,
                     type: quality
                 })
+                const url = await validateMusicUrl(resolvedUrl)
 
                 console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接 (Owner: ${api.info.owner})`)
                 const att = { name: api.info.name, status: 'success', message: `第 ${i + 1} 次尝试成功` }
@@ -632,11 +706,12 @@ export async function callUserApiGetMusicUrl(
             try {
                 console.log(`[UserApi] 尝试 ${api.info.name} 获取 ${source} 音乐链接 (Owner: ${api.info.owner})`)
 
-                const url = await api.callRequest('musicUrl', source, {
+                const resolvedUrl = await api.callRequest('musicUrl', source, {
                     musicInfo: normalizedSongInfo,
                     quality: quality,
                     type: quality
                 })
+                const url = await validateMusicUrl(resolvedUrl)
 
                 console.log(`[UserApi] ✓ ${api.info.name} 成功返回链接 (Owner: ${api.info.owner})`)
                 const att = { name: api.info.name, status: 'success' }

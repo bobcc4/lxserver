@@ -39,6 +39,13 @@ export const CACHE_ROOTS = {
 
 let currentCacheLocation = CACHE_ROOTS.ROOT
 const CACHE_LIST_SYNC_TTL = 30 * 1000
+const AUDIO_DOWNLOAD_MAX_REDIRECTS = 5
+const AUDIO_DOWNLOAD_TIMEOUT = 30 * 1000
+const AUDIO_DOWNLOAD_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
+const AUDIO_DOWNLOAD_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'audio/*,application/octet-stream;q=0.9,*/*;q=0.8',
+}
 const cacheListSyncState: Map<string, { lastSync: number, pending?: Promise<void> }> = new Map()
 
 const normalizeCacheUsername = (username?: string) => {
@@ -1867,7 +1874,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
     const tempPath = path.join(dir, baseName + '.tmp')
     const songKey = normalizeSongId(songInfo) + '_' + (quality || 'unknown')
     const requestedSource = provenance.requestedSource || songInfo.requestedSource || songInfo.source || 'unknown'
-    const downloadSource = detectDownloadSource(url, provenance.downloadSource || songInfo.downloadSource || songInfo.source)
+    let downloadSource = detectDownloadSource(url, provenance.downloadSource || songInfo.downloadSource || songInfo.source)
     const sourceName = provenance.sourceName || songInfo.sourceName
 
     const result = checkCache({ ...songInfo, quality, exactQuality: true }, username, false)
@@ -1974,8 +1981,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
     console.log(`[FileCache] Starting download for: ${baseName}`)
 
     return new Promise<void>((resolve, reject) => {
-        const protocol = url.startsWith('https') ? https : http
-        let req: http.ClientRequest
+        let req: http.ClientRequest | undefined
         let settled = false
 
         const fail = (err: Error) => {
@@ -1993,7 +1999,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
         }
 
         const abortHandler = () => {
-            if (req) req.destroy()
+            req?.destroy()
             if (fs.existsSync(tempPath)) fs.unlink(tempPath, () => { })
             cacheProgress.delete(songKey)
             settle(() => reject(new Error('Aborted')))
@@ -2001,25 +2007,76 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
 
         if (signal) signal.addEventListener('abort', abortHandler)
 
-        req = protocol.get(url, (res) => {
-            if (res.statusCode !== 200) {
-                fs.unlink(tempPath, () => { })
-                fail(new Error(`Status: ${res.statusCode}`))
+        const startDownload = (targetUrl: string, redirectCount: number) => {
+            if (settled || signal?.aborted) return
+
+            let parsedUrl: URL
+            try {
+                parsedUrl = new URL(targetUrl)
+            } catch {
+                fail(new Error('Invalid download URL'))
+                return
+            }
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                fail(new Error(`Unsupported download protocol: ${parsedUrl.protocol}`))
                 return
             }
 
-            cacheProgress.set(songKey, { progress: 0, status: 'downloading', total: 0, received: 0, speed: 0, updatedAt: Date.now() })
-            const total = parseInt(res.headers['content-length'] || '0', 10)
-            let received = 0
-            let lastSpeedAt = Date.now()
-            let lastSpeedBytes = 0
-            let currentSpeed = 0
-            const contentType = res.headers['content-type'] || ''
-            let headerExt = '.mp3'
-            if (contentType.includes('audio/flac')) headerExt = '.flac'
-            else if (contentType.includes('audio/ogg')) headerExt = '.ogg'
-            else if (contentType.includes('audio/x-m4a') || contentType.includes('audio/mp4')) headerExt = '.m4a'
-            else if (contentType.includes('audio/wav')) headerExt = '.wav'
+            const protocol = parsedUrl.protocol === 'https:' ? https : http
+            const currentRequest = protocol.get(parsedUrl, { headers: AUDIO_DOWNLOAD_HEADERS }, (res) => {
+                const statusCode = res.statusCode || 0
+                if (AUDIO_DOWNLOAD_REDIRECT_STATUSES.has(statusCode)) {
+                    const location = res.headers.location
+                    res.resume()
+                    if (!location) {
+                        fail(new Error(`Status: ${statusCode} (missing Location header)`))
+                        return
+                    }
+                    if (redirectCount >= AUDIO_DOWNLOAD_MAX_REDIRECTS) {
+                        fail(new Error(`Too many download redirects (>${AUDIO_DOWNLOAD_MAX_REDIRECTS})`))
+                        return
+                    }
+
+                    let redirectedUrl: URL
+                    try {
+                        redirectedUrl = new URL(location, parsedUrl)
+                    } catch {
+                        fail(new Error(`Invalid redirect URL returned by Status: ${statusCode}`))
+                        return
+                    }
+
+                    console.log(`[FileCache] Following audio redirect ${statusCode}: ${parsedUrl.host} -> ${redirectedUrl.host}`)
+                    startDownload(redirectedUrl.toString(), redirectCount + 1)
+                    return
+                }
+
+                if (statusCode !== 200) {
+                    res.resume()
+                    fs.unlink(tempPath, () => { })
+                    fail(new Error(`Status: ${statusCode}`))
+                    return
+                }
+
+                downloadSource = detectDownloadSource(parsedUrl.toString(), downloadSource)
+                const contentType = String(res.headers['content-type'] || '').toLowerCase()
+                if (/text\/html|application\/(?:problem\+)?json|text\/json|application\/xml|text\/xml/.test(contentType)) {
+                    res.resume()
+                    fs.unlink(tempPath, () => { })
+                    fail(new Error(`Download URL returned non-audio content: ${contentType.split(';')[0]}`))
+                    return
+                }
+
+                cacheProgress.set(songKey, { progress: 0, status: 'downloading', total: 0, received: 0, speed: 0, updatedAt: Date.now() })
+                const total = parseInt(res.headers['content-length'] || '0', 10)
+                let received = 0
+                let lastSpeedAt = Date.now()
+                let lastSpeedBytes = 0
+                let currentSpeed = 0
+                let headerExt = '.mp3'
+                if (contentType.includes('audio/flac')) headerExt = '.flac'
+                else if (contentType.includes('audio/ogg')) headerExt = '.ogg'
+                else if (contentType.includes('audio/x-m4a') || contentType.includes('audio/mp4')) headerExt = '.m4a'
+                else if (contentType.includes('audio/wav')) headerExt = '.wav'
 
             const fileStream = fs.createWriteStream(tempPath)
             let writeFinished = false
@@ -2168,11 +2225,15 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                 })
             })
             fileStream.on('error', (err) => { fs.unlink(tempPath, () => { }); fail(err) })
-        })
-        req.on('error', (err) => { fs.unlink(tempPath, () => { }); fail(err) })
-        req.setTimeout(30000, () => {
-            req.destroy(new Error('Download request timeout'))
-        })
+            })
+            req = currentRequest
+            currentRequest.on('error', (err) => { fs.unlink(tempPath, () => { }); fail(err) })
+            currentRequest.setTimeout(AUDIO_DOWNLOAD_TIMEOUT, () => {
+                currentRequest.destroy(new Error('Download request timeout'))
+            })
+        }
+
+        startDownload(url, 0)
     })
 }
 

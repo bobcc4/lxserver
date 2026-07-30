@@ -344,7 +344,7 @@ class App {
             // Render Markdown
             if (window.marked) {
                 // Replace {{version}} and {{buildHash}} placeholder
-                const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.1';
+                const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.2';
                 const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
                 let content = text.replace(/{{version}}/g, version);
                 content = content.replace(/{{buildHash}}/g, buildHash);

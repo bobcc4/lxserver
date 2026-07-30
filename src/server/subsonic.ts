@@ -28,7 +28,7 @@ const musicSdk = musicSdkRaw as any
  */
 class SubsonicHandler {
     private readonly VERSION = '1.16.1'
-    private readonly SERVER_VERSION = '1.1.1'
+    private readonly SERVER_VERSION = '1.1.2'
 
     // 预缓存歌曲 ID -> 封面 URL，避免 getCoverArt 重新请求 SDK
     private songPicUrlCache = new Map<string, string>()
