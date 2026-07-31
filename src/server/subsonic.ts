@@ -348,9 +348,8 @@ class SubsonicHandler {
                     return this.sendResponse(res, { nowPlaying: { entry: [] } }, format)
 
                 case 'getScanStatus':
-                    return this.sendResponse(res, format === 'json'
-                        ? { scanStatus: { scanning: false, count: 0 } }
-                        : { scanStatus: { attrs: { scanning: false, count: 0 } } }, format)
+                case 'startScan':
+                    return this.handleScanStatus(res, username, format)
 
                 default:
                     if (global.lx.config['subsonic.enableDebug']) {
@@ -386,12 +385,20 @@ class SubsonicHandler {
         return `local_${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
     }
 
+    private getCacheItemPlatformId(item: CacheItem) {
+        const id = String(item.id || '')
+        return /^(tx|wy|kw|kg|mg)_/.test(id) ? id : ''
+    }
+
     private cacheItemToMusic(item: CacheItem): LX.Music.MusicInfo {
         const source = item.source && item.source !== 'unknown' ? item.source : 'local'
         const songmid = item.songmid || item.id || item.filename
         const quality = item.quality && item.quality !== 'unknown' ? item.quality : ''
+        const platformId = this.getCacheItemPlatformId(item)
         return {
-            id: this.getLocalFileId(item),
+            // Keep online IDs stable across playlist/search/album responses. Only
+            // files without an online binding need a physical-file ID.
+            id: platformId || this.getLocalFileId(item),
             name: item.name || path.basename(item.filename),
             singer: item.singer || 'Unknown Artist',
             source,
@@ -411,6 +418,7 @@ class SubsonicHandler {
             _localFilename: item.filename,
             _localFolder: item.folder,
             _localStorageLocation: item.storageLocation,
+            ...(platformId ? { _platformId: platformId } : {}),
         } as any
     }
 
@@ -438,14 +446,29 @@ class SubsonicHandler {
         for (const entry of this.collectUniqueListSongs(listData)) songs.set(entry.music.id, entry)
 
         for (const item of await this.getLocalMusicItems(username)) {
-            // A playlist entry already represents this platform song. Files without
-            // a playlist entry receive a stable physical-file ID and remain visible.
-            if (item.source !== 'unknown' && songs.has(item.id)) continue
+            // A physical file is the authoritative library record. Remove the
+            // matching playlist placeholder before adding the exact local file.
+            const platformId = this.getCacheItemPlatformId(item)
+            if (platformId) songs.delete(platformId)
             const music = this.cacheItemToMusic(item)
             songs.set(music.id, { music, listId: 'local_music' })
         }
 
         return Array.from(songs.values())
+    }
+
+    private toSyncedPlaylistMusic(music: LX.Music.MusicInfo): LX.Music.MusicInfo | null {
+        const platformId = String((music as any)._platformId || music.id || '')
+        const platformSource = platformId.match(/^(tx|wy|kw|kg|mg)_/)?.[1]
+        if (!platformSource) return null
+        const {
+            _localFilename,
+            _localFolder,
+            _localStorageLocation,
+            _platformId,
+            ...syncableMusic
+        } = music as any
+        return { ...syncableMusic, id: platformId, source: platformSource } as LX.Music.MusicInfo
     }
 
     private parseDuration(interval: any): number {
@@ -518,6 +541,7 @@ class SubsonicHandler {
             coverArt: (picUrl && typeof picUrl === 'string' && picUrl.startsWith('http')) ? picUrl : id,
             duration: this.parseDuration(music.interval),
             ...this.getBestQualityMeta(music),
+            isDir: false,
             isVideo: false,
             ...(isStarred ? { starred: new Date().toISOString() } : {}),
             // 某些客户端 (如 Feishin) 在特定视图下不喜欢非标准字段，可以保留但确保标准字段优先
@@ -891,6 +915,15 @@ class SubsonicHandler {
         }, format)
     }
 
+    private async handleScanStatus(res: http.ServerResponse, username: string, format: string) {
+        const userSpace = getUserSpace(username)
+        const listData = await userSpace.listManage.getListData()
+        const count = (await this.collectAllLibrarySongs(username, listData)).length
+        const scanStatus = { scanning: false, count }
+        if (format === 'json') return this.sendResponse(res, { scanStatus }, format)
+        return this.sendResponse(res, { scanStatus: { attrs: scanStatus } }, format)
+    }
+
     private async handleGetPlaylists(res: http.ServerResponse, username: string, format: string) {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
@@ -934,6 +967,16 @@ class SubsonicHandler {
             ))
         }
 
+        const localItems = await this.getLocalMusicItems(username)
+        const localMusics = localItems.map(item => this.cacheItemToMusic(item))
+        playlists.push(buildPlaylist(
+            'local_music',
+            '本地音乐',
+            localMusics,
+            undefined,
+            localMusics[0] ? this.getLocalFileId(localItems[0]) : 'logo',
+        ))
+
         if (format === 'json') {
             return this.sendResponse(res, { playlists: { playlist: playlists } }, format)
         }
@@ -949,6 +992,9 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
         const starredSongIds = new Set(listData.loveList.map(music => music.id))
+        const isStarred = (music: LX.Music.MusicInfo) => (
+            starredSongIds.has(music.id) || starredSongIds.has((music as any)._platformId)
+        )
 
         let musics: LX.Music.MusicInfo[] = []
         let listName = 'Unknown'
@@ -962,6 +1008,11 @@ class SubsonicHandler {
             musics = listData.defaultList
             listName = '默认列表'
             coverArt = (musics[0] as any)?.meta?.picUrl || (musics[0] as any)?.img || 'logo'
+        } else if (id === 'local_music') {
+            const localItems = await this.getLocalMusicItems(username)
+            musics = localItems.map(item => this.cacheItemToMusic(item))
+            listName = '本地音乐'
+            coverArt = localItems[0] ? this.getLocalFileId(localItems[0]) : 'logo'
         } else {
             const list = listData.userList.find((l: any) => l.id === id)
             if (list) {
@@ -988,7 +1039,7 @@ class SubsonicHandler {
             return this.sendResponse(res, {
                 playlist: {
                     ...playlistMeta,
-                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongFlat(m, id, undefined, starredSongIds.has(m.id))),
+                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongFlat(m, id, undefined, isStarred(m))),
                 },
             }, format)
         }
@@ -997,7 +1048,7 @@ class SubsonicHandler {
             playlist: {
                 attrs: playlistMeta,
                 children: {
-                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongXml(m, id, undefined, starredSongIds.has(m.id))),
+                    entry: musics.map((m: LX.Music.MusicInfo) => this.musicToSongXml(m, id, undefined, isStarred(m))),
                 },
             },
         }, format)
@@ -1022,11 +1073,18 @@ class SubsonicHandler {
                 for (const songId of songIds) {
                     const found = await this.findMusicById(username, songId)
                     if (!found) return this.sendError(res, 70, 'Song not found: ' + songId, format)
-                    musics.push(found.music)
+                    const syncableMusic = this.toSyncedPlaylistMusic(found.music)
+                    if (!syncableMusic) return this.sendError(res, 70, 'Song is not mapped to the online library: ' + songId, format)
+                    musics.push(syncableMusic)
                 }
                 await userSpace.listManage.listDataManage.listMusicAdd('love', musics, 'bottom')
             } else {
-                await userSpace.listManage.listDataManage.listMusicRemove('love', songIds)
+                const syncedSongIds: string[] = []
+                for (const songId of songIds) {
+                    const found = await this.findMusicById(username, songId)
+                    syncedSongIds.push(found ? (this.toSyncedPlaylistMusic(found.music)?.id || songId) : songId)
+                }
+                await userSpace.listManage.listDataManage.listMusicRemove('love', syncedSongIds)
             }
 
             await userSpace.listManage.createSnapshot()
@@ -1057,7 +1115,11 @@ class SubsonicHandler {
                 return this.sendError(res, 0, 'Index out of bounds', format)
             }
 
-            const songIdsToRemove = new Set(params.getAll('songIdToRemove').filter(Boolean))
+            const songIdsToRemove = new Set<string>()
+            for (const songId of params.getAll('songIdToRemove').filter(Boolean)) {
+                const found = await this.findMusicById(username, songId)
+                songIdsToRemove.add(found ? (this.toSyncedPlaylistMusic(found.music)?.id || songId) : songId)
+            }
             for (const index of indexesToRemove) songIdsToRemove.add(currentMusics[index].id)
 
             const songIdsToAdd = Array.from(new Set(params.getAll('songIdToAdd').filter(Boolean)))
@@ -1065,7 +1127,9 @@ class SubsonicHandler {
             for (const songId of songIdsToAdd) {
                 const found = await this.findMusicById(username, songId)
                 if (!found) return this.sendError(res, 70, 'Song not found: ' + songId, format)
-                musicsToAdd.push(found.music)
+                const syncableMusic = this.toSyncedPlaylistMusic(found.music)
+                if (!syncableMusic) return this.sendError(res, 70, 'Song is not mapped to the online library: ' + songId, format)
+                musicsToAdd.push(syncableMusic)
             }
 
             if (songIdsToRemove.size > 0) {
@@ -1980,19 +2044,20 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
         const starredSongIds = new Set(listData.loveList.map(music => music.id))
+        const isStarred = (music: LX.Music.MusicInfo) => (
+            starredSongIds.has(music.id) || starredSongIds.has((music as any)._platformId)
+        )
 
+        // Musiver builds its media library from search3. Use the unified
+        // collection so files already represented in a synced playlist are
+        // still returned as exact physical-file records.
         const allSongsMap = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
-        const collectSongs = (list: LX.Music.MusicInfo[], listId: string) => {
-            for (const m of list) {
-                if (!allSongsMap.has(m.id)) {
-                    allSongsMap.set(m.id, { music: m, listId })
-                }
-            }
-        }
-        collectSongs(listData.loveList, 'love')
-        collectSongs(listData.defaultList, 'default')
-        for (const list of listData.userList) {
-            collectSongs((list.list || []) as LX.Music.MusicInfo[], list.id)
+        const representedPlatformIds = new Set<string>()
+        for (const entry of await this.collectAllLibrarySongs(username, listData)) {
+            allSongsMap.set(entry.music.id, entry)
+            representedPlatformIds.add(entry.music.id)
+            const platformId = (entry.music as any)._platformId
+            if (platformId) representedPlatformIds.add(platformId)
         }
 
         // 补充本地收藏专辑库中的歌曲
@@ -2001,7 +2066,7 @@ class SubsonicHandler {
             const source = alb.source || 'wy'
             for (const s of (alb.list || [])) {
                 const songId = `${source}_${s.songmid || s.songId}`
-                if (!allSongsMap.has(songId)) {
+                if (!representedPlatformIds.has(songId)) {
                     allSongsMap.set(songId, {
                         music: {
                             id: songId,
@@ -2019,19 +2084,12 @@ class SubsonicHandler {
                         } as any,
                         listId: `alb_${source}_${alb.id}`,
                     })
+                    representedPlatformIds.add(songId)
                 }
             }
         }
 
-        // 将下载目录中不在同步歌单里的歌曲加入本地搜索结果。
-        const localItems = await this.getLocalMusicItems(username)
-        for (const item of localItems) {
-            if (item.source !== 'unknown' && allSongsMap.has(item.id)) continue
-            const music = this.cacheItemToMusic(item)
-            if (!allSongsMap.has(music.id)) {
-                allSongsMap.set(music.id, { music, listId: 'local_music' })
-            }
-        }
+        // 收藏专辑中未下载、也未出现在同步歌单里的项目继续作为在线记录保留。
         const allLocalSongs = Array.from(allSongsMap.values())
 
         // 2. 汇总所有歌手 (去重)
@@ -2134,7 +2192,7 @@ class SubsonicHandler {
                 [wrapKey]: {
                     artist: pagedArtists,
                     album: pagedAlbums,
-                    song: pagedSongs.map(({ music, listId }) => this.musicToSongFlat(music, listId, undefined, starredSongIds.has(music.id))),
+                    song: pagedSongs.map(({ music, listId }) => this.musicToSongFlat(music, listId, undefined, isStarred(music))),
                 },
             }, format)
         }
@@ -2143,7 +2201,7 @@ class SubsonicHandler {
                 children: {
                     artist: pagedArtists.map(a => ({ attrs: a })),
                     album: pagedAlbums.map(a => ({ attrs: a })),
-                    song: pagedSongs.map(({ music, listId }) => this.musicToSongXml(music, listId, undefined, starredSongIds.has(music.id))),
+                    song: pagedSongs.map(({ music, listId }) => this.musicToSongXml(music, listId, undefined, isStarred(music))),
                 },
             },
         }, format)
