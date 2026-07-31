@@ -9,7 +9,7 @@ import { callUserApiGetMusicUrl } from '@/server/userApi'
 import { getSingerPic, getSingerDetail, getSingerMid } from '@/server/utils/singer'
 import { fetchRecommendedAlbums } from '@/server/utils/recommendAlbums'
 import { fetchGenres, fetchRadios, fetchPlaylistsByGenre, fetchRadioSongs, fetchPlaylistSongs, fetchSongsByGenre } from '@/server/utils/discovery'
-import { checkCache, getCacheCover, getDownloadedMusicItemsAcrossLocations, getLocalLyrics, serveCacheFile, type CacheFolder, type CacheItem } from '@/server/fileCache'
+import { checkCache, getCacheCover, getCacheFilePath, getDownloadedMusicItemsAcrossLocations, getLocalLyrics, serveCacheFile, type CacheFolder, type CacheItem } from '@/server/fileCache'
 import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
@@ -29,12 +29,21 @@ const musicSdk = musicSdkRaw as any
 class SubsonicHandler {
     private readonly VERSION = '1.16.1'
     private readonly SERVER_VERSION = '1.1.3'
+    private readonly LOCAL_MUSIC_SNAPSHOT_TTL = 60_000
 
     // 预缓存歌曲 ID -> 封面 URL，避免 getCoverArt 重新请求 SDK
     private songPicUrlCache = new Map<string, string>()
 
     // 在线全网搜索歌曲缓存 (ID -> MusicInfo)，确保后续 getSong / getCoverArt / getLyrics 能精准查到歌曲元数据
     private onlineSongCache = new Map<string, LX.Music.MusicInfo>()
+
+    // 本地文件索引可能需要递归扫描两个存储根目录。共享这个快照，避免
+    // 音流连续请求 getSong/stream 时为每一首歌重复扫描磁盘。
+    private localMusicSnapshots = new Map<string, {
+        items: CacheItem[]
+        expiresAt: number
+        pending?: Promise<CacheItem[]>
+    }>()
 
     private cacheOnlineSong(music: LX.Music.MusicInfo) {
         if (!music || !music.id) return
@@ -423,34 +432,89 @@ class SubsonicHandler {
     }
 
     private async getLocalMusicItems(username: string): Promise<CacheItem[]> {
-        try {
-            return await getDownloadedMusicItemsAcrossLocations(username)
-        } catch (error: any) {
-            console.error('[Subsonic] Failed to read downloaded music:', error?.message || error)
-            return []
+        const snapshot = this.localMusicSnapshots.get(username)
+        const now = Date.now()
+        if (snapshot?.pending) {
+            // A populated snapshot is good enough for playback while a refresh
+            // runs in the background. The initial empty snapshot still waits so
+            // a cold Subsonic connection can discover local files correctly.
+            return snapshot.items.length > 0 ? snapshot.items : snapshot.pending
         }
+        if (snapshot && snapshot.expiresAt > now) return snapshot.items
+
+        const pending = getDownloadedMusicItemsAcrossLocations(username)
+            .then(items => {
+                this.localMusicSnapshots.set(username, {
+                    items,
+                    expiresAt: Date.now() + this.LOCAL_MUSIC_SNAPSHOT_TTL,
+                })
+                return items
+            })
+            .catch(error => {
+                console.error('[Subsonic] Failed to read downloaded music:', error?.message || error)
+                const staleItems = snapshot?.items || []
+                this.localMusicSnapshots.set(username, {
+                    items: staleItems,
+                    expiresAt: Date.now() + 5_000,
+                })
+                return staleItems
+            })
+
+        this.localMusicSnapshots.set(username, {
+            items: snapshot?.items || [],
+            expiresAt: snapshot?.expiresAt || 0,
+            pending,
+        })
+        if (snapshot && snapshot.items.length > 0) return snapshot.items
+        return pending
+    }
+
+    private getLocalMusicAliases(item: CacheItem): string[] {
+        const aliases = new Set<string>()
+        const add = (value: unknown) => {
+            const normalized = String(value || '').trim()
+            if (normalized) aliases.add(normalized)
+        }
+        add(item.id)
+        add(item.songmid)
+        const source = String(item.source || '').trim()
+        for (const value of [item.id, item.songmid]) {
+            const normalized = String(value || '').trim()
+            if (!normalized || !source) continue
+            add(`${source}_${normalized}`)
+            if (normalized.startsWith(`${source}_`)) add(normalized.slice(source.length + 1))
+        }
+        return Array.from(aliases)
     }
 
     private preferDownloadedMusic(
         musics: LX.Music.MusicInfo[],
         localItems: CacheItem[],
     ): LX.Music.MusicInfo[] {
-        const localMusicByPlatformId = new Map<string, LX.Music.MusicInfo>()
+        const localMusicById = new Map<string, LX.Music.MusicInfo>()
         for (const item of localItems) {
             const platformId = this.getCacheItemPlatformId(item)
-            if (!platformId || localMusicByPlatformId.has(platformId)) continue
-            localMusicByPlatformId.set(platformId, this.cacheItemToMusic(item))
+            if (!platformId) continue
+            const music = this.cacheItemToMusic(item)
+            for (const alias of this.getLocalMusicAliases(item)) {
+                if (!localMusicById.has(alias)) localMusicById.set(alias, music)
+            }
         }
-        return musics.map(music => localMusicByPlatformId.get(music.id) || music)
+        return musics.map(music => localMusicById.get(music.id) || music)
     }
 
     private async findLocalMusicById(username: string, id: string): Promise<{ item: CacheItem, music: LX.Music.MusicInfo } | null> {
         const items = await this.getLocalMusicItems(username)
-        const item = items.find(candidate => (
-            this.getLocalFileId(candidate) === id ||
-            candidate.id === id ||
-            candidate.filename === id
-        ))
+        const isAvailable = (candidate: CacheItem) => {
+            try {
+                return fs.existsSync(getCacheFilePath(username, true, candidate.filename, candidate.storageLocation))
+            } catch {
+                return false
+            }
+        }
+        const item = items.find(candidate => this.getLocalFileId(candidate) === id && isAvailable(candidate)) ||
+            items.find(candidate => this.getLocalMusicAliases(candidate).includes(id) && isAvailable(candidate)) ||
+            items.find(candidate => candidate.filename === id && isAvailable(candidate))
         return item ? { item, music: this.cacheItemToMusic(item) } : null
     }
 
@@ -462,7 +526,7 @@ class SubsonicHandler {
             // A physical file is the authoritative library record. Remove the
             // matching playlist placeholder before adding the exact local file.
             const platformId = this.getCacheItemPlatformId(item)
-            if (platformId) songs.delete(platformId)
+            for (const alias of this.getLocalMusicAliases(item)) songs.delete(alias)
             const music = this.cacheItemToMusic(item)
             songs.set(music.id, { music, listId: 'local_music' })
         }
