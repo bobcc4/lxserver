@@ -14,7 +14,17 @@ interface ResolveResult {
   quality: string
 }
 
-type RemasterResolver = (songInfo: any, requestedQuality: string, username: string) => Promise<ResolveResult>
+interface RemasterResolveOptions {
+  allowPlatformSwitch: boolean
+  allowApiSwitch: boolean
+}
+
+type RemasterResolver = (
+  songInfo: any,
+  requestedQuality: string,
+  username: string,
+  options: RemasterResolveOptions,
+) => Promise<ResolveResult>
 
 interface RemasterResult {
   index: number
@@ -24,6 +34,8 @@ interface RemasterResult {
   originalQuality: string
   targetQuality: string
   actualQuality?: string
+  originalSize?: number
+  actualSize?: number
   status: RemasterResultStatus
   message: string
 }
@@ -32,6 +44,8 @@ interface RemasterTask {
   id: string
   username: string
   targetQuality: string
+  allowPlatformSwitch: boolean
+  allowApiSwitch: boolean
   status: RemasterStatus
   total: number
   processed: number
@@ -122,6 +136,7 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
       singer: item.singer,
       originalQuality: item.quality || 'unknown',
       targetQuality: task.targetQuality,
+      originalSize: item.size,
     }
     const songInfo = buildSongInfo(item)
     if (!songInfo) {
@@ -136,13 +151,21 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
     const currentRank = qualityRank(item.quality)
     const targetRank = qualityRank(task.targetQuality)
     if (currentRank === targetRank) {
-      addResult(task, { ...baseResult, actualQuality: item.quality, status: 'skipped', message: '当前已经是目标音质' })
+      addResult(task, {
+        ...baseResult,
+        actualQuality: item.quality,
+        actualSize: item.size,
+        status: 'skipped',
+        message: '当前已经是目标音质',
+      })
       continue
     }
+    const targetItem = allItems.find(candidate => candidate.id === item.id && candidate.quality === task.targetQuality)
     if (availableQualities.has(`${item.id}\0${task.targetQuality}`)) {
       addResult(task, {
         ...baseResult,
         actualQuality: task.targetQuality,
+        actualSize: targetItem?.size,
         status: 'skipped',
         message: '同一歌曲的目标音质文件已存在，已跳过以避免覆盖',
       })
@@ -155,7 +178,10 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
     for (let attempt = 1; attempt <= MAX_REMASTER_ATTEMPTS; attempt++) {
       attemptsMade = attempt
       try {
-        const resolved = await resolver(songInfo, task.targetQuality, task.username)
+        const resolved = await resolver(songInfo, task.targetQuality, task.username, {
+          allowPlatformSwitch: task.allowPlatformSwitch,
+          allowApiSwitch: task.allowApiSwitch,
+        })
         if (task.controller.signal.aborted) break itemLoop
         const actualQuality = resolved.quality || task.targetQuality
         lastActualQuality = actualQuality
@@ -166,6 +192,7 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
           addResult(task, {
             ...baseResult,
             actualQuality,
+            actualSize: allItems.find(candidate => candidate.id === item.id && candidate.quality === actualQuality)?.size,
             status: 'skipped',
             message: '目标音质不可用，且未获得高于当前文件的音质',
           })
@@ -175,6 +202,7 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
           addResult(task, {
             ...baseResult,
             actualQuality,
+            actualSize: allItems.find(candidate => candidate.id === item.id && candidate.quality === actualQuality)?.size,
             status: 'skipped',
             message: '未获得低于当前文件的目标音质',
           })
@@ -184,13 +212,14 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
           addResult(task, {
             ...baseResult,
             actualQuality,
+            actualSize: allItems.find(candidate => candidate.id === item.id && candidate.quality === actualQuality)?.size,
             status: 'skipped',
             message: '同一歌曲的实际可用音质文件已存在，已跳过以避免覆盖',
           })
           continue itemLoop
         }
 
-        await fileCache.replaceDownloadedMusicItem(
+        const replacementItem = await fileCache.replaceDownloadedMusicItem(
           task.username,
           item,
           songInfo,
@@ -204,6 +233,7 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
         addResult(task, {
           ...baseResult,
           actualQuality,
+          actualSize: replacementItem.size,
           status: didFallback ? 'downgraded' : 'replaced',
           message: didFallback ? '目标音质不可用，已使用可获得的较低音质' : '替换成功',
         })
@@ -233,7 +263,12 @@ const runTask = async (task: RemasterTask, items: fileCache.CacheItem[], allItem
   task.updatedAt = Date.now()
 }
 
-export const start = async (username: string, targetQuality: string, filenames: unknown) => {
+export const start = async (
+  username: string,
+  targetQuality: string,
+  filenames: unknown,
+  options?: Partial<RemasterResolveOptions>,
+) => {
   username = normalizeUsername(username)
   if (!resolver) throw new Error('洗版服务尚未就绪')
   if (!QUALITY_SET.has(targetQuality)) throw new Error('不支持该目标音质')
@@ -259,6 +294,8 @@ export const start = async (username: string, targetQuality: string, filenames: 
     id: crypto.randomUUID(),
     username,
     targetQuality,
+    allowPlatformSwitch: options?.allowPlatformSwitch !== false,
+    allowApiSwitch: options?.allowApiSwitch !== false,
     status: 'running',
     total: items.length,
     processed: 0,
@@ -317,6 +354,8 @@ export const getStatus = (username: string, offset = 0, limit = 200) => {
   return {
     id: task.id,
     targetQuality: task.targetQuality,
+    allowPlatformSwitch: task.allowPlatformSwitch,
+    allowApiSwitch: task.allowApiSwitch,
     status: task.status,
     total: task.total,
     processed: task.processed,

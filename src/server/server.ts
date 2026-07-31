@@ -882,11 +882,17 @@ interface ServerSongResolveResult {
   sourceName?: string
 }
 
+interface ServerSongResolveOptions {
+  allowPlatformSwitch?: boolean
+  allowApiSwitch?: boolean
+}
+
 const resolveServerSong = async (
   rawSongInfo: any,
   requestedQuality: string,
   username: string,
   allowQualityFallback: boolean,
+  options: ServerSongResolveOptions = {},
 ): Promise<ServerSongResolveResult> => {
   const originalSong = normalizeSongInfo({ ...rawSongInfo })
   if (!originalSong?.source) throw new Error('Missing song source')
@@ -903,7 +909,14 @@ const resolveServerSong = async (
       if (!source || !isSourceSupported(source, username)) continue
 
       try {
-        const result = await callUserApiGetMusicUrl(source, candidate, quality, username, undefined, true)
+        const result = await callUserApiGetMusicUrl(
+          source,
+          candidate,
+          quality,
+          username,
+          undefined,
+          options.allowApiSwitch !== false,
+        )
         if (!result?.url) throw new Error('audio source returned no URL')
         return {
           url: result.url,
@@ -923,7 +936,9 @@ const resolveServerSong = async (
   const originalResult = await tryCandidates(requestedQuality, [originalSong])
   if (originalResult) return originalResult
 
-  const matches = await findServerSourceMatches(originalSong, username)
+  const matches = options.allowPlatformSwitch === false
+    ? []
+    : await findServerSourceMatches(originalSong, username)
   const switchedResult = await tryCandidates(requestedQuality, matches)
   if (switchedResult) return switchedResult
 
@@ -1117,7 +1132,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.1.2'
+      let version = 'v1.1.3'
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')
@@ -2577,7 +2592,15 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         if (pathname === '/api/music/remaster/start' && req.method === 'POST') {
           try {
             const body = JSON.parse(await readBody(req))
-            const data = await remasterQueue.start(username, String(body?.targetQuality || ''), body?.filenames)
+            const data = await remasterQueue.start(
+              username,
+              String(body?.targetQuality || ''),
+              body?.filenames,
+              {
+                allowPlatformSwitch: body?.noPlatformSwitch !== true,
+                allowApiSwitch: body?.noSourceSwitch !== true,
+              },
+            )
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success: true, data }))
           } catch (err: any) {
@@ -6270,9 +6293,9 @@ export const startServer = async (port: number, ip: string) => {
     }
   })
 
-  remasterQueue.initialize(async (songInfo, requestedQuality, username) => {
+  remasterQueue.initialize(async (songInfo, requestedQuality, username, options) => {
     if (!isConfiguredUsername(username)) throw new Error('Remaster task user no longer exists')
-    const resolved = await resolveServerSong(songInfo, requestedQuality, username, true)
+    const resolved = await resolveServerSong(songInfo, requestedQuality, username, true, options)
     return {
       url: resolved.url,
       quality: resolved.quality,

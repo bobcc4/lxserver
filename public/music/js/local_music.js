@@ -2843,6 +2843,14 @@ window.LocalMusicManager = {
         return `lx_remaster_target_quality:${encodeURIComponent(username)}`;
     },
 
+    getRemasterSwitchStorageKey() {
+        const username = window.getRemasterStorageUsername?.()
+            || (window.currentListData && window.currentListData.username)
+            || localStorage.getItem('lx_sync_user')
+            || 'account';
+        return `lx_remaster_switch_options:${encodeURIComponent(username)}`;
+    },
+
     saveRemasterTargetQuality(quality) {
         const qualitySelect = document.getElementById('lm-remaster-quality');
         if (!qualitySelect) return;
@@ -2856,6 +2864,28 @@ window.LocalMusicManager = {
         const stored = localStorage.getItem(this.getRemasterQualityStorageKey()) || '';
         const supported = Array.from(qualitySelect.options).some(option => option.value === stored);
         qualitySelect.value = supported ? stored : 'flac';
+    },
+
+    restoreRemasterSwitchOptions() {
+        const sourceSwitch = document.getElementById('lm-remaster-no-source-switch');
+        const platformSwitch = document.getElementById('lm-remaster-no-platform-switch');
+        try {
+            const stored = JSON.parse(localStorage.getItem(this.getRemasterSwitchStorageKey()) || '{}');
+            if (sourceSwitch) sourceSwitch.checked = stored.noSourceSwitch === true;
+            if (platformSwitch) platformSwitch.checked = stored.noPlatformSwitch === true;
+        } catch {
+            if (sourceSwitch) sourceSwitch.checked = false;
+            if (platformSwitch) platformSwitch.checked = false;
+        }
+    },
+
+    saveRemasterSwitchOptions() {
+        const sourceSwitch = document.getElementById('lm-remaster-no-source-switch');
+        const platformSwitch = document.getElementById('lm-remaster-no-platform-switch');
+        localStorage.setItem(this.getRemasterSwitchStorageKey(), JSON.stringify({
+            noSourceSwitch: !!sourceSwitch?.checked,
+            noPlatformSwitch: !!platformSwitch?.checked,
+        }));
     },
 
     getRemasterSelectableItems() {
@@ -3002,6 +3032,7 @@ window.LocalMusicManager = {
             document.body.style.overflow = 'hidden';
             this.bindRemasterSelectionEvents();
             this.restoreRemasterTargetQuality();
+            this.restoreRemasterSwitchOptions();
             this.renderRemasterSelection();
             await this.loadRemasterStatus(true);
         } catch (e) {
@@ -3025,6 +3056,9 @@ window.LocalMusicManager = {
     async startRemaster() {
         const quality = document.getElementById('lm-remaster-quality')?.value || 'flac';
         this.saveRemasterTargetQuality(quality);
+        this.saveRemasterSwitchOptions();
+        const noSourceSwitch = !!document.getElementById('lm-remaster-no-source-switch')?.checked;
+        const noPlatformSwitch = !!document.getElementById('lm-remaster-no-platform-switch')?.checked;
         const qualityName = window.QualityManager?.getQualityDisplayName(quality) || quality;
         const filenames = Array.from(this.remasterSelectedItems);
         if (!filenames.length) {
@@ -3046,7 +3080,7 @@ window.LocalMusicManager = {
             this.renderRemasterResults();
             await this.remasterRequest('/api/music/remaster/start', {
                 method: 'POST',
-                body: JSON.stringify({ targetQuality: quality, filenames })
+                body: JSON.stringify({ targetQuality: quality, filenames, noSourceSwitch, noPlatformSwitch })
             });
             if (typeof showInfo === 'function') showInfo('洗版任务已启动，关闭页面后服务端仍会继续处理');
             await this.loadRemasterStatus(true);
@@ -3182,6 +3216,14 @@ window.LocalMusicManager = {
     renderRemasterResults() {
         const container = document.getElementById('lm-remaster-results');
         if (!container) return;
+        const formatRemasterSize = (bytes) => {
+            const value = Number(bytes);
+            if (!Number.isFinite(value) || value <= 0) return '未知大小';
+            if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(2)} GB`;
+            if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(2)} MB`;
+            if (value >= 1024) return `${(value / 1024).toFixed(2)} KB`;
+            return `${Math.round(value)} B`;
+        };
         const counts = this.updateRemasterResultFilterUI();
         const filterConfig = {
             all: ['全部', item => true],
@@ -3210,12 +3252,13 @@ window.LocalMusicManager = {
             const actualName = item.actualQuality
                 ? (window.QualityManager?.getQualityDisplayName(item.actualQuality) || item.actualQuality)
                 : '-';
+            const qualityTransition = `${originalName} (${formatRemasterSize(item.originalSize)}) → ${actualName} (${formatRemasterSize(item.actualSize)})`;
             return `
                 <div class="p-3 flex items-start gap-3">
                     <span class="shrink-0 px-2 py-1 rounded text-[10px] font-bold ${config[1]}">${config[0]}</span>
                     <div class="min-w-0 flex-1">
                         <div class="text-xs font-bold t-text-main truncate">${this.escapeHtml(item.name)} · ${this.escapeHtml(item.singer)}</div>
-                        <div class="text-[10px] t-text-muted mt-1">${this.escapeHtml(originalName)} → ${this.escapeHtml(actualName)}</div>
+                        <div class="text-[10px] t-text-muted mt-1">${this.escapeHtml(qualityTransition)}</div>
                         <div class="text-[10px] t-text-muted mt-1 break-words">${this.escapeHtml(item.message || '')}</div>
                     </div>
                 </div>`;

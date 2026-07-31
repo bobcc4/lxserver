@@ -9,7 +9,7 @@ import { callUserApiGetMusicUrl } from '@/server/userApi'
 import { getSingerPic, getSingerDetail, getSingerMid } from '@/server/utils/singer'
 import { fetchRecommendedAlbums } from '@/server/utils/recommendAlbums'
 import { fetchGenres, fetchRadios, fetchPlaylistsByGenre, fetchRadioSongs, fetchPlaylistSongs, fetchSongsByGenre } from '@/server/utils/discovery'
-import { checkCache, getLocalLyrics, serveCacheFile, type CacheFolder } from '@/server/fileCache'
+import { checkCache, getCacheCover, getDownloadedMusicItems, getLocalLyrics, serveCacheFile, type CacheFolder, type CacheItem } from '@/server/fileCache'
 import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
@@ -28,7 +28,7 @@ const musicSdk = musicSdkRaw as any
  */
 class SubsonicHandler {
     private readonly VERSION = '1.16.1'
-    private readonly SERVER_VERSION = '1.1.2'
+    private readonly SERVER_VERSION = '1.1.3'
 
     // 预缓存歌曲 ID -> 封面 URL，避免 getCoverArt 重新请求 SDK
     private songPicUrlCache = new Map<string, string>()
@@ -376,6 +376,56 @@ class SubsonicHandler {
             console.error(`[Subsonic] Error reading library ${type}:`, e)
             return []
         }
+    }
+
+    private getLocalFileId(item: CacheItem) {
+        return `local_${Buffer.from(String(item.filename)).toString('base64url')}`
+    }
+
+    private cacheItemToMusic(item: CacheItem): LX.Music.MusicInfo {
+        const source = item.source && item.source !== 'unknown' ? item.source : 'local'
+        const songmid = item.songmid || item.id || item.filename
+        const quality = item.quality && item.quality !== 'unknown' ? item.quality : ''
+        return {
+            id: this.getLocalFileId(item),
+            name: item.name || path.basename(item.filename),
+            singer: item.singer || 'Unknown Artist',
+            source,
+            songmid,
+            interval: item.interval || '0',
+            img: item.img,
+            quality: item.quality,
+            types: quality ? { [quality]: { size: item.size } } : {},
+            meta: {
+                source,
+                songId: songmid,
+                picUrl: item.img,
+                albumName: item.album,
+                albumId: item.albumId,
+            },
+            // Used only by the Subsonic handler to serve this exact physical file.
+            _localFilename: item.filename,
+            _localFolder: item.folder,
+        } as any
+    }
+
+    private async getLocalMusicItems(username: string): Promise<CacheItem[]> {
+        try {
+            return await getDownloadedMusicItems(username)
+        } catch (error: any) {
+            console.error('[Subsonic] Failed to read downloaded music:', error?.message || error)
+            return []
+        }
+    }
+
+    private async findLocalMusicById(username: string, id: string): Promise<{ item: CacheItem, music: LX.Music.MusicInfo } | null> {
+        const items = await this.getLocalMusicItems(username)
+        const item = items.find(candidate => (
+            this.getLocalFileId(candidate) === id ||
+            candidate.id === id ||
+            candidate.filename === id
+        ))
+        return item ? { item, music: this.cacheItemToMusic(item) } : null
     }
 
     private parseDuration(interval: any): number {
@@ -756,6 +806,10 @@ class SubsonicHandler {
                 }
             }
         } catch (e) { }
+
+        // 下载目录中的文件不一定存在于同步歌单中，也应能被 Subsonic 直接定位。
+        const local = await this.findLocalMusicById(username, id)
+        if (local) return { music: local.music, listId: 'local_music' }
 
         // 检查在线搜索缓存
         if (this.onlineSongCache.has(id)) {
@@ -1250,9 +1304,11 @@ class SubsonicHandler {
         const listData = await userSpace.listManage.getListData()
 
         if (!id || id === '1' || id === 'root') {
+            const localItems = await this.getLocalMusicItems(username)
             const dirs = [
                 { id: 'love', parent: 'root', title: '我的收藏', isDir: true, coverArt: (listData.loveList[0] as any)?.meta?.picUrl || (listData.loveList[0] as any)?.img || 'logo' },
                 { id: 'default', parent: 'root', title: '默认列表', isDir: true, coverArt: (listData.defaultList[0] as any)?.meta?.picUrl || (listData.defaultList[0] as any)?.img || 'logo' },
+                { id: 'local_music', parent: 'root', title: '本地音乐', isDir: true, songCount: localItems.length, coverArt: (localItems[0] as any)?.img || 'logo' },
                 { id: 'radios', parent: 'root', title: '官方电台', isDir: true },
                 ...listData.userList.map((l: any) => ({
                     id: l.id,
@@ -1331,6 +1387,10 @@ class SubsonicHandler {
         } else if (id === 'default') {
             musics = listData.defaultList
             dirName = '默认列表'
+        } else if (id === 'local_music') {
+            const localItems = await this.getLocalMusicItems(username)
+            musics = localItems.map(item => this.cacheItemToMusic(item))
+            dirName = '本地音乐'
         } else {
             const list = listData.userList.find((l: any) => l.id === id)
             if (list) {
@@ -1848,6 +1908,16 @@ class SubsonicHandler {
                 }
             }
         }
+
+        // 将下载目录中不在同步歌单里的歌曲加入本地搜索结果。
+        const localItems = await this.getLocalMusicItems(username)
+        for (const item of localItems) {
+            if (item.source !== 'unknown' && allSongsMap.has(item.id)) continue
+            const music = this.cacheItemToMusic(item)
+            if (!allSongsMap.has(music.id)) {
+                allSongsMap.set(music.id, { music, listId: 'local_music' })
+            }
+        }
         const allLocalSongs = Array.from(allSongsMap.values())
 
         // 2. 汇总所有歌手 (去重)
@@ -2217,6 +2287,13 @@ class SubsonicHandler {
                 return this.sendError(res, 0, 'Could not resolve radio track', format)
             }
 
+            // local_music entries use a file-specific ID so Subsonic streams the
+            // exact downloaded file instead of trying to resolve it online.
+            const local = await this.findLocalMusicById(username, id)
+            if (local) {
+                return serveCacheFile(req, res, local.item.filename, username, 'music')
+            }
+
             const found = await this.findMusicById(username, id)
             let musicInfo: any = found?.music || { source, songmid, id, meta: { songId: songmid } }
             musicInfo = {
@@ -2573,6 +2650,17 @@ class SubsonicHandler {
         }
 
         if (found) {
+            const localFilename = (found.music as any)?._localFilename
+            if (localFilename) {
+                const localCover = await getCacheCover(localFilename, username)
+                if (localCover?.data) {
+                    res.writeHead(200, {
+                        'Content-Type': localCover.mime || 'image/jpeg',
+                        'Cache-Control': 'public, max-age=86400',
+                    })
+                    return res.end(localCover.data)
+                }
+            }
             const picUrl = (found.music as any)?.meta?.picUrl || (found.music as any)?.img || null
             // console.log(`[CoverArt] ✓ Library Match: ${found.music.name}, picUrl=${picUrl}`)
             if (picUrl) return this.proxyCoverImage(res, picUrl)
