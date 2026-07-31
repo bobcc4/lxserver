@@ -431,6 +431,19 @@ class SubsonicHandler {
         }
     }
 
+    private preferDownloadedMusic(
+        musics: LX.Music.MusicInfo[],
+        localItems: CacheItem[],
+    ): LX.Music.MusicInfo[] {
+        const localMusicByPlatformId = new Map<string, LX.Music.MusicInfo>()
+        for (const item of localItems) {
+            const platformId = this.getCacheItemPlatformId(item)
+            if (!platformId || localMusicByPlatformId.has(platformId)) continue
+            localMusicByPlatformId.set(platformId, this.cacheItemToMusic(item))
+        }
+        return musics.map(music => localMusicByPlatformId.get(music.id) || music)
+    }
+
     private async findLocalMusicById(username: string, id: string): Promise<{ item: CacheItem, music: LX.Music.MusicInfo } | null> {
         const items = await this.getLocalMusicItems(username)
         const item = items.find(candidate => (
@@ -806,6 +819,11 @@ class SubsonicHandler {
 
     /** 查找某个用户下所有列表中的某首歌 */
     private async findMusicById(username: string, id: string): Promise<{ music: LX.Music.MusicInfo, listId: string } | null> {
+        // Keep getSong metadata consistent with stream: when a physical file
+        // exists, both endpoints must describe and serve that exact file.
+        const local = await this.findLocalMusicById(username, id)
+        if (local) return { music: local.music, listId: 'local_music' }
+
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
 
@@ -850,10 +868,6 @@ class SubsonicHandler {
                 }
             }
         } catch (e) { }
-
-        // 下载目录中的文件不一定存在于同步歌单中，也应能被 Subsonic 直接定位。
-        const local = await this.findLocalMusicById(username, id)
-        if (local) return { music: local.music, listId: 'local_music' }
 
         // 检查在线搜索缓存
         if (this.onlineSongCache.has(id)) {
@@ -1020,6 +1034,10 @@ class SubsonicHandler {
                 musics = (list.list || []) as LX.Music.MusicInfo[]
                 coverArt = (list as any).Album || (list as any).picUrl || (musics[0] as any)?.meta?.picUrl || (musics[0] as any)?.img || 'logo'
             }
+        }
+
+        if (id !== 'local_music' && musics.length > 0) {
+            musics = this.preferDownloadedMusic(musics, await this.getLocalMusicItems(username))
         }
 
         const playlistMeta = {
@@ -1333,6 +1351,10 @@ class SubsonicHandler {
             }
         }
 
+        if (musics.length > 0) {
+            musics = this.preferDownloadedMusic(musics, await this.getLocalMusicItems(username))
+        }
+
         const albumMeta = {
             id,
             name: listName,
@@ -1507,6 +1529,10 @@ class SubsonicHandler {
                 dirName = list.name
                 musics = (list.list || []) as LX.Music.MusicInfo[]
             }
+        }
+
+        if (id !== 'local_music' && musics.length > 0) {
+            musics = this.preferDownloadedMusic(musics, await this.getLocalMusicItems(username))
         }
 
         if (format === 'json') {
@@ -2211,7 +2237,10 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
 
-        const starredSongs = listData.loveList
+        const starredSongs = this.preferDownloadedMusic(
+            listData.loveList,
+            await this.getLocalMusicItems(username),
+        )
 
         // [新增] 包含收藏的歌手和专辑
         const libArtists = await this.getLibraryData(username, 'artists')
