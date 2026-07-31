@@ -9,7 +9,7 @@ import { callUserApiGetMusicUrl } from '@/server/userApi'
 import { getSingerPic, getSingerDetail, getSingerMid } from '@/server/utils/singer'
 import { fetchRecommendedAlbums } from '@/server/utils/recommendAlbums'
 import { fetchGenres, fetchRadios, fetchPlaylistsByGenre, fetchRadioSongs, fetchPlaylistSongs, fetchSongsByGenre } from '@/server/utils/discovery'
-import { checkCache, getCacheCover, getDownloadedMusicItems, getLocalLyrics, serveCacheFile, type CacheFolder, type CacheItem } from '@/server/fileCache'
+import { checkCache, getCacheCover, getDownloadedMusicItemsAcrossLocations, getLocalLyrics, serveCacheFile, type CacheFolder, type CacheItem } from '@/server/fileCache'
 import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
@@ -271,6 +271,9 @@ class SubsonicHandler {
                 case 'getMusicFolders':
                     return this.handleGetMusicFolders(res, format)
 
+                case 'getIndexes':
+                    return this.handleGetIndexes(res, username, format)
+
                 case 'getMusicDirectory':
                     return this.handleGetMusicDirectory(res, username, params, format)
 
@@ -379,7 +382,8 @@ class SubsonicHandler {
     }
 
     private getLocalFileId(item: CacheItem) {
-        return `local_${Buffer.from(String(item.filename)).toString('base64url')}`
+        const identity = `${item.storageLocation || 'current'}\0${item.filename}`
+        return `local_${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 32)}`
     }
 
     private cacheItemToMusic(item: CacheItem): LX.Music.MusicInfo {
@@ -406,12 +410,13 @@ class SubsonicHandler {
             // Used only by the Subsonic handler to serve this exact physical file.
             _localFilename: item.filename,
             _localFolder: item.folder,
+            _localStorageLocation: item.storageLocation,
         } as any
     }
 
     private async getLocalMusicItems(username: string): Promise<CacheItem[]> {
         try {
-            return await getDownloadedMusicItems(username)
+            return await getDownloadedMusicItemsAcrossLocations(username)
         } catch (error: any) {
             console.error('[Subsonic] Failed to read downloaded music:', error?.message || error)
             return []
@@ -426,6 +431,21 @@ class SubsonicHandler {
             candidate.filename === id
         ))
         return item ? { item, music: this.cacheItemToMusic(item) } : null
+    }
+
+    private async collectAllLibrarySongs(username: string, listData: any) {
+        const songs = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
+        for (const entry of this.collectUniqueListSongs(listData)) songs.set(entry.music.id, entry)
+
+        for (const item of await this.getLocalMusicItems(username)) {
+            // A playlist entry already represents this platform song. Files without
+            // a playlist entry receive a stable physical-file ID and remain visible.
+            if (item.source !== 'unknown' && songs.has(item.id)) continue
+            const music = this.cacheItemToMusic(item)
+            songs.set(music.id, { music, listId: 'local_music' })
+        }
+
+        return Array.from(songs.values())
     }
 
     private parseDuration(interval: any): number {
@@ -845,6 +865,32 @@ class SubsonicHandler {
         }, format)
     }
 
+    private async handleGetIndexes(res: http.ServerResponse, username: string, format: string) {
+        const localItems = await this.getLocalMusicItems(username)
+        const localDirectory = {
+            id: 'local_music',
+            parent: '1',
+            title: '本地音乐',
+            name: '本地音乐',
+            isDir: true,
+            songCount: localItems.length,
+            coverArt: localItems[0] ? this.getLocalFileId(localItems[0]) : 'logo',
+        }
+        const indexes = {
+            lastModified: 0,
+            ignoredArticles: 'The An A Die Das Ein',
+            child: [localDirectory],
+        }
+
+        if (format === 'json') return this.sendResponse(res, { indexes }, format)
+        return this.sendResponse(res, {
+            indexes: {
+                attrs: { lastModified: 0, ignoredArticles: indexes.ignoredArticles },
+                children: { child: [{ attrs: localDirectory }] },
+            },
+        }, format)
+    }
+
     private async handleGetPlaylists(res: http.ServerResponse, username: string, format: string) {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
@@ -1047,7 +1093,7 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
         const localAlbumGroup = this.buildLocalAlbumGroups(
-            this.collectUniqueListSongs(listData),
+            await this.collectAllLibrarySongs(username, listData),
         ).get(id)
 
         let musics: LX.Music.MusicInfo[] = []
@@ -1463,7 +1509,7 @@ class SubsonicHandler {
             const userSpace = getUserSpace(username)
             const listData = await userSpace.listManage.getListData()
             const localAlbumGroups = this.buildLocalAlbumGroups(
-                this.collectUniqueListSongs(listData),
+                await this.collectAllLibrarySongs(username, listData),
             )
 
             const mergedAlbums = this.mergeAlbumCatalog(libAlbums, localAlbumGroups)
@@ -1492,17 +1538,44 @@ class SubsonicHandler {
 
     private async handleGetArtists(res: http.ServerResponse, username: string, format: string) {
         // [修改] 歌手列表首选来自收藏的歌手库
+        const artistsById = new Map<string, any>()
         const libArtists = await this.getLibraryData(username, 'artists')
-        const artists = libArtists.map(artist => {
+        for (const artist of libArtists) {
             const id = `art_${artist.source || 'wy'}_${artist.id}`
-            return {
+            artistsById.set(id, {
                 id: id,
                 name: artist.name,
                 albumCount: 0,
                 coverArt: id,
                 artistImageUrl: artist.picUrl || artist.img,
+            })
+        }
+
+        const userSpace = getUserSpace(username)
+        const listData = await userSpace.listManage.getListData()
+        const librarySongs = await this.collectAllLibrarySongs(username, listData)
+        const localAlbums = this.buildLocalAlbumGroups(librarySongs)
+        const albumIdsByArtist = new Map<string, Set<string>>()
+
+        for (const [albumId, group] of localAlbums) {
+            const artistId = String(group.album.artistId || 'artist_Unknown Artist')
+            if (!albumIdsByArtist.has(artistId)) albumIdsByArtist.set(artistId, new Set())
+            albumIdsByArtist.get(artistId)!.add(albumId)
+            if (!artistsById.has(artistId)) {
+                artistsById.set(artistId, {
+                    id: artistId,
+                    name: group.album.artist || 'Unknown Artist',
+                    albumCount: 0,
+                    coverArt: group.album.coverArt || artistId,
+                })
             }
-        })
+        }
+
+        for (const [artistId, albumIds] of albumIdsByArtist) {
+            const artist = artistsById.get(artistId)
+            if (artist) artist.albumCount = albumIds.size
+        }
+        const artists = Array.from(artistsById.values())
 
         // 按首字母分组
         const indexMap = new Map<string, any[]>()
@@ -1543,6 +1616,47 @@ class SubsonicHandler {
     private async handleGetArtist(res: http.ServerResponse, username: string, params: URLSearchParams, format: string) {
         const id = params.get('id')
         if (!id) return this.sendError(res, 10, 'Required parameter is missing: id', format)
+
+        const userSpace = getUserSpace(username)
+        const listData = await userSpace.listManage.getListData()
+        const localGroups = Array.from(this.buildLocalAlbumGroups(
+            await this.collectAllLibrarySongs(username, listData),
+        ).values()).filter(group => group.album.artistId === id)
+
+        if (localGroups.length > 0) {
+            const localSongs = new Map<string, LX.Music.MusicInfo>()
+            for (const group of localGroups) {
+                for (const music of group.songs) localSongs.set(music.id, music)
+            }
+            const albums = localGroups.map(group => group.album)
+            const songs = Array.from(localSongs.values())
+            const artistInfo = {
+                id,
+                name: albums[0].artist || 'Unknown Artist',
+                albumCount: albums.length,
+                songCount: songs.length,
+                coverArt: albums[0].coverArt || id,
+                artistImageUrl: albums[0].coverArt || id,
+            }
+            if (format === 'json') {
+                return this.sendResponse(res, {
+                    artist: {
+                        ...artistInfo,
+                        album: albums,
+                        song: songs.map(music => this.musicToSongFlat(music, id, id)),
+                    },
+                }, format)
+            }
+            return this.sendResponse(res, {
+                artist: {
+                    attrs: artistInfo,
+                    children: {
+                        album: albums.map(album => ({ attrs: album })),
+                        song: songs.map(music => this.musicToSongXml(music, id, id)),
+                    },
+                },
+            }, format)
+        }
 
         let source = 'wy'
         let artistId = ''
@@ -2128,13 +2242,7 @@ class SubsonicHandler {
         }
 
         // 汇聚所有歌曲
-        const all: { music: LX.Music.MusicInfo, listId: string }[] = []
-        const addAll = (musics: LX.Music.MusicInfo[], listId: string) => {
-            for (const m of musics) all.push({ music: m, listId })
-        }
-        addAll(listData.loveList, 'love')
-        addAll(listData.defaultList, 'default')
-        for (const list of listData.userList) addAll((list.list || []) as LX.Music.MusicInfo[], list.id)
+        const all = await this.collectAllLibrarySongs(username, listData)
 
         // Fisher-Yates 随机打乱，取前 size 条
         for (let i = all.length - 1; i > 0; i--) {
@@ -2291,7 +2399,14 @@ class SubsonicHandler {
             // exact downloaded file instead of trying to resolve it online.
             const local = await this.findLocalMusicById(username, id)
             if (local) {
-                return serveCacheFile(req, res, local.item.filename, username, 'music')
+                return serveCacheFile(
+                    req,
+                    res,
+                    local.item.filename,
+                    username,
+                    'music',
+                    local.item.storageLocation,
+                )
             }
 
             const found = await this.findMusicById(username, id)
@@ -2652,7 +2767,11 @@ class SubsonicHandler {
         if (found) {
             const localFilename = (found.music as any)?._localFilename
             if (localFilename) {
-                const localCover = await getCacheCover(localFilename, username)
+                const localCover = await getCacheCover(
+                    localFilename,
+                    username,
+                    (found.music as any)?._localStorageLocation,
+                )
                 if (localCover?.data) {
                     res.writeHead(200, {
                         'Content-Type': localCover.mime || 'image/jpeg',

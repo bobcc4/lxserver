@@ -135,6 +135,8 @@ export interface CacheItem {
     bitrate?: number
     sampleRate?: number
     bitDepth?: number
+    // Runtime-only hint used when a caller enumerates more than one storage root.
+    storageLocation?: string
 }
 
 export type CacheFolder = 'cache' | 'music'
@@ -676,12 +678,17 @@ const sanitize = (str: any) => String(str || '').replace(/[\\/:*?"<>|]/g, '_')
 /**
  * Sync disk files with index database
  */
-export const syncCacheIndex = async (username?: string, roots: Array<'cache' | 'music'> = ['cache', 'music']) => {
+export const syncCacheIndex = async (
+    username?: string,
+    roots: Array<'cache' | 'music'> = ['cache', 'music'],
+    location?: string,
+) => {
     const normalizedUsername = normalizeCacheUsername(username)
+    const indexLocation = location || currentCacheLocation
     const extensions = ['.mp3', '.flac', '.m4a', '.ogg', '.wav']
 
     for (const folder of roots) {
-        const index = indexManager.load(normalizedUsername, folder)
+        const index = indexManager.load(normalizedUsername, folder, indexLocation)
 
         let updated = false
         const existingKeysInIndex = new Set(index.keys())
@@ -692,7 +699,7 @@ export const syncCacheIndex = async (username?: string, roots: Array<'cache' | '
         for (const [key, item] of index.entries()) {
             filenameToItemMap.set(item.filename, { key, item })
         }
-        const dir = getCacheDir(normalizedUsername, folder === 'music')
+        const dir = getCacheDir(normalizedUsername, folder === 'music', indexLocation)
         if (!fs.existsSync(dir)) continue
 
         // [Unified Enhancement] Recursive file walker (asynchronous)
@@ -964,11 +971,11 @@ export const syncCacheIndex = async (username?: string, roots: Array<'cache' | '
         }
 
         if (updated) {
-            indexManager.save(normalizedUsername, folder)
+            indexManager.save(normalizedUsername, folder, indexLocation)
         }
     }
 
-    const syncKey = `${currentCacheLocation}:${normalizedUsername}`
+    const syncKey = `${indexLocation}:${normalizedUsername}`
     const syncState = cacheListSyncState.get(syncKey) || { lastSync: 0 }
     syncState.lastSync = Date.now()
     cacheListSyncState.set(syncKey, syncState)
@@ -1360,13 +1367,15 @@ const setIndexCoverState = (filename: string, username: string, coverType: Cache
 /**
  * Get cover image for a cached file
  */
-export const getCacheCover = async (filename: string, username?: string) => {
+export const getCacheCover = async (filename: string, username?: string, preferredLocation?: string) => {
     const normalizedUsername = normalizeCacheUsername(username)
 
-    const locations = [
+    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    const locations = Array.from(new Set([
+        preferredLocation,
         currentCacheLocation,
-        currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
-    ]
+        alternateLocation,
+    ].filter((location): location is string => !!location)))
     const roots: Array<'cache' | 'music'> = ['cache', 'music']
 
     for (const loc of locations) {
@@ -1743,33 +1752,42 @@ export const getLocalLyrics = (songInfo: any, username?: string): LocalLyricsRes
         }
     }
 
-    const exactItems: Array<{ item: CacheItem, folder: CacheFolder }> = []
-    const metadataItems: Array<{ item: CacheItem, folder: CacheFolder }> = []
-    for (const folder of folders) {
-        const exactMatches: CacheItem[] = []
-        const metadataMatches: CacheItem[] = []
-        for (const item of indexManager.getAll(normalizedUsername, folder)) {
-            if (item.id === id) {
-                exactMatches.push(item)
-            } else if (
-                targetName && targetSinger &&
-                item.name.trim().toLowerCase() === targetName &&
-                item.singer.trim().toLowerCase() === targetSinger
-            ) {
-                metadataMatches.push(item)
+    const preferredLocation = String(songInfo._localStorageLocation || '')
+    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    const locations = Array.from(new Set([
+        preferredLocation,
+        currentCacheLocation,
+        alternateLocation,
+    ].filter(location => location === CACHE_ROOTS.DATA || location === CACHE_ROOTS.ROOT)))
+    const exactItems: Array<{ item: CacheItem, folder: CacheFolder, location: string }> = []
+    const metadataItems: Array<{ item: CacheItem, folder: CacheFolder, location: string }> = []
+    for (const location of locations) {
+        for (const folder of folders) {
+            const exactMatches: CacheItem[] = []
+            const metadataMatches: CacheItem[] = []
+            for (const item of indexManager.getAll(normalizedUsername, folder, location)) {
+                if (item.id === id || item.filename === songInfo._localFilename) {
+                    exactMatches.push(item)
+                } else if (
+                    targetName && targetSinger &&
+                    item.name.trim().toLowerCase() === targetName &&
+                    item.singer.trim().toLowerCase() === targetSinger
+                ) {
+                    metadataMatches.push(item)
+                }
             }
+            const preferQuality = (a: CacheItem, b: CacheItem) => (
+                Number(b.quality === requestedQuality) - Number(a.quality === requestedQuality)
+            )
+            exactMatches.sort(preferQuality)
+            metadataMatches.sort(preferQuality)
+            exactItems.push(...exactMatches.map(item => ({ item, folder, location })))
+            metadataItems.push(...metadataMatches.map(item => ({ item, folder, location })))
         }
-        const preferQuality = (a: CacheItem, b: CacheItem) => (
-            Number(b.quality === requestedQuality) - Number(a.quality === requestedQuality)
-        )
-        exactMatches.sort(preferQuality)
-        metadataMatches.sort(preferQuality)
-        exactItems.push(...exactMatches.map(item => ({ item, folder })))
-        metadataItems.push(...metadataMatches.map(item => ({ item, folder })))
     }
 
-    for (const { item, folder } of [...exactItems, ...metadataItems]) {
-        const root = getCacheDir(normalizedUsername, folder === 'music')
+    for (const { item, folder, location } of [...exactItems, ...metadataItems]) {
+        const root = getCacheDir(normalizedUsername, folder === 'music', location)
         const sidecar = readSidecar(root, item)
         if (sidecar) {
             return {
@@ -2404,6 +2422,49 @@ export const getDownloadedMusicItems = async (username?: string) => {
     return indexManager.getAll(normalizedUsername, 'music').map(item => ({ ...item }))
 }
 
+/**
+ * Enumerate downloaded music from both supported storage roots. Management
+ * operations intentionally keep using getDownloadedMusicItems so they only
+ * mutate the configured root.
+ */
+export const getDownloadedMusicItemsAcrossLocations = async (username?: string) => {
+    const normalizedUsername = normalizeCacheUsername(username)
+    const locations = [
+        currentCacheLocation,
+        currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA,
+    ]
+    const items: CacheItem[] = []
+    const physicalPaths = new Set<string>()
+
+    for (const location of locations) {
+        const musicDir = getCacheDir(normalizedUsername, true, location)
+        const hasMusicIndex = fs.existsSync(path.join(musicDir, 'music_index.json'))
+        const syncKey = `${location}:${normalizedUsername}`
+        const syncState = cacheListSyncState.get(syncKey) || { lastSync: 0 }
+        const shouldSync = !hasMusicIndex || Date.now() - syncState.lastSync > CACHE_LIST_SYNC_TTL
+
+        if (shouldSync) {
+            if (!syncState.pending) {
+                syncState.pending = syncCacheIndex(normalizedUsername, ['music'], location)
+                    .then(() => { syncState.lastSync = Date.now() })
+                    .finally(() => { syncState.pending = undefined })
+                cacheListSyncState.set(syncKey, syncState)
+            }
+            await syncState.pending
+        }
+
+        for (const item of indexManager.getAll(normalizedUsername, 'music', location)) {
+            const physicalPath = path.resolve(musicDir, item.filename)
+            const physicalKey = process.platform === 'win32' ? physicalPath.toLowerCase() : physicalPath
+            if (physicalPaths.has(physicalKey)) continue
+            physicalPaths.add(physicalKey)
+            items.push({ ...item, storageLocation: location })
+        }
+    }
+
+    return items
+}
+
 export const replaceDownloadedMusicItem = async (
     username: string,
     originalItem: CacheItem,
@@ -2679,11 +2740,14 @@ export const serveCacheFile = (
     filename: string,
     username?: string,
     requestedFolder?: CacheFolder,
+    preferredLocation?: string,
 ) => {
-    const locations = [
+    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    const locations = Array.from(new Set([
+        preferredLocation,
         currentCacheLocation,
-        currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
-    ]
+        alternateLocation,
+    ].filter((location): location is string => !!location)))
     const roots: CacheFolder[] = requestedFolder ? [requestedFolder] : ['cache', 'music']
     let filePath = ''
     const normalizedUsername = normalizeCacheUsername(username)
