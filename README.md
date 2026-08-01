@@ -128,8 +128,8 @@
 
 本项目支持从 Docker Hub 或 GitHub Packages 拉取镜像：
 
-- **Docker Hub**: `bobcc4/lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
 **Docker Run 示例：**
 
@@ -142,7 +142,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/lxserver:v1
+  bobcc4/yinyun-lxserver:v1
 ```
 
 **Docker Compose 示例：**
@@ -153,7 +153,7 @@ docker run -d \
 version: '3'
 services:
   yinyun:
-    image: bobcc4/lxserver:v1
+    image: bobcc4/yinyun-lxserver:v1
     container_name: yinyun
     restart: unless-stopped
     ports:

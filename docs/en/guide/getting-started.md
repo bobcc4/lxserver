@@ -35,8 +35,8 @@ For desktop users, we strongly recommend using the **Desktop Client** based on E
 
 This project supports pulling images from Docker Hub or GitHub Packages:
 
-- **Docker Hub**: `bobcc4/lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
 Execute the following command to start the container:
 
@@ -49,7 +49,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/lxserver:v1
+  bobcc4/yinyun-lxserver:v1
 ```
 
 **Container Volume Mappings:**
@@ -66,7 +66,7 @@ For standardized long-term management in production implementation, create a def
 version: '3'
 services:
   yinyun:
-    image: bobcc4/lxserver:v1
+    image: bobcc4/yinyun-lxserver:v1
     container_name: yinyun
     restart: unless-stopped
     ports:

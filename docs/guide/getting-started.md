@@ -7,7 +7,7 @@ V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使�
 - 推荐：Docker 24 或更高版本、Docker Compose v2。
 - 源码运行：Node.js 22.12 或更高版本，推荐 Node.js 24 LTS。
 - 默认端口：`9527`。
-- 正式镜像：`bobcc4/lxserver:v1`。
+- 正式镜像：`bobcc4/yinyun-lxserver:v1`。
 - 至少持久化 `/server/data`；需要下载和管理源文件时，还应持久化 `/server/cache`、`/server/music` 和 `/server/logs`。
 
 ## Docker Compose 部署
@@ -15,7 +15,7 @@ V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使�
 ```yaml
 services:
   yinyun:
-    image: bobcc4/lxserver:v1
+    image: bobcc4/yinyun-lxserver:v1
     container_name: yinyun
     restart: unless-stopped
     ports:

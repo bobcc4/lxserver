@@ -5,10 +5,10 @@ on:
   workflow_dispatch:
 env:
   REGISTRY: ghcr.io
-  # 使用 github.repository_owner 获取用户名，并指定镜像名为 lxserver
-  IMAGE_NAME: ${{ github.repository_owner }}/lxserver
+  # 使用 github.repository_owner 获取用户名，并指定音云镜像名
+  IMAGE_NAME: ${{ github.repository_owner }}/yinyun-lxserver
   # Docker Hub 仓库名
-  DOCKER_HUB_REPO: ${{ secrets.DOCKER_USERNAME }}/lxserver
+  DOCKER_HUB_REPO: ${{ secrets.DOCKER_USERNAME }}/yinyun-lxserver
 
 jobs:
   build_and_push:
@@ -66,7 +66,7 @@ jobs:
 
       - name: Delete old Docker image versions
         run: |
-          PACKAGE_NAME="lxserver"
+          PACKAGE_NAME="yinyun-lxserver"
           OWNER="${{ github.repository_owner }}"
           
           for TAG in "v1"; do

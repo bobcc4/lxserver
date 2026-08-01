@@ -45,7 +45,7 @@ features:
 3. 阅读[账户与 LX 同步](/guide/accounts-sync)或[Subsonic 客户端](/guide/subsonic)连接其他设备。
 4. 下载前阅读[本地曲库与下载](/guide/library-downloads)，明确 `/cache` 与 `/music` 的区别。
 
-> 本文档对应 `bobcc4/lxserver:v1`。
+> 本文档对应 `bobcc4/yinyun-lxserver:v1`。
 
 ## 界面预览
 

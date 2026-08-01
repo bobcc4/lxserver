@@ -1,0 +1,100 @@
+name: Migrate Docker Hub repositories
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Copy all tags and rename repositories
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          migrate_repository() {
+            local source="$1"
+            local target="$2"
+            local next="https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${source}/tags?page_size=100"
+            local copied=0
+
+            while [[ -n "$next" && "$next" != "null" ]]; do
+              local response_file
+              response_file=$(mktemp)
+              trap 'rm -f "$response_file"' RETURN
+              local status
+              status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" -o "$response_file" -w '%{http_code}' "$next")
+              if [[ "$status" != "200" ]]; then
+                echo "Unable to list ${DOCKER_USERNAME}/${source}: HTTP ${status}"
+                cat "$response_file"
+                return 1
+              fi
+
+              mapfile -t tags < <(jq -r '.results[]?.name' "$response_file")
+              for tag in "${tags[@]}"; do
+                [[ -z "$tag" ]] && continue
+                echo "Copying ${DOCKER_USERNAME}/${source}:${tag} -> ${DOCKER_USERNAME}/${target}:${tag}"
+                docker buildx imagetools create \
+                  --tag "docker.io/${DOCKER_USERNAME}/${target}:${tag}" \
+                  "docker.io/${DOCKER_USERNAME}/${source}:${tag}"
+                copied=$((copied + 1))
+              done
+              next=$(jq -r '.next // empty' "$response_file")
+              rm -f "$response_file"
+              trap - RETURN
+            done
+
+            if [[ "$copied" -eq 0 ]]; then
+              echo "No tags were copied from ${DOCKER_USERNAME}/${source}"
+              return 1
+            fi
+          }
+
+          migrate_repository lxserver yinyun-lxserver
+          migrate_repository lxserver-test yinyun-lxserver-test
+
+          auth_payload=$(jq -nc \
+            --arg username "$DOCKER_USERNAME" \
+            --arg password "$DOCKER_PASSWORD" \
+            '{username: $username, password: $password}')
+          token=$(curl -fsS -H 'Content-Type: application/json' \
+            -d "$auth_payload" https://hub.docker.com/v2/users/login/ | jq -r '.token')
+          [[ -n "$token" && "$token" != "null" ]]
+
+          patch_visibility() {
+            local repository="$1"
+            local private="$2"
+            curl -fsS -X PATCH \
+              -H "Authorization: JWT ${token}" \
+              -H 'Content-Type: application/json' \
+              -d "{\"is_private\":${private}}" \
+              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" >/dev/null
+          }
+
+          patch_visibility yinyun-lxserver false
+          patch_visibility yinyun-lxserver-test true
+
+          delete_repository() {
+            local repository="$1"
+            curl -fsS -X DELETE \
+              -H "Authorization: JWT ${token}" \
+              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" >/dev/null
+          }
+
+          delete_repository lxserver
+          delete_repository lxserver-test

@@ -124,8 +124,8 @@ Run Yinyun through the desktop client on Windows, macOS, and Linux.
 ### Option 2: Containerized Deployment via Docker
 
 This project supports pulling images from Docker Hub or GitHub Packages:
-- **Docker Hub**: `bobcc4/lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
 **Docker Run Example:**
 
@@ -138,7 +138,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/lxserver:v1
+  bobcc4/yinyun-lxserver:v1
 ```
 
 **Docker Compose Example:**
@@ -149,7 +149,7 @@ Create a `docker-compose.yml` file:
 version: '3'
 services:
   yinyun:
-    image: bobcc4/lxserver:v1
+    image: bobcc4/yinyun-lxserver:v1
     container_name: yinyun
     restart: unless-stopped
     ports:
