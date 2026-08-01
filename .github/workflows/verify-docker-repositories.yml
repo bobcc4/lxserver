@@ -25,16 +25,34 @@ jobs:
             -d "$auth_payload" https://hub.docker.com/v2/users/login/ | jq -r '.token')
           [[ -n "$token" && "$token" != "null" ]]
 
+          create_repository() {
+            local repository="$1"
+            local private="$2"
+            curl -fsS -X POST \
+              -H "Authorization: JWT ${token}" \
+              -H 'Content-Type: application/json' \
+              -d "{\"namespace\":\"${DOCKER_USERNAME}\",\"name\":\"${repository}\",\"is_private\":${private}}" \
+              'https://hub.docker.com/v2/repositories/' >/dev/null
+          }
+
           for repository in yinyun-lxserver yinyun-lxserver-test; do
             body=$(mktemp)
             status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
               -o "$body" -w '%{http_code}' \
               "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/")
             echo "${repository}: HTTP ${status}"
+            private=false
+            [[ "$repository" == "yinyun-lxserver-test" ]] && private=true
+            if [[ "$status" == "404" ]]; then
+              echo "Creating Docker Hub repository metadata for ${repository}"
+              create_repository "$repository" "$private"
+              status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+                -o "$body" -w '%{http_code}' \
+                "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/")
+              echo "${repository} after create: HTTP ${status}"
+            fi
             if [[ "$status" == "200" ]]; then
               jq '{name, is_private, status}' "$body"
-              private=false
-              [[ "$repository" == "yinyun-lxserver-test" ]] && private=true
               curl -fsS -X PATCH \
                 -H "Authorization: JWT ${token}" \
                 -H 'Content-Type: application/json' \
