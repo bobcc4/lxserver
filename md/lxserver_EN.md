@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.2.1-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -21,7 +21,7 @@
 
 [Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [WebPlayer](../README_EN.md) | [Changelog](../changelog.md)
 
-Yinyun provides a powerful Web player, **LX Music data synchronization**, and a visual management dashboard.
+Yinyun provides a Web player, downloads, a local library, Windows account snapshots, Subsonic, and a visual management dashboard.
 
 ## ✨ Sync Server Key Features
 
@@ -40,7 +40,7 @@ Easily add/delete users and modify sync keys via the UI to manage multi-device a
 
 ### 💾 Snapshot Management
 - **Auto Backup**: Server automatically generates historical data snapshots.
-- **Local Download**: Snapshots can be downloaded as `lx_backup.json` for direct import into LX Music clients.
+- **Local Download**: Historical snapshots can be downloaded for server-side recovery.
 - **One-click Rollback**: Roll back data to a specific snapshot point to prevent data loss.
 
 ### 📂 File & System Logs
@@ -62,7 +62,7 @@ Configure access paths, synchronization modes, Subsonic, WebDAV, proxies, cache 
 
 1. **Access Dashboard**: Visit `http://your-ip:9527`.
 2. **Initial Setup**: Change your default password in "System Config" immediately after first login.
-3. **Add User**: Create sync accounts in the "User Management" page. The generated password is the key for LX Music client connection. (Default: username `admin`, password `password`).
+3. **Add User**: Create accounts in the User Management page. The Web player, Windows client, and Subsonic use the account username and password. The default is `admin` / `password`.
 4. **Backup Strategy**: It's highly recommended to configure cloud backup in "WebDAV Sync" for data safety.
 
 > 💡 For more technical details (Docker deployment, Nginx config, variables, etc.), please return to the **[Project Homepage (README_EN.md)](../README_EN.md)**.

@@ -135,10 +135,6 @@ const modules = {
     get_music_url_count: 'get_music_url_count',
 
     open_api_action: 'open_api_action',
-    sync_action: 'sync_action',
-    sync_get_server_devices: 'sync_get_server_devices',
-    sync_remove_server_device: 'sync_remove_server_device',
-
     process_new_desktop_lyric_client: 'process_new_desktop_lyric_client',
 
     player_action_set_buttons: 'player_action_set_buttons',

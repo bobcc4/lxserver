@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Yinyun"
   text: "Playback, downloads, and synchronization"
-  tagline: "Deploy and manage a private music service with a Web player, local library, LX synchronization, and Subsonic support"
+  tagline: "Deploy and manage a private music service with a Web player, local library, Windows account snapshots, and Subsonic support"
   image:
     src: /icon.svg
     alt: Yinyun
@@ -24,10 +24,10 @@ features:
     details: Scan nested directories under /music and /cache, keep readable source files, and use Boolean search, batch operations, and remastering.
     link: /en/guide/web-player
   - title: Synchronization and Clients
-    details: Synchronize LX Music data and connect Stream Music, LMP, Feishin, and other Subsonic clients.
+    details: Keep encrypted Windows account snapshots for disaster recovery and connect Stream Music, LMP, Feishin, and other Subsonic clients.
     link: /en/guide/sync-server
   - title: Administration
-    details: Manage users, devices, snapshots, WebDAV backups, logs, access paths, proxies, and cache limits from the dashboard.
+    details: Manage users, snapshots, WebDAV backups, logs, access paths, proxies, and cache limits from the dashboard.
     link: /en/guide/sync-server
 
 ---

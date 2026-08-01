@@ -9,8 +9,6 @@ export interface UserSpace {
   dataManage: UserDataManage
   listManage: ListManage
   dislikeManage: DislikeManage
-  getDecices: () => Promise<LX.Sync.KeyInfo[]>
-  removeDevice: (clientId: string) => Promise<void>
 }
 const users = new Map<string, UserSpace>()
 const renamingUsers = new Set<string>()
@@ -49,13 +47,6 @@ export const getUserSpace = (userName: string) => {
       dataManage,
       listManage,
       dislikeManage,
-      async getDecices() {
-        return this.dataManage.getAllClientKeyInfo()
-      },
-      async removeDevice(clientId) {
-        await listManage.removeDevice(clientId)
-        await dataManage.removeClientKeyInfo(clientId)
-      },
     })
   }
   return user

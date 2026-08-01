@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.2.1-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -21,7 +21,7 @@
 
 [帮助文档 Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](../changelog.md)
 
-音云不仅内置了功能强大的网页播放器，还提供 **LX Music 数据同步服务**与 Web 可视化管理。
+音云内置网页播放器、下载、本地曲库、Windows 账户快照、Subsonic 与 Web 可视化管理。
 
 ## ✨ 同步服务器核心特性
 
@@ -32,7 +32,7 @@
 
 ### 👥 用户管理
 
-支持通过界面快捷添加、删除用户，修改同步密钥，轻松管理多设备连接权限。
+支持通过界面快捷添加、删除和修改用户，隔离每个用户的歌单、设置、音源与媒体目录。
 ![用户管理](../docs/public/screenshots/admin-users.png)
 
 ### 🎵 数据深度管理
@@ -44,7 +44,7 @@
 ### 💾 快照管理 (Snapshot)
 
 - **自动备份**：服务器自动生成历史数据快照。
-- **本地下载**：快照可下载为 `lx_backup.json`，直接导入 LX Music 客户端。
+- **本地下载**：历史快照可下载，用于服务端数据恢复。
 - **一键回滚**：支持将数据回滚到指定的快照点，防止误删带来的损失。
 
 ### 📂 文件与系统日志
@@ -68,7 +68,7 @@
 
 1. **登录管理后台**：访问 `http://your-ip:9527`。
 2. **初始化配置**：首次登录请立即进入“系统配置”修改默认密码。
-3. **添加用户**：在“用户管理”页面创建同步账号，生成的密码即为 LX Music 移动端/桌面端连接时使用的密钥。默认用户名admin，密码password。
+3. **添加用户**：在“用户管理”页面创建同步账号。Web 播放器、Windows 客户端和 Subsonic 均使用用户名与密码登录。默认用户名 `admin`，密码 `password`。
 4. **备份策略**：建议在“WebDAV 同步”中配置云端备份，双重保障数据安全。
 
 > 💡 更多技术细节（如 Docker 部署、Nginx 配置、变量列表等）请返回 **[项目首页 (README.md)](../README.md)** 查看。

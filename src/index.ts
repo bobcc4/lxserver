@@ -202,12 +202,6 @@ if (envParams.BACKUP_INTERVAL) {
   const backupInterval = parseInt(envParams.BACKUP_INTERVAL)
   if (!isNaN(backupInterval)) global.lx.config['sync.backupInterval'] = backupInterval
 }
-if (envParams.USER_ENABLE_PATH) {
-  global.lx.config['user.enablePath'] = envParams.USER_ENABLE_PATH === 'true'
-}
-if (envParams.USER_ENABLE_ROOT) {
-  global.lx.config['user.enableRoot'] = envParams.USER_ENABLE_ROOT === 'true'
-}
 if (envParams.PORT) {
   const port = parseInt(envParams.PORT, 10)
   if (!isNaN(port) && port > 0) global.lx.config.port = port
@@ -297,11 +291,8 @@ const checkAndCreateDir = (path: string) => {
 
 const validateUserConfig = (users: LX.Config['users']) => {
   const userNames = new Set<string>()
-  const passwords = new Set<string>()
   const normalizedUsers: LX.Config['users'] = []
   const renames: Array<{ oldName: string; newName: string }> = []
-  // 允许重复密码的条件：开启了路径模式 且 关闭了根路径模式
-  const allowDuplicatePasswords = global.lx.config['user.enablePath'] && !global.lx.config['user.enableRoot']
 
   for (const user of users) {
     let oldName: string
@@ -313,9 +304,7 @@ const validateUserConfig = (users: LX.Config['users']) => {
       throw new Error('Invalid user name: ' + String(user.name || ''))
     }
     if (userNames.has(name)) throw new Error('User name duplicate: ' + name)
-    if (!allowDuplicatePasswords && passwords.has(user.password)) throw new Error('User password duplicate: ' + user.password)
     userNames.add(name)
-    passwords.add(user.password)
     normalizedUsers.push({ ...user, name })
     if (oldName !== name) renames.push({ oldName, newName: name })
   }
@@ -403,9 +392,6 @@ function normalizePort(val: string) {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createModuleEvent } = require('@/event')
 createModuleEvent()
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require('@/utils/migrate').default(global.lx.dataPath, global.lx.userPath)
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { startServer, reloadServerData } = require('@/server')

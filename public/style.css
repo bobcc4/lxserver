@@ -213,6 +213,23 @@ body {
     font-size: 0.7rem;
     line-height: 1;
     white-space: nowrap;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+#console-version.lx-version-update,
+#sidebar-version.lx-version-update {
+    color: #9a3412 !important;
+    background: #ffedd5 !important;
+    border: 1px solid #fdba74;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.18);
+}
+
+#sidebar-version.lx-version-update {
+    max-width: 145px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sidebar-nav {

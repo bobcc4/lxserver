@@ -41,6 +41,46 @@
         return 0;
     }
 
+    function updateVersionIndicators(latestVersion, releaseUrl) {
+        const currentVersion = CONFIG.getLocalVersion().replace(/^v+/, 'v');
+        const hasUpdate = compareVersions(currentVersion, latestVersion) < 0;
+        const indicators = document.querySelectorAll('#console-version, #sidebar-version');
+
+        indicators.forEach((element) => {
+            if (hasUpdate) {
+                element.textContent = currentVersion + ' · 有新版本 ' + latestVersion;
+                element.classList.add('lx-version-update');
+                element.title = '发现新版本 ' + latestVersion + '，点击查看发布说明';
+                element.setAttribute('role', 'button');
+                element.setAttribute('tabindex', '0');
+                element.dataset.updateUrl = releaseUrl || '';
+
+                if (element.dataset.updateHandlerBound !== 'true') {
+                    const openUpdate = () => {
+                        if (window.LxNotification && window.LxNotification.checkUpdates) {
+                            window.LxNotification.checkUpdates(true);
+                        }
+                    };
+                    element.addEventListener('click', openUpdate);
+                    element.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openUpdate();
+                        }
+                    });
+                    element.dataset.updateHandlerBound = 'true';
+                }
+            } else {
+                element.textContent = currentVersion;
+                element.classList.remove('lx-version-update');
+                element.removeAttribute('role');
+                element.removeAttribute('tabindex');
+                element.removeAttribute('title');
+                delete element.dataset.updateUrl;
+            }
+        });
+    }
+
     function processQueue() {
         if (isShowing || NOTIFICATION_QUEUE.length === 0) return;
 
@@ -267,7 +307,7 @@
     }
 
     // ================= 3. 核心逻辑处理 =================
-    function processItem(item, isManual = false) {
+    function processItem(item, isManual = false, force = false) {
         if (!item || item.status !== 'active') return false;
 
         // Manual check: ONLY allow 'version' type notifications
@@ -278,7 +318,7 @@
         const lastSeen = localStorage.getItem(storageKey);
 
         // 如果是手动检查，忽略时间间隔限制
-        if (!isManual && lastSeen) {
+        if (!isManual && !force && lastSeen) {
             const interval = item.logic.interval_hours;
             if (interval === -1) return false;
             const hoursPassed = (Date.now() - parseInt(lastSeen)) / (1000 * 60 * 60);
@@ -299,7 +339,7 @@
     }
 
     // ================= 4. GitHub Release 检查 =================
-    async function fetchLatestRelease(isManual = false) {
+    async function fetchLatestRelease(isManual = false, force = false) {
         try {
             const res = await fetch(CONFIG.LATEST_RELEASE_URL, {
                 cache: 'no-store',
@@ -311,6 +351,8 @@
             if (!latestVersion || !/^v?\d+\.\d+\.\d+/.test(latestVersion)) {
                 throw new Error('GitHub Release did not return a valid version');
             }
+
+            updateVersionIndicators(latestVersion, release.html_url);
 
             const publishedDate = release.published_at
                 ? new Date(release.published_at).toLocaleDateString('zh-CN')
@@ -337,7 +379,7 @@
                     url: release.html_url || 'https://github.com/bobcc4/yinyun-lxserver/releases/latest'
                 }
             };
-            const hasUpdate = processItem(releaseItem, isManual);
+            const hasUpdate = processItem(releaseItem, isManual, force);
 
             if (isManual && !hasUpdate) {
                 const upToDateItem = {
@@ -385,10 +427,11 @@
 
     // ================= 5. 初始化入口 =================
     function init() {
-        checkUpdates(false);
+        // 每次进入页面都检查一次，确保新版本不会因为此前的“稍后提醒”而长期隐藏。
+        checkUpdates(false, true);
     }
 
-    async function checkUpdates(isManual = false) {
+    async function checkUpdates(isManual = false, force = false) {
         if (window.CONFIG && window.CONFIG.disableTelemetry) {
             if (isManual) {
                 const disabledItem = {
@@ -407,7 +450,7 @@
             }
             return;
         }
-        await fetchLatestRelease(isManual);
+        await fetchLatestRelease(isManual, force);
     }
 
     // 暴露给全局的方法

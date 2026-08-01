@@ -13,6 +13,7 @@ import { checkCache, getCacheCover, getCacheFilePath, getDownloadedMusicItemsAcr
 import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
+import { APP_VERSION } from '@/version'
 // @ts-ignore
 import musicSdkRaw from '@/modules/utils/musicSdk/index.js'
 const musicSdk = musicSdkRaw as any
@@ -28,7 +29,7 @@ const musicSdk = musicSdkRaw as any
  */
 class SubsonicHandler {
     private readonly VERSION = '1.16.1'
-    private readonly SERVER_VERSION = '1.2.0'
+    private readonly SERVER_VERSION = APP_VERSION
     private readonly LOCAL_MUSIC_SNAPSHOT_TTL = 60_000
 
     // 预缓存歌曲 ID -> 封面 URL，避免 getCoverArt 重新请求 SDK

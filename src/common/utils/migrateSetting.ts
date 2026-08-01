@@ -121,9 +121,6 @@ export default (setting: any): Partial<LX.AppSetting> => {
     setting['tray.themeId'] = setting.tray?.themeId
 
 
-    setting['sync.enable'] = setting.sync?.enable
-    setting['sync.port'] = setting.sync?.port
-
     setting['theme.id'] = oldThemeMap[setting.theme?.id as keyof typeof oldThemeMap]
     setting['theme.lightId'] = oldThemeMap[setting.theme?.lightId as keyof typeof oldThemeMap]
     setting['theme.darkId'] = oldThemeMap[setting.theme?.darkId as keyof typeof oldThemeMap]
@@ -133,13 +130,6 @@ export default (setting: any): Partial<LX.AppSetting> => {
 
     setting.version = '2.0.0'
   }
-
-  // 迁移 v2.2.0 之前的设置数据
-  if (compareVer(setting.version, '2.1.0') < 0) {
-    setting['sync.erver.port'] = setting['sync.port']
-    setting.version = '2.1.0'
-  }
-
 
   return setting
 }

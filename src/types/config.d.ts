@@ -60,16 +60,6 @@ declare namespace LX {
     /**
      * 是否开启用户路径 /<userName>
      */
-    'user.enablePath'?: boolean
-
-    /**
-     * 是否开启根路径 /
-     */
-    'user.enableRoot'?: boolean
-
-    /**
-     * 是否启用登录用户缓存限制
-     */
     'user.enableLoginCacheRestriction'?: boolean
     /**
      * 是否启用缓存空间限制

@@ -199,7 +199,6 @@ window.soundEffects = (function () {
     }
 
     async function pushToServer(payload) {
-        if (localStorage.getItem('lx_sync_mode') !== 'local') return;
         const user = localStorage.getItem('lx_sync_user');
         const pass = localStorage.getItem('lx_sync_pass');
         if (!user || !pass) return;
@@ -220,8 +219,6 @@ window.soundEffects = (function () {
 
     async function fetchFromServer() {
         if (!window.settings || !window.settings.saveAccountSettingsToFile) return;
-        if (localStorage.getItem('lx_sync_mode') !== 'local') return;
-
         const user = localStorage.getItem('lx_sync_user');
         const pass = localStorage.getItem('lx_sync_pass');
         if (!user || !pass) return;

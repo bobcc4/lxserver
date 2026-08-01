@@ -641,32 +641,6 @@ declare global {
       'tray.themeId': number
 
       /**
-       * 同步服务模式
-       */
-      'sync.mode': 'server' | 'client'
-
-      /**
-       * 是否启用同步服务
-       */
-      'sync.enable': boolean
-
-      /**
-       * 同步服务端口号
-       */
-      'sync.server.port': '23332' | string
-
-      /**
-       * 最大备份快照数
-       */
-      'sync.server.maxSsnapshotNum': number
-
-      /**
-       * 同步服务地址
-       */
-      'sync.client.host': string
-
-
-      /**
        * 是否启用开放API服务
        */
       'openAPI.enable': boolean

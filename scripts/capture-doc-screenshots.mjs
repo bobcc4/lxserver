@@ -213,7 +213,6 @@ async function main() {
     await cdp.navigate(`${baseUrl}/music`)
     await cdp.evaluate(`(() => {
       localStorage.setItem('lx_agreement_accepted', 'true');
-      localStorage.setItem('lx_sync_mode', 'local');
       localStorage.setItem('lx_sync_user', ${JSON.stringify(syncUsername)});
       localStorage.setItem('lx_sync_pass', ${JSON.stringify(syncPassword)});
       localStorage.setItem('lx_user_token', ${JSON.stringify(login.token)});

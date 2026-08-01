@@ -139,12 +139,6 @@ const defaultSetting: LX.AppSetting = {
   // 'tray.isToTray': false,
   'tray.themeId': 0,
 
-  'sync.mode': 'server',
-  'sync.enable': false,
-  'sync.server.port': '23332',
-  'sync.server.maxSsnapshotNum': 5,
-  'sync.client.host': '',
-
   'openAPI.enable': false,
   'openAPI.port': '23330',
   'openAPI.bindLan': false,
@@ -168,4 +162,3 @@ if (new Date().getMonth() < 2) {
 
 
 export default defaultSetting
-

@@ -11,7 +11,7 @@
   </p>
 </div>
 
-音云是基于 [lyswhut/lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) 开发的私有音乐服务器，并兼容 LX Music 数据同步。
+音云是基于 [lyswhut/lx-music-sync-server](https://github.com/lyswhut/lx-music-sync-server) 持续改造的私有音乐服务器，提供 Web 播放、下载、本地曲库、Windows 账户快照和 Subsonic 接入。
 
 本项目在原版基础上增加了强大的 **Web 管理界面**，支持用户管理、数据查看、快照回滚、WebDAV 备份等高级功能，让私有化部署更加便捷易用。
 
@@ -34,7 +34,7 @@
 ### 💾 快照管理 (Snapshot)
 
 - **查看快照**：浏览服务器自动生成的历史数据快照。
-- **下载备份**：将快照下载为 `lx_backup.json`，可直接导入 LX Music 客户端。
+- **下载备份**：下载服务端历史快照，用于服务器数据恢复。
 - **一键回滚**：支持将服务器数据回滚到任意历史时刻。
 
 ### 📂 文件与日志管理

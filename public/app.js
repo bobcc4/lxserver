@@ -344,7 +344,7 @@ class App {
             // Render Markdown
             if (window.marked) {
                 // Replace {{version}} and {{buildHash}} placeholder
-                const version = (window.CONFIG && window.CONFIG.version) || 'v1.2.0';
+                const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.0';
                 const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
                 let content = text.replace(/{{version}}/g, version);
                 content = content.replace(/{{buildHash}}/g, buildHash);
@@ -393,7 +393,6 @@ class App {
 
             // 更新顶部概览卡片
             document.getElementById('stat-users').textContent = status.users;
-            document.getElementById('stat-devices').textContent = status.devices;
             document.getElementById('stat-cpu').textContent = status.cpuUsage + '%';
             document.getElementById('stat-memory').textContent = this.formatFileSize(status.memory);
 
@@ -514,10 +513,8 @@ class App {
 
         // --- 状态与概览更新 ---
         const statUsers = document.getElementById('stat-users');
-        const statDevices = document.getElementById('stat-devices');
         const statUptime = document.getElementById('stat-uptime');
         if (statUsers) statUsers.textContent = status.users;
-        if (statDevices) statDevices.textContent = status.devices;
         if (statUptime) statUptime.textContent = this.formatUptime(status.uptime);
 
         // 更新硬件详情
@@ -1718,12 +1715,6 @@ class App {
             if (form.elements['proxy.all.address']) {
                 form.elements['proxy.all.address'].value = config['proxy.all.address'] || '';
             }
-            if (form.elements['user.enablePath']) {
-                form.elements['user.enablePath'].checked = config['user.enablePath'] === true;
-            }
-            if (form.elements['user.enableRoot']) {
-                form.elements['user.enableRoot'].checked = config['user.enableRoot'] === true;
-            }
             if (form.elements['user.enableLoginCacheRestriction']) {
                 form.elements['user.enableLoginCacheRestriction'].checked = config['user.enableLoginCacheRestriction'] === true;
             }
@@ -1844,8 +1835,6 @@ class App {
             'proxy.header': formData.get('proxy.header'),
             'proxy.all.enabled': formData.get('proxy.all.enabled') === 'on',
             'proxy.all.address': formData.get('proxy.all.address'),
-            'user.enablePath': formData.get('user.enablePath') === 'on',
-            'user.enableRoot': formData.get('user.enableRoot') === 'on',
             'user.enableLoginCacheRestriction': formData.get('user.enableLoginCacheRestriction') === 'on',
             'user.enableCacheSizeLimit': formData.get('user.enableCacheSizeLimit') === 'on',
             'user.cacheSizeLimit': parseInt(formData.get('user.cacheSizeLimit')) || 2000,

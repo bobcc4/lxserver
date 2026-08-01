@@ -4,8 +4,6 @@ module.exports = {
   "proxy.header": "x-real-ip",
   "bindIP": "0.0.0.0",
   "port": 19527,
-  "user.enablePath": false,
-  "user.enableRoot": true,
   "user.enableLoginCacheRestriction": false,
   "user.enableCacheSizeLimit": false,
   "user.cacheSizeLimit": 2000,

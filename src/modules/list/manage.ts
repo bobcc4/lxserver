@@ -36,18 +36,6 @@ export class ListManage {
     return this.createSnapshot()
   }
 
-  getDeviceCurrentSnapshotKey = async (clientId: string) => {
-    return this.snapshotDataManage.getDeviceCurrentSnapshotKey(clientId)
-  }
-
-  updateDeviceSnapshotKey = async (clientId: string, key: string) => {
-    await this.snapshotDataManage.updateDeviceSnapshotKey(clientId, key)
-  }
-
-  removeDevice = async (clientId: string) => {
-    this.snapshotDataManage.removeSnapshotInfo(clientId)
-  }
-
   getListData = async () => {
     return await this.listDataManage.getListData()
   }
@@ -65,7 +53,6 @@ export class ListManage {
     if (!listData) throw new Error('Snapshot not found')
     await this.listDataManage.restore(listData)
 
-    this.snapshotDataManage.clearClients()
     this.snapshotDataManage.setLatest(name)
   }
 
@@ -77,4 +64,3 @@ export class ListManage {
     await this.snapshotDataManage.saveSnapshotWithTime(name, data, time)
   }
 }
-

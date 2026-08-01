@@ -2,18 +2,10 @@ import http, { type IncomingMessage } from 'node:http'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { WebSocketServer, WebSocket } from 'ws'
-import { registerLocalSyncEvent, callObj, sync } from './sync'
-import { authCode, authConnect } from './auth'
-import { getAddress, sendStatus, decryptMsg, encryptMsg, getIP } from '@/utils/tools'
-import { accessLog, startupLog, syncLog, loginLog, tokenLog } from '@/utils/log4js'
-import {
-  File,
-  SYNC_CODE,
-  SYNC_CLOSE_CODE,
-} from '@/constants'
-import { getUserSpace, releaseUserSpace, getUserName, getServerId, getUserDirname, getUserSourcePath, migrateUserData, renameUserSpace, finishRenameUserSpace } from '@/user'
-import { createMsg2call } from 'message2call'
+import { getAddress, getIP } from '@/utils/tools'
+import { accessLog, startupLog, loginLog, tokenLog } from '@/utils/log4js'
+import { File } from '@/constants'
+import { getUserSpace, getServerId, getUserDirname, getUserSourcePath, migrateUserData, renameUserSpace, finishRenameUserSpace } from '@/user'
 import { ElFinderConnector, getSystemRoot } from './elfinderConnector'
 import formidable from 'formidable'
 // @ts-ignore
@@ -25,6 +17,7 @@ import * as fileCache from './fileCache'
 import * as serverDownloadQueue from './serverDownloadQueue'
 import * as remasterQueue from './remasterQueue'
 import { createApiV1Handler } from './apiV1'
+import { APP_VERSION, APP_VERSION_TAG } from '@/version'
 import {
   PlaylistSharingError,
   createPlaylistShare,
@@ -198,9 +191,7 @@ const isConfiguredUsername = (username: unknown) => getConfiguredUsername(userna
 
 const prepareReloadedUsers = (users: any[], config: LX.Config = global.lx.config) => {
   const names = new Set<string>()
-  const passwords = new Set<string>()
   const renames: Array<{ oldName: string; newName: string }> = []
-  const allowDuplicatePasswords = config['user.enablePath'] && !config['user.enableRoot']
 
   const normalizedUsers = users.map(user => {
     if (!user || typeof user !== 'object') {
@@ -215,11 +206,7 @@ const prepareReloadedUsers = (users: any[], config: LX.Config = global.lx.config
       throw new Error(`Invalid user name: ${String(user.name || '')}`)
     }
     if (names.has(username)) throw new Error(`User name duplicate: ${username}`)
-    if (!allowDuplicatePasswords && passwords.has(user.password)) {
-      throw new Error(`User password duplicate: ${String(user.password || '')}`)
-    }
     names.add(username)
-    passwords.add(user.password)
     if (oldUsername !== username) renames.push({ oldName: oldUsername, newName: username })
     return {
       ...user,
@@ -408,15 +395,12 @@ const normalizeSongInfo = (songInfo: any) => {
   return songInfo
 }
 
-let status: LX.Sync.Status = {
+let status: { status: boolean; message: string; address: string[] } = {
   status: false,
   message: '',
   address: [],
-  // code: '',
-  devices: [],
 }
 
-let host = 'http://localhost'
 const sseClients = new Set<http.ServerResponse>()
 // 音乐解析进度 SSE 专属通道: requestId -> response
 const musicProgressClients = new Map<string, http.ServerResponse>()
@@ -439,94 +423,6 @@ const musicProgressClients = new Map<string, http.ServerResponse>()
 //     this.timeout = null
 //   },
 // }
-
-const checkDuplicateClient = (newSocket: LX.Socket) => {
-  for (const client of [...wss!.clients]) {
-    if (client === newSocket || client.keyInfo.clientId != newSocket.keyInfo.clientId) continue
-    syncLog.info('duplicate client', client.userInfo.name, client.keyInfo.deviceName)
-    client.isReady = false
-    for (const name of Object.keys(client.moduleReadys) as Array<keyof LX.Socket['moduleReadys']>) {
-      client.moduleReadys[name] = false
-    }
-    client.close(SYNC_CLOSE_CODE.normal)
-  }
-}
-
-const handleConnection = async (socket: LX.Socket, request: IncomingMessage) => {
-  const queryData = new URL(request.url as string, host).searchParams
-  const clientId = queryData.get('i')
-
-  //   // if (typeof socket.handshake.query.i != 'string') return socket.disconnect(true)
-  const userName = getConfiguredUsername(getUserName(clientId))
-  if (!userName) {
-    socket.close(SYNC_CLOSE_CODE.failed)
-    return
-  }
-  const userSpace = getUserSpace(userName)
-  const keyInfo = userSpace.dataManage.getClientKeyInfo(clientId)
-  if (!keyInfo) {
-    socket.close(SYNC_CLOSE_CODE.failed)
-    return
-  }
-  const user = global.lx.config.users.find(u => u.name === userName)
-  if (!user) {
-    socket.close(SYNC_CLOSE_CODE.failed)
-    return
-  }
-  keyInfo.lastConnectDate = Date.now()
-  userSpace.dataManage.saveClientKeyInfo(keyInfo)
-  //   // socket.lx_keyInfo = keyInfo
-  socket.keyInfo = keyInfo
-  socket.userInfo = user
-
-  checkDuplicateClient(socket)
-
-  try {
-    await sync(socket)
-  } catch (err) {
-    // console.log(err)
-    syncLog.warn(err)
-    socket.close(SYNC_CLOSE_CODE.failed)
-    return
-  }
-  status.devices.push(keyInfo)
-  // handleConnection(io, socket)
-  sendStatus(status)
-  socket.onClose(() => {
-    status.devices.splice(status.devices.findIndex(k => k.clientId == keyInfo.clientId), 1)
-    sendStatus(status)
-  })
-
-  // console.log('connection', keyInfo.deviceName)
-  accessLog.info('connection', user.name, keyInfo.deviceName)
-  // console.log(socket.handshake.query)
-
-  socket.isReady = true
-}
-
-const handleUnconnection = (userName: string) => {
-  // console.log('unconnection')
-  releaseUserSpace(userName)
-}
-
-const authConnection = (req: http.IncomingMessage, callback: (err: string | null | undefined, success: boolean) => void) => {
-  // console.log(req.headers)
-  // // console.log(req.auth)
-  // console.log(req._query.authCode)
-  authConnect(req).then(() => {
-    callback(null, true)
-  }).catch(err => {
-    // console.log('WebSocket auth failed:', err.message)
-    callback(null, false) // <--- 修改为传递 null, false
-  })
-}
-
-let wss: LX.SocketServer | null
-
-function noop() { }
-function onSocketError(err: Error) {
-  console.error(err)
-}
 
 const saveUsers = () => {
   const usersJsonPath = path.join(global.lx.dataPath, 'users.json')
@@ -912,7 +808,7 @@ const resolveServerSong = async (
 }
 
 const handleApiV1 = createApiV1Handler({
-  serverVersion: '1.2.0',
+  serverVersion: APP_VERSION,
   getAuthSecret: () => `${getServerId()}:${global.lx.config['frontend.password']}`,
   getUsers: () => global.lx.config.users,
   musicSdk,
@@ -1084,7 +980,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.2.0'
+      let version = APP_VERSION_TAG
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')
@@ -1101,8 +997,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         serverName: global.lx.config.serverName,
         disableTelemetry: global.lx.config.disableTelemetry || false,
         'proxy.enabled': global.lx.config['proxy.enabled'],
-        'user.enablePath': global.lx.config['user.enablePath'],
-        'user.enableRoot': global.lx.config['user.enableRoot'],
         'user.enableLoginCacheRestriction': global.lx.config['user.enableLoginCacheRestriction'] || false,
         'user.enableCacheSizeLimit': global.lx.config['user.enableCacheSizeLimit'] || false,
         'user.cacheSizeLimit': global.lx.config['user.cacheSizeLimit'] || 2000,
@@ -1232,7 +1126,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
         const status = {
           users: global.lx.config.users.length,
-          devices: wss?.clients.size ?? 0,
           uptime: process.uptime(),
           memory: process.memoryUsage().rss,
           totalMemory: totalMem,
@@ -1375,11 +1268,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 console.log(`[RenameUser] Renaming ${currentName} to ${normalizedNewName}...`)
 
                 // 1. 断开该用户的连接
-                if (wss) {
-                  for (const client of wss.clients) {
-                    if (client.userInfo?.name === currentName) client.close(SYNC_CLOSE_CODE.normal)
-                  }
-                }
                 clearUserRuntimeState(currentName)
 
                 // 2. 释放内存中的用户空间 (清除缓存) 并锁定，防止重命名期间被重新初始化
@@ -1460,11 +1348,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                   }
 
                   // 断开该用户的连接
-                  if (wss) {
-                    for (const client of wss.clients) {
-                      if (client.userInfo?.name === targetName) client.close(SYNC_CLOSE_CODE.normal)
-                    }
-                  }
                   clearUserRuntimeState(targetName)
                   global.lx.config.users.splice(idx, 1)
                   void initUserApis(targetName)
@@ -4990,8 +4873,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             'list.addMusicLocationType': global.lx.config['list.addMusicLocationType'],
             'proxy.enabled': global.lx.config['proxy.enabled'],
             'proxy.header': global.lx.config['proxy.header'],
-            'user.enablePath': global.lx.config['user.enablePath'],
-            'user.enableRoot': global.lx.config['user.enableRoot'],
             'user.enableLoginCacheRestriction': global.lx.config['user.enableLoginCacheRestriction'],
             'user.enableCacheSizeLimit': global.lx.config['user.enableCacheSizeLimit'],
             'user.cacheSizeLimit': global.lx.config['user.cacheSizeLimit'],
@@ -5036,31 +4917,12 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
               if (newConfig['list.addMusicLocationType'] !== undefined) global.lx.config['list.addMusicLocationType'] = newConfig['list.addMusicLocationType']
               if (newConfig['proxy.enabled'] !== undefined) global.lx.config['proxy.enabled'] = newConfig['proxy.enabled']
               if (newConfig['proxy.header'] !== undefined) global.lx.config['proxy.header'] = newConfig['proxy.header']
-              if (newConfig['user.enablePath'] !== undefined) global.lx.config['user.enablePath'] = newConfig['user.enablePath']
-              // 新增：处理 user.enableRoot
-              if (newConfig['user.enableRoot'] !== undefined) global.lx.config['user.enableRoot'] = newConfig['user.enableRoot']
               if (newConfig['user.enableLoginCacheRestriction'] !== undefined) global.lx.config['user.enableLoginCacheRestriction'] = newConfig['user.enableLoginCacheRestriction']
               if (newConfig['user.enableCacheSizeLimit'] !== undefined) global.lx.config['user.enableCacheSizeLimit'] = newConfig['user.enableCacheSizeLimit']
               if (newConfig['user.cacheSizeLimit'] !== undefined) global.lx.config['user.cacheSizeLimit'] = parseInt(newConfig['user.cacheSizeLimit']) || 2000
               if (newConfig['system.allowUnsafeVM'] !== undefined) global.lx.config['system.allowUnsafeVM'] = newConfig['system.allowUnsafeVM']
 
-              let warning = ''
-
-              // 校验：至少开启一种模式
-              if (!global.lx.config['user.enablePath'] && !global.lx.config['user.enableRoot']) {
-                // 如果都关闭了，强制开启根路径（或者报错，这里建议强制开启并警告）
-                global.lx.config['user.enableRoot'] = true
-                warning = '必须至少开启一种连接方式，已自动开启“根路径”模式。'
-              }
-
-              // 校验：如果开启了根路径，检查密码重复
-              if (global.lx.config['user.enableRoot']) {
-                const passwords = global.lx.config.users.map(u => u.password)
-                if (new Set(passwords).size !== passwords.length) {
-                  warning = warning ? warning + '\n' : ''
-                  warning += '检测到重复密码！开启“根路径”模式要求所有用户密码唯一，否则可能导致连接错误。'
-                }
-              }
+              const warning = ''
               if (newConfig['frontend.password'] !== undefined) global.lx.config['frontend.password'] = newConfig['frontend.password']
 
               // WebDAV 配置
@@ -5147,8 +5009,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 port: global.lx.config.port,
                 'proxy.enabled': global.lx.config['proxy.enabled'],
                 'proxy.header': global.lx.config['proxy.header'],
-                'user.enablePath': global.lx.config['user.enablePath'],
-                'user.enableRoot': global.lx.config['user.enableRoot'],
                 'user.enableLoginCacheRestriction': global.lx.config['user.enableLoginCacheRestriction'],
                 'user.enableCacheSizeLimit': global.lx.config['user.enableCacheSizeLimit'],
                 'user.cacheSizeLimit': global.lx.config['user.cacheSizeLimit'],
@@ -5300,7 +5160,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
         const stats = {
           users: global.lx.config.users.length,
-          connectedDevices: status.devices.length,
           serverStatus: status.status,
           uptime: process.uptime(),
           memoryUsage: process.memoryUsage(),
@@ -5779,265 +5638,37 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
     }
 
-    const endUrl = `/${req.url?.split('/').at(-1) ?? ''}`
-    let code
-    let msg
-    switch (endUrl) {
-      case '/hello':
-        // 新增：如果禁用了根路径，且当前访问的是根路径 (例如 /hello 而不是 /user/hello)，则拒绝
-        if (!global.lx.config['user.enableRoot']) {
-          const parts = pathname.split('/').filter(p => p)
-          // parts.length <= 1 说明没有用户名部分，只有 'hello'
-          if (parts.length <= 1) {
-            code = 403
-            msg = 'Root access disabled'
-            break
-          }
-        }
-        code = 200
-        msg = SYNC_CODE.helloMsg
-        break
-      case '/id':
-        // 新增：同上，对 /id 接口也进行同样的检查
-        if (!global.lx.config['user.enableRoot']) {
-          const parts = pathname.split('/').filter(p => p)
-          if (parts.length <= 1) {
-            code = 403
-            msg = 'Root access disabled'
-            break
-          }
-        }
-
-        code = 200
-        msg = SYNC_CODE.idPrefix + getServerId()
-        break
-      case '/ah':
-        let targetUserName
-
-        // 1. 尝试匹配用户路径 /<userName>/ah
-        if (global.lx.config['user.enablePath']) {
-          const parts = pathname.split('/').filter(p => p)
-          // parts 应该是 ['username', 'ah']
-          if (parts.length > 1 && parts[parts.length - 1] === 'ah') {
-            targetUserName = decodeURIComponent(parts[parts.length - 2])
-          }
-        }
-
-        // 2. 如果没有匹配到用户名（说明是访问的根路径 /ah，或者 URL 格式不对）
-        if (!targetUserName) {
-          // 如果未开启根路径模式，则拒绝访问
-          if (!global.lx.config['user.enableRoot']) {
-            res.writeHead(403)
-            res.end('Access denied: Root path access is disabled. Please use /<username>/ah')
-            return
-          }
-          // 如果开启了根路径，targetUserName 保持 undefined，authCode 会遍历尝试所有用户
-        }
-
-        // 将 targetUserName 传递给 authCode
-        void authCode(req, res, global.lx.config.users, targetUserName)
-        break
-      default:
-        // 如果设置了独立后台路径，兜底拦截根目录访问请求
-        if (global.lx.config['admin.path'] && (pathname === '/' || pathname === '/index.html')) {
-          code = 404
-          msg = 'Not Found'
-          break
-        }
-
-        // Serve static files
-        // If root, serve index.html
-        let filePath = path.join(process.cwd(), 'public', pathname === '/' ? 'index.html' : pathname)
-        // Prevent directory traversal
-        if (!filePath.startsWith(path.join(process.cwd(), 'public'))) {
-          code = 403
-          msg = 'Forbidden'
-          break
-        }
-
-        // Check if file exists, if not fall back to 404 handled by serveStatic or check original logic
-        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-          serveStatic(req, res, filePath)
-          return
-        }
-
-        code = 404
-        msg = 'Not Found'
-        break
+    // Serve the admin UI and other static assets.
+    if (global.lx.config['admin.path'] && (pathname === '/' || pathname === '/index.html')) {
+      res.writeHead(404)
+      res.end('Not Found')
+      return
     }
-    if (!code) return
-    res.writeHead(code)
-    res.end(msg)
+
+    const publicRoot = path.join(process.cwd(), 'public')
+    const filePath = path.join(publicRoot, pathname === '/' ? 'index.html' : pathname)
+    if (!filePath.startsWith(publicRoot)) {
+      res.writeHead(403)
+      res.end('Forbidden')
+      return
+    }
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      serveStatic(req, res, filePath)
+      return
+    }
+    res.writeHead(404)
+    res.end('Not Found')
   })
 
-  wss = new WebSocketServer({
-    noServer: true,
-    perMessageDeflate: false,
-  })
-
-  // WebDAV Sync Progress Broadcast
+  // WebDAV progress is delivered through SSE.
   if (global.lx.webdavSync) {
-    // 移除旧的监听器以防重复添加
     global.lx.webdavSync.removeAllListeners('progress')
     global.lx.webdavSync.on('progress', (data: any) => {
-      // Broadcast to WebSocket clients
-      if (wss) {
-        const msg = JSON.stringify({ type: 'webdav_progress', data })
-        for (const client of wss.clients) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(msg)
-          }
-        }
-      }
-      // Broadcast to SSE clients
-      const sseMsg = `data: ${JSON.stringify(data)}\\n\\n`
-      for (const client of sseClients) {
-        client.write(sseMsg)
-      }
+      const message = `data: ${JSON.stringify(data)}\n\n`
+      for (const client of sseClients) client.write(message)
     })
   }
 
-  wss.on('connection', function (socket, request) {
-    socket.isReady = false
-    socket.moduleReadys = {
-      list: false,
-      dislike: false,
-    }
-    socket.feature = {
-      list: false,
-      dislike: false,
-    }
-    socket.on('pong', () => {
-      socket.isAlive = true
-    })
-
-    // const events = new Map<keyof ActionsType, Array<(err: Error | null, data: LX.Sync.ActionSyncType[keyof LX.Sync.ActionSyncType]) => void>>()
-    // const events = new Map<keyof LX.Sync.ActionSyncType, Array<(err: Error | null, data: LX.Sync.ActionSyncType[keyof LX.Sync.ActionSyncType]) => void>>()
-    // let events: Partial<{ [K in keyof LX.Sync.ActionSyncType]: Array<(data: LX.Sync.ActionSyncType[K]) => void> }> = {}
-    let closeEvents: Array<(err: Error) => (void | Promise<void>)> = []
-    let disconnected = false
-    const msg2call = createMsg2call<LX.Sync.ClientSyncActions>({
-      funcsObj: callObj,
-      timeout: 120 * 1000,
-      sendMessage(data: any) {
-        if (disconnected) throw new Error('disconnected')
-        void encryptMsg(socket.keyInfo, JSON.stringify(data)).then((data: string) => {
-          // console.log('sendData', eventName)
-          socket.send(data)
-        }).catch(err => {
-          syncLog.error('encrypt message error:', err)
-          syncLog.error(err.message)
-          socket.close(SYNC_CLOSE_CODE.failed)
-        })
-      },
-      onCallBeforeParams(rawArgs: any[]) {
-        return [socket, ...rawArgs]
-      },
-      onError(error: Error, path: string[], groupName: string | null) {
-        const name = groupName ?? ''
-        const userName = socket.userInfo?.name ?? ''
-        const deviceName = socket.keyInfo?.deviceName ?? ''
-        syncLog.error(`sync call ${userName} ${deviceName} ${name} ${path.join('.')} error:`, error)
-        // if (groupName == null) return
-        // // TODO
-        // socket.close(SYNC_CLOSE_CODE.failed)
-      },
-    })
-    socket.remote = msg2call.remote
-    socket.remoteQueueList = msg2call.createQueueRemote('list')
-    socket.remoteQueueDislike = msg2call.createQueueRemote('dislike')
-    socket.addEventListener('message', ({ data }) => {
-      if (typeof data != 'string') return
-      void decryptMsg(socket.keyInfo, data).then((data) => {
-        let syncData: any
-        try {
-          syncData = JSON.parse(data)
-        } catch (err) {
-          syncLog.error('parse message error:', err)
-          socket.close(SYNC_CLOSE_CODE.failed)
-          return
-        }
-        msg2call.message(syncData)
-      }).catch(err => {
-        syncLog.error('decrypt message error:', err)
-        syncLog.error(err.message)
-        socket.close(SYNC_CLOSE_CODE.failed)
-      })
-    })
-    socket.addEventListener('close', () => {
-      const err = new Error('closed')
-      try {
-        for (const handler of closeEvents) void handler(err)
-      } catch (err: any) {
-        syncLog.error(err?.message)
-      }
-      closeEvents = []
-      disconnected = true
-      msg2call.destroy()
-      if (socket.isReady) {
-        accessLog.info('deconnection', socket.userInfo.name, socket.keyInfo.deviceName)
-        // events = {}
-        if (!status.devices.map(d => getUserName(d.clientId)).filter(n => n == socket.userInfo.name).length) handleUnconnection(socket.userInfo.name)
-      } else {
-        const queryData = new URL(request.url as string, host).searchParams
-        accessLog.info('deconnection', queryData.get('i'))
-      }
-    })
-    socket.onClose = function (handler: typeof closeEvents[number]) {
-      closeEvents.push(handler)
-      return () => {
-        closeEvents.splice(closeEvents.indexOf(handler), 1)
-      }
-    }
-    socket.broadcast = function (handler) {
-      if (!wss) return
-      for (const client of wss.clients) handler(client)
-    }
-
-    void handleConnection(socket, request)
-  })
-
-  httpServer.on('upgrade', function upgrade(request, socket, head) {
-    socket.addListener('error', onSocketError)
-
-    // 调用全局定义的 authConnection (在文件顶部约113行已经定义过)
-    authConnection(request, (err, success) => {
-      // 如果报错或者 success 为 false，则拒绝连接
-      if (err || !success) {
-        // console.log('Auth failed', err)
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
-        socket.destroy()
-        return
-      }
-
-      socket.removeListener('error', onSocketError)
-
-      // 鉴权通过，升级协议
-      // 强制删除压缩扩展头，防止 permessage-deflate 协商导致 "RSV1 must be clear" 错误
-      delete request.headers['sec-websocket-extensions']
-      wss?.handleUpgrade(request, socket, head, function done(ws) {
-        wss?.emit('connection', ws, request)
-      })
-    })
-  })
-
-  const interval = setInterval(() => {
-    wss?.clients.forEach(socket => {
-      if (socket.isAlive == false) {
-        syncLog.info('alive check false:', socket.userInfo.name, socket.keyInfo.deviceName)
-        socket.terminate()
-        return
-      }
-
-      socket.isAlive = false
-      socket.ping(noop)
-      if (socket.keyInfo.isMobile) socket.send('ping', noop)
-    })
-  }, 30000)
-
-  wss.on('close', function close() {
-    clearInterval(interval)
-  })
 
   httpServer.on('error', error => {
     console.log(error)
@@ -6054,52 +5685,10 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     const bind = typeof addr == 'string' ? `pipe ${addr}` : `port ${addr.port}`
     startupLog.info(`Listening on ${ip} ${bind}`)
     resolve(null)
-    void registerLocalSyncEvent(wss as LX.SocketServer)
   })
 
-  host = `http://${ip.includes(':') ? `[${ip}]` : ip}:${port}`
   httpServer.listen(port, ip)
 })
-
-// const handleStopServer = async() => new Promise<void>((resolve, reject) => {
-//   if (!wss) return
-//   for (const client of wss.clients) client.close(SYNC_CLOSE_CODE.normal)
-//   unregisterLocalSyncEvent()
-//   wss.close()
-//   wss = null
-//   httpServer.close((err) => {
-//     if (err) {
-//       reject(err)
-//       return
-//     }
-//     resolve()
-//   })
-// })
-
-// export const stopServer = async() => {
-//   codeTools.stop()
-//   if (!status.status) {
-//     status.status = false
-//     status.message = ''
-//     status.address = []
-//     status.code = ''
-//     sendStatus(status)
-//     return
-//   }
-//   console.log('stoping sync server...')
-//   await handleStopServer().then(() => {
-//     console.log('sync server stoped')
-//     status.status = false
-//     status.message = ''
-//     status.address = []
-//     status.code = ''
-//   }).catch(err => {
-//     console.log(err)
-//     status.message = err.message
-//   }).finally(() => {
-//     sendStatus(status)
-//   })
-// }
 
 export const startServer = async (port: number, ip: string) => {
   // Initialize file cache settings from global config
@@ -6217,25 +5806,10 @@ export const startServer = async (port: number, ip: string) => {
   // })
 }
 
-export const getStatus = (): LX.Sync.Status => status
+export const getStatus = () => status
 
 // export const generateCode = async() => {
 //   status.code = handleGenerateCode()
 //   sendStatus(status)
 //   return status.code
 // }
-
-export const getDevices = async (userName: string) => {
-  const userSpace = getUserSpace(userName)
-  return userSpace.getDecices()
-}
-
-export const removeDevice = async (userName: string, clientId: string) => {
-  if (wss) {
-    for (const client of wss.clients) {
-      if (client.userInfo?.name == userName && client.keyInfo?.clientId == clientId) client.close(SYNC_CLOSE_CODE.normal)
-    }
-  }
-  const userSpace = getUserSpace(userName)
-  await userSpace.removeDevice(clientId)
-}

@@ -81,7 +81,7 @@
             <div class="sidebar-header">
                 <img src="/icon.svg" class="logo-icon" alt="音云">
                 <h2>音云</h2>
-                <span id="sidebar-version">v1.2.0</span>
+                <span id="sidebar-version">v1.3.0</span>
             </div>
 
             <nav class="sidebar-nav">
@@ -261,34 +261,19 @@
                     </div>
 
                     <div class="stats-grid">
-                        <!-- 用户与设备合并卡片 -->
-                        <div class="stat-card glass stat-clickable stat-card-dual" onclick="app.switchView('users')">
-                            <div class="stat-dual-section">
-                                <div class="stat-icon users-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                    </svg>
-                                </div>
-                                <div class="stat-dual-info">
-                                    <h3>用户总数</h3>
-                                    <p id="stat-users" class="stat-value">0</p>
-                                </div>
+                        <div class="stat-card glass stat-clickable" onclick="app.switchView('users')">
+                            <div class="stat-icon users-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                </svg>
                             </div>
-                            <div class="stat-dual-divider"></div>
-                            <div class="stat-dual-section">
-                                <div class="stat-icon devices-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                    </svg>
-                                </div>
-                                <div class="stat-dual-info">
-                                    <h3>在线设备</h3>
-                                    <p id="stat-devices" class="stat-value">0</p>
-                                </div>
+                            <div class="stat-content">
+                                <h3>用户总数</h3>
+                                <p id="stat-users" class="stat-value">0</p>
                             </div>
                         </div>
+
 
                         <!-- 负载双显示卡片 -->
                         <div class="stat-card glass">
@@ -736,47 +721,6 @@
                                     <input type="number" name="sync.backupInterval" class="form-input config-input" value="24"
                                         min="1" />
                                     <small class="config-hint">用于定时自动创建 ZIP 全量备份包并上传至云端</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 用户路径配置卡片 -->
-                        <div class="config-card glass">
-                            <div class="config-card-header">
-                                <div class="config-card-icon"
-                                    style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="config-card-title">用户路径配置</h3>
-                                    <p class="config-card-desc">连接 URL 与鉴权模式</p>
-                                </div>
-                            </div>
-                            <div class="config-card-body">
-                                <div class="config-toggle-row">
-                                    <div class="config-toggle-info">
-                                        <span class="config-toggle-label">启用根路径</span>
-                                        <span class="config-toggle-desc">连接 URL 即为根路径，不允许不同用户使用相同密码</span>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" name="user.enableRoot" />
-                                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                                    </label>
-                                </div>
-                                <div class="config-divider"></div>
-                                <div class="config-toggle-row">
-                                    <div class="config-toggle-info">
-                                        <span class="config-toggle-label">启用用户路径</span>
-                                        <span class="config-toggle-desc">连接 URL 需包含 /用户名 路径，允许不同用户使用相同密码</span>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" name="user.enablePath" />
-                                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -1300,7 +1244,7 @@
                     <input type="text" id="rename-user-input" class="form-input" placeholder="请输入新用户名">
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">
-                    ⚠️ 修改用户名将导致所有已连接设备断开，且文件夹名会随之更改，同步过程数据将短暂离线。
+                    修改用户名会同时更改用户数据文件夹名。操作期间该账户会短暂不可用，Windows 客户端下次登录时需使用新用户名。
                 </p>
             </div>
             <div class="modal-footer">

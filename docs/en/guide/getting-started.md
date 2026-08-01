@@ -1,6 +1,6 @@
 # Quick Start Deployment Guide
 
-Welcome to Yinyun, a self-hosted music server for Web playback, downloads, local-library management, LX Music synchronization, and Subsonic clients.
+Welcome to Yinyun, a self-hosted music server for Web playback, downloads, local-library management, Windows account snapshots, and Subsonic clients.
 
 ## Infrastructure Dependencies
 
@@ -20,16 +20,9 @@ Before starting this service project, please ensure that the host system (or vir
 
 ## Deployment Execution Plan and Best Practices
 
-### Option 1: Using Desktop Client
+### Option 1: Windows Client
 
-For desktop users, we strongly recommend using the **Desktop Client** based on Electron. It integrates the server management and player, featuring system tray support.
-
-1. **Download**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
-2. **Choose Version**:
-   - **Windows**: Download `Universal.exe` (All-in-one) or `portable.exe` (Portable version).
-   - **macOS**: Download `universal.dmg` (Supports Intel/M1/M2).
-   - **Linux**: `.deb` (Debian/Ubuntu) and `.AppImage` formats available.
-3. **Initialization**: The first launch will guide you to select a data storage location, then the service will start in the background and be visible in the system tray.
+After deploying the NAS server, install the separate [Yinyun Windows client](https://github.com/bobcc4/yinyun-windows). It connects with the server URL, account username, and password, and keeps an encrypted local account snapshot. The client does not run a second server on Windows.
 
 ### Option 2: Containerized Deployment Based on Docker Engine
 
@@ -125,7 +118,7 @@ npm start
 
 Before exposing it to the public network main process node, it is strongly recommended to connect a mature Web daemon gateway instance. This is intended to securely apply SSL encryption and hide internal distribution port features.
 
-The following is a standardized Nginx reverse proxy configuration reference example adapted to the system's WebSocket duplex link mechanism and tracing the user's source-end IP Header parsing (taking over traffic through the network and tunnel takeover forwarding from universal `80 / 443` ports to this service `9527`):
+The following is a standardized Nginx reverse proxy example for audio Range streaming, `/api/v1`, and source IP forwarding from ports `80 / 443` to service port `9527`:
 
 ```nginx
 server {

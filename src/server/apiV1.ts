@@ -16,6 +16,12 @@ import {
 import { getEnabledSourcePlatforms, setEnabledSourcePlatforms } from './customSourcePlatformPreferences'
 import { isSourceSharedWithUser } from './customSourceSharing'
 import {
+  ACCOUNT_SYNC_MAX_BYTES,
+  ACCOUNT_SYNC_SCHEMA_VERSION,
+  buildAccountSyncSnapshot,
+  restoreAccountSyncSnapshot,
+} from './accountSync'
+import {
   decodeTrackId,
   encodeApiValue,
   signApiToken,
@@ -88,7 +94,7 @@ const failure = (res: ServerResponse, error: ApiErrorShape) => json(res, error.s
   },
 })
 
-const readJson = async (req: IncomingMessage) => await new Promise<any>((resolve, reject) => {
+const readJson = async (req: IncomingMessage, maxBodySize = MAX_BODY_SIZE) => await new Promise<any>((resolve, reject) => {
   const chunks: Buffer[] = []
   let size = 0
   let oversized = false
@@ -96,7 +102,7 @@ const readJson = async (req: IncomingMessage) => await new Promise<any>((resolve
     if (oversized) return
     const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
     size += value.length
-    if (size > MAX_BODY_SIZE) {
+    if (size > maxBodySize) {
       oversized = true
       reject(new ApiError(413, 'payload_too_large', '请求内容过大'))
       return
@@ -272,7 +278,7 @@ export const apiV1OpenApi = {
   openapi: '3.1.0',
   info: {
     title: '音云 API',
-    version: '1.0.0',
+    version: '1.1.0',
     description: '音云原生客户端使用的稳定接口。旧网页接口与 Subsonic 接口不属于本契约。',
   },
   servers: [{ url: '/' }],
@@ -288,6 +294,10 @@ export const apiV1OpenApi = {
     '/api/v1/auth/refresh': { post: { security: [], summary: '刷新访问令牌' } },
     '/api/v1/auth/logout': { post: { summary: '注销当前令牌' } },
     '/api/v1/auth/me': { get: { summary: '查询当前用户' } },
+    '/api/v1/sync/snapshot': {
+      get: { summary: '导出当前账户同步快照' },
+      put: { summary: '将客户端同步快照恢复到当前账户' },
+    },
     '/api/v1/library/tracks': { get: { summary: '查询本地曲库' } },
     '/api/v1/library/tracks/{id}/stream': { get: { summary: 'Range 流式播放本地歌曲' } },
     '/api/v1/library/tracks/{id}/cover': { get: { summary: '读取本地歌曲封面' } },
@@ -317,7 +327,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       success(res, {
         product: 'yinyun',
         serverVersion: deps.serverVersion,
-        apiVersion: '1.0.0',
+        apiVersion: '1.1.0',
         playerPath: global.lx.config['player.path'] || '/music',
         features: {
           localLibrary: true,
@@ -329,6 +339,11 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
           replacement: true,
           customSources: true,
           playlistSharing: true,
+          accountSync: {
+            schemaVersion: ACCOUNT_SYNC_SCHEMA_VERSION,
+            maxSnapshotBytes: ACCOUNT_SYNC_MAX_BYTES,
+            restore: true,
+          },
           events: 'sse',
           subsonic: global.lx.config['subsonic.enable'] === true,
         },
@@ -375,6 +390,32 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
 
     if (pathname === `${API_PREFIX}/auth/me` && req.method === 'GET') {
       success(res, { username, isAdmin: username === 'admin' })
+      return true
+    }
+
+    if (pathname === `${API_PREFIX}/sync/snapshot` && req.method === 'GET') {
+      success(res, await buildAccountSyncSnapshot(username))
+      return true
+    }
+
+    if (pathname === `${API_PREFIX}/sync/snapshot` && req.method === 'PUT') {
+      const body = await readJson(req, ACCOUNT_SYNC_MAX_BYTES + 64 * 1024)
+      if (body.confirm !== 'restore') {
+        throw new ApiError(400, 'restore_confirmation_required', '恢复同步数据前必须明确确认')
+      }
+      try {
+        const snapshot = await restoreAccountSyncSnapshot(username, body.snapshot, {
+          expectedEmpty: body.expectedEmpty === true,
+          expectedRevision: typeof body.expectedRevision === 'string' ? body.expectedRevision : undefined,
+        })
+        success(res, snapshot)
+      } catch (error: any) {
+        const message = error?.message || String(error)
+        if (message.includes('already contains') || message.includes('changed')) {
+          throw new ApiError(409, 'sync_conflict', message)
+        }
+        throw new ApiError(400, 'invalid_sync_snapshot', message)
+      }
       return true
     }
 

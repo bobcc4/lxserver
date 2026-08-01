@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Optional release version (for example, v1.0.0)
+        description: Optional release version (for example, v1.3.0)
         required: false
         type: string
       publish:
@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  init:
+  build_server:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -51,122 +51,13 @@ jobs:
           else
             VERSION="v$(node -p "require('./package.json').version")"
           fi
-
           node scripts/prepare-release.js "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Upload release metadata
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-metadata
-          path: RELEASE_NOTES.md
-          if-no-files-found: error
-          retention-days: 7
-
-  build_desktop:
-    needs: init
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win
-            arch: x64
-            artifact: windows-x64
-          - os: windows-latest
-            platform: win
-            arch: ia32
-            artifact: windows-ia32
-          - os: windows-11-arm
-            platform: win
-            arch: arm64
-            artifact: windows-arm64
-          - os: macos-15-intel
-            platform: mac
-            arch: x64
-            artifact: macos-x64
-          - os: macos-15
-            platform: mac
-            arch: arm64
-            artifact: macos-arm64
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-            artifact: linux-x64
-          - os: ubuntu-24.04-arm
-            platform: linux
-            arch: arm64
-            artifact: linux-arm64
-    runs-on: ${{ matrix.os }}
-    name: Desktop ${{ matrix.platform }}-${{ matrix.arch }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1 libasound2t64
-
-      - name: Install dependencies
-        run: npm ci
-        env:
-          npm_config_cpu: ${{ matrix.arch }}
-
-      - name: Read Electron version
-        id: electron
-        shell: bash
-        run: node -p '"version=" + require("./node_modules/electron/package.json").version' >> "$GITHUB_OUTPUT"
-
-      - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -v "${{ steps.electron.outputs.version }}" --arch "${{ matrix.arch }}"
-        env:
-          npm_config_build_from_source: true
-
-      - name: Build server code
-        run: npm run electron:build
-
-      - name: Package desktop application
-        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish=never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - name: Upload desktop package
-        uses: actions/upload-artifact@v7
-        with:
-          name: yinyun-${{ matrix.artifact }}
-          path: |
-            dist-electron/*.exe
-            dist-electron/*.dmg
-            dist-electron/*.AppImage
-            dist-electron/*.deb
-          if-no-files-found: error
-          retention-days: 7
-
-  build_server:
-    needs: init
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-
-      - name: Install and build
+      - name: Install, test and build
         run: |
           npm ci
+          npm test
           node scripts/download-binary.js --all
           npm run build
           rm -rf node_modules
@@ -175,25 +66,27 @@ jobs:
       - name: Create server archive
         shell: bash
         env:
-          VERSION: ${{ needs.init.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p release/yinyun
           cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yinyun/
           [[ -f config.js ]] && cp config.js release/yinyun/
           cd release
-          zip -r "Yinyun-Server-${VERSION#v}-Linux-x64.zip" yinyun
+          zip -r "../Yinyun-Server-${VERSION#v}-Linux-x64.zip" yinyun
 
-      - name: Upload server package
+      - name: Upload server package and release notes
         uses: actions/upload-artifact@v7
         with:
           name: yinyun-server
-          path: release/*.zip
+          path: |
+            Yinyun-Server-*.zip
+            RELEASE_NOTES.md
           if-no-files-found: error
           retention-days: 7
 
   publish:
     if: github.event_name == 'push' || inputs.publish
-    needs: [init, build_desktop, build_server]
+    needs: build_server
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -201,49 +94,20 @@ jobs:
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
+          name: yinyun-server
           path: release-assets
-          merge-multiple: true
 
       - name: Publish GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.init.outputs.version }}
+          VERSION: ${{ needs.build_server.outputs.version }}
         run: |
-          ASSETS=(
-            release-assets/*.exe
-            release-assets/*.dmg
-            release-assets/*.AppImage
-            release-assets/*.deb
-            release-assets/*.zip
-          )
-
+          ASSET="release-assets/Yinyun-Server-${VERSION#v}-Linux-x64.zip"
           if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
-              gh release delete-asset "$VERSION" "$ASSET" --yes
-            done
-
-            gh release upload "$VERSION" "${ASSETS[@]}" --clobber
-            gh release edit "$VERSION" \
-              --target "$GITHUB_SHA" \
-              --title "音云 服务端 $VERSION" \
-              --notes-file release-assets/RELEASE_NOTES.md \
-              --latest
+            gh release upload "$VERSION" "$ASSET" --clobber
+            gh release edit "$VERSION" --title "音云 服务端 $VERSION" --notes-file release-assets/RELEASE_NOTES.md --latest
           else
-            gh release create "$VERSION" "${ASSETS[@]}" \
-              --target "$GITHUB_SHA" \
-              --title "音云 服务端 $VERSION" \
-              --notes-file release-assets/RELEASE_NOTES.md \
-              --latest
+            gh release create "$VERSION" "$ASSET" --title "音云 服务端 $VERSION" --notes-file release-assets/RELEASE_NOTES.md --latest
           fi
-
-          gh api "repos/$GH_REPO/releases/tags/$VERSION" --jq '.assets[] | [.id, .name] | @tsv' |
-            while IFS=$'\t' read -r ASSET_ID ASSET_NAME; do
-              case "$ASSET_NAME" in
-                Yinyun-Server-*)
-                  LABEL="音云-服务端-${ASSET_NAME#Yinyun-Server-}"
-                  gh api --method PATCH "repos/$GH_REPO/releases/assets/$ASSET_ID" -f label="$LABEL" >/dev/null
-                  ;;
-              esac
-            done

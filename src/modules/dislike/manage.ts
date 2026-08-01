@@ -36,20 +36,7 @@ export class DislikeManage {
     return this.createSnapshot()
   }
 
-  getDeviceCurrentSnapshotKey = async(clientId: string) => {
-    return this.snapshotDataManage.getDeviceCurrentSnapshotKey(clientId)
-  }
-
-  updateDeviceSnapshotKey = async(clientId: string, key: string) => {
-    await this.snapshotDataManage.updateDeviceSnapshotKey(clientId, key)
-  }
-
-  removeDevice = async(clientId: string) => {
-    this.snapshotDataManage.removeSnapshotInfo(clientId)
-  }
-
   getDislikeRules = async() => {
     return await this.dislikeDataManage.getDislikeRules()
   }
 }
-

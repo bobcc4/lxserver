@@ -21,7 +21,7 @@ export default defineConfig({
       label: '简体中文',
       lang: 'zh-CN',
       title: "音云 Yinyun",
-      description: "支持 Web 播放、下载、本地曲库、LX Music 同步与 Subsonic 的私有音乐服务器",
+      description: "支持 Web 播放、下载、本地曲库、Windows 账户快照与 Subsonic 的私有音乐服务器",
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
@@ -37,7 +37,7 @@ export default defineConfig({
             items: [
               { text: '快速开始', link: '/guide/getting-started' },
               { text: '全部功能', link: '/guide/features' },
-              { text: '桌面客户端', link: '/guide/desktop' }
+              { text: 'Windows 客户端', link: '/guide/desktop' }
             ]
           },
           {
@@ -52,7 +52,7 @@ export default defineConfig({
           {
             text: '账户与客户端',
             items: [
-              { text: '账户与 LX 同步', link: '/guide/accounts-sync' },
+              { text: '账户与 Windows 同步', link: '/guide/accounts-sync' },
               { text: '歌单与音源分享', link: '/guide/sharing' },
               { text: 'Subsonic 客户端', link: '/guide/subsonic' }
             ]
@@ -95,7 +95,7 @@ export default defineConfig({
       lang: 'en-US',
       link: '/en/',
       title: "Yinyun",
-      description: "A self-hosted music server with Web playback, downloads, LX Music sync, and Subsonic support",
+      description: "A self-hosted music server with Web playback, downloads, Windows account snapshots, and Subsonic support",
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },

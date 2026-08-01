@@ -33,11 +33,9 @@ V1 可以通过环境变量、外部配置文件、项目根目录 `config.js` �
 | 环境变量 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `FRONTEND_PASSWORD` | `frontend.password` | `123456` | 管理后台密码 |
-| `USER_ENABLE_ROOT` | `user.enableRoot` | `true` | 允许使用根地址连接 LX 同步 |
-| `USER_ENABLE_PATH` | `user.enablePath` | `false` | 允许使用 `/用户名` 地址连接 |
 | `LX_USER_<用户名>` | `users` | - | 启动时预置同步账户 |
 
-根路径与用户名路径只决定同步连接如何定位用户，不会关闭用户数据隔离。根路径依赖密码识别账户，因此用户密码必须唯一；用户名路径会同时校验路径和凭据。
+Windows 客户端、Web 播放器和用户 API 均使用用户名与密码登录，不再提供连接码、根路径识别或用户名路径模式。
 
 ## 缓存与歌单
 
@@ -110,8 +108,6 @@ Docker 容器中的 `127.0.0.1` 不等于 NAS 主机。代理位于主机时使�
 environment:
   NODE_ENV: production
   FRONTEND_PASSWORD: "replace-admin-password"
-  USER_ENABLE_ROOT: "true"
-  USER_ENABLE_PATH: "false"
   SUBSONIC_ENABLE: "true"
   PROXY_ALL_ENABLED: "false"
 ```

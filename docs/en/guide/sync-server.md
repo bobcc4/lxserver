@@ -15,18 +15,17 @@ Accessing the management console (default `http://IP:9527`) requires entering th
 
 Displays the current service's running status and basic statistical information:
 
-- **Basic Indicators**: Displays the number of devices currently connected via WebSocket, memory (RAM) occupied by the Node.js process, and continuous running time (Uptime) since the service started.
+- **Basic Indicators**: Displays memory used by the Node.js process and continuous running time since the service started.
 - **User Statistics**: Displays the total number of users created in the system.
 - **Running Logs**: The front-end displays real-time console log output, facilitating viewing request history and error information.
 
 ![Management dashboard](/screenshots/admin-dashboard.png)
 
-### 2. User and Device Management (Access & Devices)
+### 2. User Management
 
-Used for managing multi-accounts and viewing currently connected client devices.
+Used for managing isolated user accounts.
 
 - **Multi-account separation**: Multiple user accounts can be created. The playlist data and settings corresponding to each account are stored independently on the server side and do not affect each other.
-- **Device Management**: You can view the client devices currently connecting to the service and the IP source, and support forcibly disconnecting specified device connections.
 - **Delete User and Clean Data**: When deleting a user account, you can choose to simultaneously clear all historical playlist data and cache files corresponding to that user on the server.
 - **Role indicator**: Administrator accounts are identified in the user list so their elevated permissions are visible.
 

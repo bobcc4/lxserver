@@ -33,6 +33,19 @@ interface StoredSource {
     requireUnsafe: boolean
 }
 
+export interface AccountSyncSource {
+    id: string
+    name: string
+    version: string | number
+    author: string
+    description: string
+    homepage: string
+    supportedSources: string[]
+    enabledSources: string[]
+    sourceUrl?: string
+    content: string
+}
+
 const readBody = async (req: IncomingMessage): Promise<string> => new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
     req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
@@ -77,6 +90,125 @@ const writeSources = (username: string, sources: StoredSource[]) => {
     const sourcesDir = getSourceDir(username)
     fs.mkdirSync(sourcesDir, { recursive: true })
     fs.writeFileSync(path.join(sourcesDir, 'sources.json'), JSON.stringify(sources, null, 2))
+}
+
+export const exportOwnedSourcesForSync = (username: string): AccountSyncSource[] => {
+    const owner = assertUsername(username)
+    const sourceDir = getSourceDir(owner)
+    return readSources(owner).flatMap(source => {
+        const scriptPath = path.join(sourceDir, source.id)
+        if (!fs.existsSync(scriptPath)) return []
+        const content = fs.readFileSync(scriptPath, 'utf-8')
+        return [{
+            id: source.id,
+            name: source.name,
+            version: source.version,
+            author: source.author,
+            description: source.description,
+            homepage: source.homepage,
+            supportedSources: source.supportedSources,
+            enabledSources: getEnabledSourcePlatforms(owner, owner, source.id, source.supportedSources),
+            sourceUrl: source.sourceUrl,
+            content,
+        }]
+    })
+}
+
+export const normalizeAccountSyncSources = (values: unknown): AccountSyncSource[] => {
+    if (values == null) return []
+    if (!Array.isArray(values)) throw new Error('sources must be an array')
+
+    const normalized: AccountSyncSource[] = []
+    const ids = new Set<string>()
+    for (const value of values as AccountSyncSource[]) {
+        if (!value || typeof value !== 'object') throw new Error('Invalid source snapshot')
+        const rawId = value.id || value.name
+        if (typeof rawId !== 'string' || !rawId.trim()) throw new Error('Source id is required')
+        const id = generateId(rawId.toLowerCase().endsWith('.js') ? rawId.slice(0, -3) : rawId, value.id)
+        const content = typeof value.content === 'string' ? value.content : ''
+        if (!content || Buffer.byteLength(content, 'utf-8') > 2 * 1024 * 1024) {
+            throw new Error(`Invalid source content: ${value.name || id}`)
+        }
+        const supportedSources = Array.from(new Set((Array.isArray(value.supportedSources) ? value.supportedSources : [])
+            .filter(item => typeof item === 'string')
+            .map(item => item.trim().toLowerCase())
+            .filter(Boolean)))
+        if (!supportedSources.length) throw new Error(`Source has no supported platforms: ${value.name || id}`)
+
+        if (ids.has(id)) throw new Error(`Duplicate source: ${value.name || id}`)
+        ids.add(id)
+        const enabledSources = Array.from(new Set((Array.isArray(value.enabledSources) ? value.enabledSources : supportedSources)
+            .filter(item => typeof item === 'string')
+            .map(item => item.trim().toLowerCase())
+            .filter(Boolean)))
+        const supportedSet = new Set(supportedSources)
+        const unsupported = enabledSources.find(source => !supportedSet.has(source))
+        if (unsupported) throw new Error(`Unsupported platform: ${unsupported}`)
+
+        normalized.push({
+            id,
+            name: String(value.name || id),
+            version: value.version || '1.0.0',
+            author: String(value.author || 'Unknown'),
+            description: String(value.description || ''),
+            homepage: String(value.homepage || ''),
+            supportedSources,
+            enabledSources,
+            sourceUrl: typeof value.sourceUrl === 'string' ? value.sourceUrl : undefined,
+            content,
+        })
+    }
+    return normalized
+}
+
+export const restoreOwnedSourcesFromSync = async (username: string, values: AccountSyncSource[]) => {
+    const owner = assertUsername(username)
+    const normalized = normalizeAccountSyncSources(values)
+    const sourceDir = getSourceDir(owner)
+    const previous = readSources(owner)
+    if (!previous.length && !normalized.length) return 0
+    fs.mkdirSync(sourceDir, { recursive: true })
+
+    const restored: StoredSource[] = []
+    const scripts = new Map<string, string>()
+    const selectedPlatforms = new Map<string, string[]>()
+    for (const value of normalized) {
+        scripts.set(value.id, value.content)
+        selectedPlatforms.set(value.id, value.enabledSources)
+        const source: StoredSource = {
+            id: value.id,
+            name: value.name,
+            version: value.version,
+            author: value.author,
+            description: value.description,
+            homepage: value.homepage,
+            size: Buffer.byteLength(value.content, 'utf-8'),
+            supportedSources: value.supportedSources,
+            enabled: false,
+            uploadTime: new Date().toISOString(),
+            sourceUrl: value.sourceUrl,
+            allowUnsafeVM: false,
+            requireUnsafe: false,
+        }
+        restored.push(source)
+    }
+
+    for (const [id, content] of scripts) fs.writeFileSync(path.join(sourceDir, id), content, 'utf-8')
+    for (const source of previous) {
+        if (restored.some(item => item.id === source.id)) continue
+        const scriptPath = path.join(sourceDir, source.id)
+        if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath)
+        removeSourceShare(owner, source.id)
+        removeSourcePlatformPreferences(owner, source.id)
+    }
+
+    writeSources(owner, restored)
+    fs.writeFileSync(path.join(sourceDir, 'order.json'), JSON.stringify(restored.map(source => source.id), null, 2))
+    for (const source of restored) {
+        setEnabledSourcePlatforms(owner, owner, source.id, selectedPlatforms.get(source.id) || source.supportedSources, source.supportedSources)
+    }
+    await initUserApis(owner)
+    return restored.length
 }
 
 const generateId = (name?: string, fallbackFilename?: string): string => {

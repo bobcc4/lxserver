@@ -44,7 +44,5 @@ ENV BIND_IP='0.0.0.0'
 # ENV SYNC_INTERVAL '60'
 # ENV LOG_PATH '/server/logs'
 # ENV DATA_PATH '/server/data'
-# ENV PLAYER_ENABLE_AUTH 'true'
-# ENV PLAYER_PASSWORD '123.456'
 
 CMD [ "node", "index.js" ]

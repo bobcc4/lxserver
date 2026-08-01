@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.2.1-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -26,7 +26,7 @@
 
 ---
 
-**音云（Yinyun）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，并兼容 LX Music 数据同步和 Subsonic 客户端。
+**音云（Yinyun）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，支持独立 Windows 客户端账户快照和 Subsonic 客户端。
 
 ## ✨ Web 播放器核心特性
 
@@ -80,7 +80,7 @@
 
 ### 7. 用户与权限管理
 
-支持创建和管理同步账户、标识管理员身份、查看连接设备，并隔离各用户的同步数据、自定义源、缓存与下载目录。
+支持创建和管理同步账户、标识管理员身份，并隔离各用户的歌单、设置、自定义源、缓存与下载目录。
 
 <p align="center">
   <img src="docs/public/screenshots/admin-users.png" width="900" alt="用户管理页面">
@@ -88,7 +88,7 @@
 
 ### 8. 服务器配置
 
-可在后台配置访问路径、同步模式、Subsonic、WebDAV、缓存限制、代理和其他服务端选项，Docker 环境变量仍具有最高优先级。
+可在后台配置访问路径、Subsonic、WebDAV、缓存限制、代理和其他服务端选项，Docker 环境变量仍具有最高优先级。
 
 <p align="center">
   <img src="docs/public/screenshots/admin-config.png" width="900" alt="系统配置页面">
@@ -114,15 +114,11 @@
 
 直接运行源码需要 Node.js `22.12.0` 或更高版本，推荐使用 Node.js 24 LTS。
 
-### 方式一：桌面客户端
+### 方式一：Windows 客户端
 
-可以通过桌面端更方便地运行音云，支持 Windows、macOS 和 Linux。
+独立 [音云 Windows 客户端](https://github.com/bobcc4/yinyun-windows) 连接 NAS 上已部署的服务端，不会在电脑上启动第二套服务。客户端使用服务器地址、同步账户用户名和密码登录，并在 Windows 安全存储中保留加密账户快照。
 
-- **📦 最新版本下载**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
-- **✨ 桌面端优势**:
-  - **单窗口管理**: 服务器管理与 Web 播放器合二为一，界面更统一。
-  - **托盘常驻**: 窗口关闭后自动缩回托盘，服务在后台始终运行。
-  - **多架构支持**: 提供 Windows (x64/x86/ARM64 Setup 及 Portable)、macOS (Intel/Apple Silicon) 及 Linux (amd64/arm64) 安装包。
+当服务端容器和全部持久化数据意外丢失时，重新部署服务端并创建相同的小写用户名，客户端会在确认服务端账户为空后提示恢复。音频、缓存与下载任务不在账户快照内。
 
 ### 方式二：使用 Docker
 
@@ -213,7 +209,7 @@ npm start
 
 本项目基于 Node.js 采用前后端分离架构：
 
-- **Backend (Express + WebSocket)**: 核心同步逻辑与 WebDAV 备份。
+- **Backend (Node.js HTTP)**: 用户 API、媒体处理、Subsonic 与 WebDAV 备份。
 - **Console (Vanilla JS)**: 位于根目录，负责用户与数据管理。
 - **WebPlayer (Vanilla JS)**: 负责音乐播放业务，默认访问路径为 `/music`。
 
@@ -238,8 +234,6 @@ npm start
 | `DATA_PATH`                           | -                                    | 指定数据存储目录的绝对路径                                         | `./data`         |
 | `LOG_PATH`                            | -                                    | 指定日志输出目录的绝对路径                                         | `./logs`         |
 | `PROXY_HEADER`                        | `proxy.header`                     | 代理转发 IP 头 (如 `x-real-ip`)                                  | -                  |
-| `USER_ENABLE_ROOT`                    | `user.enableRoot`                  | 启用根路径 (开启后连接URL即为 `ip:port`，不允许不同用户密码相同) | `true`           |
-| `USER_ENABLE_PATH`                    | `user.enablePath`                  | 启用用户路径 (开启后连接URL需为 `ip:port/用户名`，允许密码相同)  | `false`          |
 | `WEBDAV_ENABLE`                       | `webdav.enable`                    | 是否启用 WebDAV 同步与备份                                         | `false`          |
 | `WEBDAV_URL`                          | `webdav.url`                       | WebDAV 地址                                                        | -                  |
 | `WEBDAV_USERNAME`                     | `webdav.username`                  | WebDAV 用户名                                                      | -                  |
@@ -272,8 +266,6 @@ npm start
 | `artist.maxFetchPages` | 歌手歌曲最大抓取页数 | `20` |
 | `cache.namingPattern` | 缓存文件命名规则 (`simple` / `custom`) | `"simple"` |
 | `system.allowUnsafeVM` | 是否允许运行 VM 模式自定义源脚本 (需注意安全风险) | `false` |
-
-> **提示**：目前服务支持 `启用根路径` (URL配置为 `ip:port`) 和 `启用用户路径` (URL配置为 `ip:port/username`) 两种数据同步连接方式。如果没有启用用户路径，则必须保证每一个同步用户的鉴权密码不重复。
 
 ---
 

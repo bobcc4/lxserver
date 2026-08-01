@@ -121,8 +121,6 @@ const DEFAULT_SETTINGS = {
     networkListAutoCheckInterval: '6h', // 网络歌单自动检测间隔
     favoriteSidebarOrder: [], // 我的收藏侧边栏子项排序
     preferServerCache: true, // 优先播放缓存歌曲 (默认开启)
-    remoteSyncUrl: '', // 远程同步地址
-    remoteSyncCode: '', // 远程同步连接码
     deduplicatePlaylistByQuality: true, // 同 ID 歌曲仅加入最高音质 (默认开启)
 };
 
@@ -1070,7 +1068,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.2.0';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.0';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -4069,10 +4067,8 @@ function updateAdminUI() {
     const manageBtn = document.getElementById('btn-custom-source-manage');
     if (manageBtn) manageBtn.classList.toggle('hidden', !isUser);
 
-    // [新增] 处于登录/同步状态时，将相关输入框和连接按钮变灰防止重复操作
+    // 登录后锁定账户输入，切换账户前需要先退出。
     const isLocalLoggedIn = !!userToken && isUser;
-    const isRemoteConnected = (window.SyncManager && window.SyncManager.mode === 'remote' && window.SyncManager.client?.isConnected) ||
-        (window.currentRemoteOverwriteClient && window.currentRemoteOverwriteClient.isConnected);
 
     // 情况 A: 本地登录框 - 只要本地已登录，就禁用本地输入框和登录按钮 (必须要先退出登录才能换号)
     const loginInputIds = ['sync-local-user', 'sync-local-pass'];
@@ -4097,79 +4093,6 @@ function updateAdminUI() {
         else localLoginBtn.classList.remove('opacity-30', 'pointer-events-none', 'grayscale');
     }
 
-    const disableMainRemote = isRemoteConnected || isLocalLoggedIn;
-    ['sync-remote-url', 'sync-remote-code'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.disabled = disableMainRemote;
-            if (disableMainRemote) {
-                el.classList.add('opacity-40', 'cursor-not-allowed', 'grayscale');
-                el.parentElement?.classList.add('pointer-events-none');
-            } else {
-                el.classList.remove('opacity-40', 'cursor-not-allowed', 'grayscale');
-                el.parentElement?.classList.remove('pointer-events-none');
-            }
-        }
-    });
-
-    // 2. 远程连接建立后锁定连接信息，断开后恢复编辑
-    const disableModalRemote = isRemoteConnected;
-    const modalInputIds = ['remote-overwrite-url', 'remote-overwrite-code'];
-    modalInputIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.disabled = disableModalRemote;
-            if (disableModalRemote) {
-                el.classList.add('opacity-40', 'cursor-not-allowed', 'grayscale');
-                el.parentElement?.classList.add('pointer-events-none');
-            } else {
-                el.classList.remove('opacity-40', 'cursor-not-allowed', 'grayscale');
-                el.parentElement?.classList.remove('pointer-events-none');
-            }
-        }
-    });
-
-
-    const modeBtnIds = ['btn-mode-local', 'btn-mode-remote'];
-    modeBtnIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            if (isLocalLoggedIn || isRemoteConnected) {
-                el.style.opacity = '0.5';
-                el.style.pointerEvents = 'none';
-                el.classList.add('grayscale');
-            } else {
-                el.style.opacity = '1';
-                el.style.pointerEvents = 'auto';
-                el.classList.remove('grayscale');
-            }
-        }
-    });
-
-    // 3. 处理操作按钮的禁用状态 (分为主界面按钮和弹窗按钮)
-    const mainActionButtons = [
-        document.querySelector('#sync-remote-step1 button'),
-        document.querySelector('#sync-remote-step2 button')
-    ];
-    mainActionButtons.forEach(btn => {
-        if (btn) {
-            btn.disabled = disableMainRemote;
-            if (disableMainRemote) btn.classList.add('opacity-30', 'pointer-events-none', 'grayscale');
-            else btn.classList.remove('opacity-30', 'pointer-events-none', 'grayscale');
-        }
-    });
-
-    const modalActionButtons = [
-        document.querySelector('#remote-overwrite-step1 button'),
-        document.querySelector('button[onclick^="handleRemoteOverwriteConnect"]')
-    ];
-    modalActionButtons.forEach(btn => {
-        if (btn) {
-            btn.disabled = disableModalRemote;
-            if (disableModalRemote) btn.classList.add('opacity-30', 'pointer-events-none', 'grayscale');
-            else btn.classList.remove('opacity-30', 'pointer-events-none', 'grayscale');
-        }
-    });
 }
 
 async function triggerServerCache(song, url, quality) {
@@ -8429,34 +8352,10 @@ window.removeLibraryAlbum = removeLibraryAlbum;
 // Link SyncManager from user_sync.js
 const syncManager = window.SyncManager;
 let currentListData = null;
-let syncModeResolve = null;
-
-function switchSyncMode(mode) {
-    const btnLocal = document.getElementById('btn-mode-local');
-    const btnRemote = document.getElementById('btn-mode-remote');
-    const formLocal = document.getElementById('sync-form-local');
-    const formRemote = document.getElementById('sync-form-remote');
-
-    if (mode === 'local') {
-        btnLocal.className = "px-4 py-2 rounded-lg text-sm font-medium bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500 transition-all";
-        btnRemote.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 t-text-muted hover:bg-gray-200 transition-all";
-        formLocal.classList.remove('hidden');
-        formRemote.classList.add('hidden');
-    } else {
-        btnLocal.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 t-text-muted hover:bg-gray-200 transition-all";
-        btnRemote.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 ring-2 ring-blue-500 transition-all";
-        formLocal.classList.add('hidden');
-        formRemote.classList.remove('hidden');
-        // Reset Remote Flow
-        handleRemoteBack();
-    }
-}
 
 //同步设置
 async function pushSettingsToServer(force = false) {
     if (!force && !settings.saveAccountSettingsToFile) return;
-    if (localStorage.getItem('lx_sync_mode') !== 'local' && !force) return;
-
     const user = localStorage.getItem('lx_sync_user');
     if (!user) return;
 
@@ -8585,11 +8484,6 @@ function updateSyncStatus(html, showLogout = true) {
     if (showLogout && hasActiveLogin) {
         fullHtml += ` <button onclick="handleSyncLogout()" class="ml-2 text-red-500 hover:text-red-600 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded border border-red-200 hover:bg-red-300/10 transition-all inline-flex items-center gap-1" title="退出登录"><i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">退出登录</span></button>`;
 
-        // Add "Sync from Remote" button if in LOCAL mode
-        if (localStorage.getItem('lx_sync_mode') === 'local') {
-            const username = localStorage.getItem('lx_sync_user') || '该用户';
-            fullHtml += ` <button onclick="showRemoteOverwriteModal('${username}')" class="ml-2 text-emerald-500 hover:text-emerald-600 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded border border-emerald-200 hover:bg-emerald-300/10 transition-all inline-flex items-center gap-1" title="连接远程服务器"><i class="fas fa-satellite-dish"></i><span class="hidden sm:inline">连接远程服务器</span></button>`;
-        }
     }
     statusEl.innerHTML = fullHtml;
     // [新增] 状态变化后刷新登录界面禁用状态
@@ -8618,7 +8512,7 @@ async function handleSyncLogout(skipConfirm = false) {
             userToken = null;
         }
 
-        // 2. 关闭 WebSocket 同步连接
+        // 2. 关闭当前账户数据客户端
         if (syncManager && syncManager.client && typeof syncManager.client.close === 'function') {
             syncManager.client.close();
         }
@@ -8672,12 +8566,8 @@ async function handleSyncLogout(skipConfirm = false) {
         // Clear forms if they exist in DOM
         const localUser = document.getElementById('sync-local-user');
         const localPass = document.getElementById('sync-local-pass');
-        const remoteUrl = document.getElementById('sync-remote-url');
-        const remoteCode = document.getElementById('sync-remote-code');
         if (localUser) localUser.value = '';
         if (localPass) localPass.value = '';
-        if (remoteUrl) remoteUrl.value = '';
-        if (remoteCode) remoteCode.value = '';
 
         if (typeof showSuccess === 'function') {
             showSuccess('已安全退出登录并清除所有缓存，正在刷新页面...');
@@ -8755,7 +8645,6 @@ async function handleLocalLogin() {
 
             // Persist the authenticated account before loading account-scoped UI.
             // Custom sources and the library read these values from localStorage.
-            localStorage.setItem('lx_sync_mode', 'local');
             localStorage.setItem('lx_sync_user', user);
             localStorage.setItem('lx_sync_pass', pass);
             if (!userToken) await ensureUserAuthToken();
@@ -8803,353 +8692,6 @@ async function handleLocalLogin() {
         }
     } catch (e) {
         statusEl.innerHTML = `<i class="fas fa-exclamation-circle text-red-500"></i> 错误: ${e.message}`;
-    }
-}
-
-function showSyncModeModal() {
-    const modal = document.getElementById('sync-auth-modal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.getElementById('sync-connect-form').classList.add('hidden');
-    document.getElementById('sync-mode-selection').classList.remove('hidden');
-}
-window.showSyncModeModal = showSyncModeModal;
-
-
-function closeSyncModal() {
-    const modal = document.getElementById('sync-auth-modal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    // Reset views
-    document.getElementById('sync-connect-form').classList.remove('hidden');
-    document.getElementById('sync-mode-selection').classList.add('hidden');
-
-    if (syncModeResolve) {
-        syncModeResolve('cancel');
-        syncModeResolve = null;
-    }
-}
-
-function selectSyncMode(mode) {
-    const fullOverwrite = document.getElementById('sync-full-overwrite').checked;
-    if (fullOverwrite && mode.startsWith('overwrite')) {
-        mode += '_full';
-    }
-
-    const translatedMode = mode;
-
-    if (syncModeResolve) {
-        syncModeResolve(translatedMode);
-        syncModeResolve = null;
-    }
-    closeSyncModal();
-}
-
-function cancelSyncMode() {
-    if (syncModeResolve) {
-        syncModeResolve('cancel');
-        syncModeResolve = null;
-    }
-    closeSyncModal();
-}
-
-function handleRemoteStep1() {
-    const url = document.getElementById('sync-remote-url').value.trim();
-    if (!url) {
-        showError('请输入链接地址');
-        return;
-    }
-    // Basic validation
-    if (!url.match(/^(ws|http)s?:\/\//)) {
-        showError('链接格式错误，应以 http://, https://, ws:// 或 wss:// 开头');
-        return;
-    }
-
-    document.getElementById('sync-remote-step1').classList.add('hidden');
-    document.getElementById('sync-remote-step2').classList.remove('hidden');
-}
-
-function handleRemoteBack() {
-    document.getElementById('sync-remote-step1').classList.remove('hidden');
-    document.getElementById('sync-remote-step2').classList.add('hidden');
-    document.getElementById('sync-remote-code').value = ''; // Optional clear
-}
-
-function handleRemoteConnect() {
-    const url = document.getElementById('sync-remote-url').value;
-    const code = document.getElementById('sync-remote-code').value;
-    const statusEl = document.getElementById('sync-status');
-
-    if (!code) {
-        showError('请输入连接码');
-        return;
-    }
-
-    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-blue-500"></i> 正在连接远程服务器...';
-
-    try {
-        let authInfo = null;
-        if (localStorage.getItem('lx_sync_url') === url && localStorage.getItem('lx_sync_code') === code) {
-            try {
-                const savedStr = localStorage.getItem('lx_ws_auth');
-                if (savedStr) authInfo = JSON.parse(savedStr);
-            } catch (e) { }
-        }
-
-        syncManager.initRemote(url, code, {
-            getData: async () => {
-                // Try to load from cache first
-                const cachedData = await window.ListStore.get().catch(() => null);
-                if (cachedData) {
-                    console.log('[Cache] 从缓存加载列表数据');
-                    return cachedData;
-                }
-                return currentListData || { defaultList: [], loveList: [], userList: [] };
-            },
-            setData: async (data) => {
-                console.log('[Sync] 远程数据已同步:', data);
-                // Save to cache
-                await window.ListStore.set(data).catch(e => console.error('[IDBStore] 保存失败:', e));
-                // Update global
-                const oldUsername = currentListData ? currentListData.username : null;
-                currentListData = data;
-                if (oldUsername) currentListData.username = oldUsername; // Preserve username
-
-                // Render UI
-                renderMyLists(data);
-                updateSyncStatus('<i class="fas fa-check-circle text-blue-500"></i> 数据已同步');
-            },
-            getSyncMode: async () => {
-                return new Promise((resolve) => {
-                    syncModeResolve = resolve;
-                    showSyncModeModal();
-                });
-            }
-        }, authInfo);
-
-        // Setup Callbacks
-        syncManager.client.onLogin = async (success, msg) => {
-            if (success) {
-                updateSyncStatus('<i class="fas fa-check-circle text-green-500"></i> 已连接 (等待同步...)');
-                // Remove manual sync() call. Let the server drive the sync via RPC.
-
-                // Save connection info and authInfo to localStorage
-                localStorage.setItem('lx_sync_mode', 'remote');
-                localStorage.setItem('lx_sync_url', url);
-                localStorage.setItem('lx_sync_code', code);
-
-                // Save authInfo for reconnection
-                if (syncManager.client.authInfo) {
-                    localStorage.setItem('lx_ws_auth', JSON.stringify(syncManager.client.authInfo));
-                    console.log('[Cache] WS认证信息已保存');
-                }
-            } else {
-                statusEl.innerHTML = `<i class="fas fa-times-circle text-red-500"></i> 连接失败: ${msg || '未知错误'}`;
-            }
-        };
-
-        syncManager.client.connect();
-
-    } catch (e) {
-        statusEl.innerHTML = `<i class="fas fa-exclamation-circle text-red-500"></i> 错误: ${e.message}`;
-    }
-}
-
-// --- Remote Overwrite Modal Logic ---
-
-let currentRemoteOverwriteClient = null;
-
-function switchRemoteModalStep(stepId) {
-    const steps = ['remote-overwrite-step1', 'remote-overwrite-mode-selection', 'remote-overwrite-step2', 'remote-overwrite-result'];
-    steps.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            if (id === stepId) el.classList.remove('hidden');
-            else el.classList.add('hidden');
-        }
-    });
-}
-
-function showRemoteOverwriteModal(username) {
-    const modal = document.getElementById('modal-remote-overwrite');
-    const content = document.getElementById('modal-remote-overwrite-content');
-    if (!modal) return;
-
-    // Reset state and cleanup previous client if any
-    if (currentRemoteOverwriteClient) {
-        currentRemoteOverwriteClient.close();
-        currentRemoteOverwriteClient = null;
-    }
-
-    switchRemoteModalStep('remote-overwrite-step1');
-    document.getElementById('remote-overwrite-status').innerHTML = '';
-    remoteSyncModeResolve = null;
-    lastSelectedRemoteSyncMode = null;
-
-    // Pre-fill from settings
-    const urlInput = document.getElementById('remote-overwrite-url');
-    const codeInput = document.getElementById('remote-overwrite-code');
-    if (urlInput && settings.remoteSyncUrl) urlInput.value = settings.remoteSyncUrl;
-    else if (urlInput) {
-        const savedUrl = localStorage.getItem('lx_sync_url');
-        if (savedUrl) urlInput.value = savedUrl;
-    }
-    if (codeInput && settings.remoteSyncCode) codeInput.value = settings.remoteSyncCode;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        content.classList.remove('scale-95', 'opacity-0');
-    }, 10);
-}
-
-function closeRemoteOverwriteModal(refresh = false) {
-    const modal = document.getElementById('modal-remote-overwrite');
-    const content = document.getElementById('modal-remote-overwrite-content');
-    if (!modal) return;
-
-    if (currentRemoteOverwriteClient) {
-        currentRemoteOverwriteClient.close();
-        currentRemoteOverwriteClient = null;
-    }
-
-    content.classList.add('scale-95', 'opacity-0');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
-}
-
-let remoteSyncModeResolve = null;
-let lastSelectedRemoteSyncMode = null;
-
-function selectRemoteOverwriteMode(mode) {
-    if (remoteSyncModeResolve) {
-        lastSelectedRemoteSyncMode = mode;
-        remoteSyncModeResolve(mode);
-        remoteSyncModeResolve = null;
-    }
-}
-
-async function handleRemoteOverwriteConnect() {
-    let url = settings.remoteSyncUrl || '';
-    let code = settings.remoteSyncCode || '';
-
-    // If not silent or inputs are accessible, try to get from DOM
-    const urlInput = document.getElementById('remote-overwrite-url');
-    const codeInput = document.getElementById('remote-overwrite-code');
-    if (urlInput && urlInput.value.trim()) url = urlInput.value.trim();
-    if (codeInput && codeInput.value.trim()) code = codeInput.value.trim();
-
-    const statusEl = document.getElementById('remote-overwrite-status');
-
-    if (!url || !code) {
-        if (statusEl) statusEl.innerText = '请输入完整的连接信息';
-        return;
-    }
-
-    if (statusEl) {
-        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-emerald-500"></i> 正在建立安全连接...';
-    }
-
-    if (currentRemoteOverwriteClient) currentRemoteOverwriteClient.close();
-    currentRemoteOverwriteClient = new RemoteClient(url, code);
-    const tempRemoteClient = currentRemoteOverwriteClient;
-
-    tempRemoteClient.listHandlers = {
-        getData: async () => {
-            return currentListData || { defaultList: [], loveList: [], userList: [] };
-        },
-        setData: async (data) => {
-            console.log('[RemoteOverwrite] 收到远程数据，准备覆盖本地...');
-            try {
-                // 1. Update UI and global memory (Preserve username)
-                const oldUsername = currentListData ? currentListData.username : localStorage.getItem('lx_sync_user');
-                currentListData = data;
-                if (oldUsername) currentListData.username = oldUsername;
-
-                await window.ListStore.set(data).catch(e => console.error('[IDBStore] 保存失败:', e));
-                renderMyLists(data);
-
-                // 2. Push to local server (important!)
-                if (syncManager && syncManager.mode === 'local') {
-                    await syncManager.push(data);
-                    console.log('[RemoteOverwrite] 已推送到本地服务器');
-                }
-            } catch (err) {
-                console.error('[RemoteOverwrite] 覆盖应用失败:', err);
-            }
-        },
-        getSyncMode: async () => {
-            console.log('[RemoteOverwrite] Server requested sync mode');
-            return new Promise((resolve) => {
-                remoteSyncModeResolve = resolve;
-                switchRemoteModalStep('remote-overwrite-mode-selection');
-            });
-        }
-    };
-
-    tempRemoteClient.onLogin = (success, msg) => {
-        if (success) {
-            // Save address and code to settings and sync to server
-            settings.remoteSyncUrl = url;
-            settings.remoteSyncCode = code;
-            localStorage.setItem('lx_settings', JSON.stringify(settings));
-            if (settings.saveAccountSettingsToFile) {
-                pushSettingsToServer();
-            }
-            if (statusEl) {
-                statusEl.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> 已连通，等待同步指令...';
-            }
-        } else {
-            if (statusEl) {
-                statusEl.classList.remove('t-text-muted');
-                statusEl.classList.add('text-red-500');
-                statusEl.innerText = '连接失败: ' + (msg || '未知错误');
-            }
-        }
-    };
-
-    tempRemoteClient.onSync = (status) => {
-        if (status === 'finished') {
-            switchRemoteModalStep('remote-overwrite-result');
-            tempRemoteClient.close();
-            currentRemoteOverwriteClient = null;
-
-            // Updated result text logic below...
-            const titleEl = document.getElementById('remote-overwrite-result-title');
-            const textEl = document.getElementById('remote-overwrite-result-text');
-            const username = localStorage.getItem('lx_sync_user') || '该用户';
-
-            if (lastSelectedRemoteSyncMode === 'overwrite_local_remote_full') {
-                if (titleEl) titleEl.innerText = '推送同步成功！';
-                if (textEl) textEl.innerText = '当前本地账户歌单已成功覆盖至远程服务器。';
-            } else if (lastSelectedRemoteSyncMode === 'merge_local_remote') {
-                if (titleEl) titleEl.innerText = '合并同步成功！';
-                if (textEl) textEl.innerText = '当前本地账户歌单已成功合并至远程服务器。';
-            } else if (lastSelectedRemoteSyncMode === 'overwrite_remote_local_full') {
-                if (titleEl) titleEl.innerText = '拉取覆盖成功！';
-                if (textEl) textEl.innerText = '远程服务器歌单已成功覆盖至当前本地账户。';
-            } else if (lastSelectedRemoteSyncMode === 'merge_remote_local') {
-                if (titleEl) titleEl.innerText = '拉取合并成功！';
-                if (textEl) textEl.innerText = '远程服务器歌单已成功合并至当前本地账户。';
-            } else {
-                if (titleEl) titleEl.innerText = '连接成功';
-                if (textEl) textEl.innerText = '远程服务器已连接，当前数据内容与本地完全一致。';
-            }
-
-            // Update the status on the main settings page too
-            updateSyncStatus(`<i class="fas fa-check-circle text-emerald-500"></i> 远程同步任务已完成 (${username})`);
-        } else if (status === 'started' || status === 'syncing') {
-            switchRemoteModalStep('remote-overwrite-step2');
-        }
-    };
-
-    try {
-        await tempRemoteClient.connect();
-    } catch (err) {
-        if (statusEl) statusEl.innerText = '初始化失败: ' + err.message;
-        else console.error('[Sync] Remote connect failed:', err);
     }
 }
 
@@ -10140,85 +9682,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         : DEFAULT_SETTINGS.defaultEntry;
     switchTab(defaultTab);
 
-    // 2. Auto-reconnect or auto-login
-    const syncMode = localStorage.getItem('lx_sync_mode');
-
-    if (syncMode === 'local') {
-        // Local mode: auto-login
-        const user = localStorage.getItem('lx_sync_user');
-        const pass = localStorage.getItem('lx_sync_pass');
-        if (user && pass) {
-            document.getElementById('sync-local-user').value = user;
-            document.getElementById('sync-local-pass').value = pass;
-            console.log('[Cache] 自动登录本地账号:', user);
-            handleLocalLogin();
-        }
-    } else if (syncMode === 'remote') {
-        // Remote mode: auto-reconnect
-        const url = localStorage.getItem('lx_sync_url');
-        const code = localStorage.getItem('lx_sync_code');
-        const authStr = localStorage.getItem('lx_ws_auth');
-
-        if (url && code) {
-            document.getElementById('sync-remote-url').value = url;
-            document.getElementById('sync-remote-code').value = code;
-
-            // Check if we have saved authInfo
-            if (authStr) {
-                try {
-                    const authInfo = JSON.parse(authStr);
-                    console.log('[Cache] 使用缓存的认证信息自动重连...');
-
-                    // Pre-populate authInfo in client
-                    syncManager.initRemote(url, code, {
-                        getData: async () => {
-                            const cachedData = await window.ListStore.get().catch(() => null);
-                            return cachedData || { defaultList: [], loveList: [], userList: [] };
-                        },
-                        setData: async (data) => {
-                            await window.ListStore.set(data).catch(e => console.error('[IDBStore] 保存失败:', e));
-                            const oldUsername = currentListData ? currentListData.username : null;
-                            currentListData = data;
-                            if (oldUsername) currentListData.username = oldUsername; // Preserve username
-
-                            renderMyLists(data);
-                            document.getElementById('sync-status').innerHTML = '<i class="fas fa-check-circle text-blue-500"></i> 数据已同步';
-                        },
-                        getSyncMode: async () => {
-                            return new Promise((resolve) => {
-                                syncModeResolve = resolve;
-                                showSyncModeModal();
-                            });
-                        }
-                    });
-
-                    syncManager.client.authInfo = authInfo; // Reuse saved auth
-                    syncManager.client.onLogin = (success) => {
-                        if (success) {
-                            console.log('[Cache] 自动重连成功');
-                            updateSyncStatus('<i class="fas fa-check-circle text-green-500"></i> 已自动重连');
-                        } else {
-                            console.log('[Cache] 自动重连失败,需要手动重新配对');
-                            localStorage.removeItem('lx_ws_auth'); // Clear invalid auth
-                        }
-                    };
-                    syncManager.client.connect();
-                } catch (e) {
-                    console.error('[Cache] 自动重连失败:', e);
-                }
-            } else {
-                console.log('[Cache] 无缓存认证信息,请手动连接');
-            }
-        }
+    // 2. Auto-login the configured account.
+    const user = localStorage.getItem('lx_sync_user');
+    const pass = localStorage.getItem('lx_sync_pass');
+    if (user && pass) {
+        document.getElementById('sync-local-user').value = user;
+        document.getElementById('sync-local-pass').value = pass;
+        console.log('[Cache] 自动登录账户:', user);
+        handleLocalLogin();
     }
 });
 
-window.switchSyncMode = switchSyncMode;
 window.handleLocalLogin = handleLocalLogin;
 window.handleSyncLogout = handleSyncLogout;
 window.resetAllSettings = resetAllSettings;
 
-// Helper to Push Changes to Remote
+// Save list changes to the current account.
 async function pushDataChange(customListData) {
     const listToSave = customListData || currentListData;
     if (!listToSave) return;
@@ -10276,15 +9755,12 @@ async function refreshUserListData() {
 }
 
 window.refreshUserListData = refreshUserListData;
-window.handleRemoteConnect = handleRemoteConnect;
 window.handleCreateList = handleCreateList;
 window.handleRenameList = handleRenameList;
 window.handleRefreshList = handleRefreshList;
 window.handleRemoveList = handleRemoveList;
 window.toggleFavorites = toggleFavorites;
 window.handleFavoritesClick = handleFavoritesClick;
-window.handleRemoteStep1 = handleRemoteStep1;
-window.handleRemoteBack = handleRemoteBack;
 
 
 // ========================================
@@ -11482,26 +10958,17 @@ async function handleTogglePlaylist(listId, btnElement) {
 
         // 5. Background Backend Sync
         try {
-            const isRemoteSync = window.SyncManager && window.SyncManager.mode === 'remote' && window.SyncManager.client && window.SyncManager.client.isConnected;
-
-            if (isRemoteSync) {
-                // 远程模式：推送更新
-                await pushDataChange(activeListData);
-                showSuccess(`成功批量同步 ${addedSongs.length} 首歌曲`);
-            } else {
-                // 本地模式：调用 API 同步后端存储
-                const headers = getUserAuthHeaders();
-                const res = await fetch('/api/music/user/list/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...headers },
-                    body: JSON.stringify({
-                        listId: listId,
-                        musicInfos: addedSongs
-                    })
-                });
-                if (!res.ok) throw new Error(await res.text());
-                showSuccess(`批量收藏 ${addedSongs.length} 首歌曲成功`);
-            }
+            const headers = getUserAuthHeaders();
+            const res = await fetch('/api/music/user/list/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({
+                    listId: listId,
+                    musicInfos: addedSongs
+                })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            showSuccess(`批量收藏 ${addedSongs.length} 首歌曲成功`);
 
             // Cleanup selection
             if (typeof exitBatchMode === 'function') exitBatchMode();
@@ -11940,16 +11407,9 @@ window.handleRemoveList = handleRemoveList;
 window.toggleLove = toggleLove;
 
 // Sync functions
-window.switchSyncMode = switchSyncMode;
 window.handleLocalLogin = handleLocalLogin;
 window.handleSyncLogout = handleSyncLogout;
 window.resetAllSettings = resetAllSettings;
-window.handleRemoteConnect = handleRemoteConnect;
-window.handleRemoteStep1 = handleRemoteStep1;
-window.handleRemoteBack = handleRemoteBack;
-window.selectSyncMode = selectSyncMode;
-window.cancelSyncMode = cancelSyncMode;
-window.closeSyncModal = closeSyncModal;
 
 // Comment functions
 window.toggleCommentModal = toggleCommentModal;
@@ -12601,45 +12061,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // [Fix] Auto-Login logic (Restore Session)
-        const savedMode = localStorage.getItem('lx_sync_mode');
-        if (savedMode === 'local') {
-            const u = localStorage.getItem('lx_sync_user');
-            const p = localStorage.getItem('lx_sync_pass');
-            if (normalizeSyncUsername(u) && p) {
-                // [优化] 如果已经有有效的 Token，不再重复登录
-                if (userToken) {
-                    console.log('[AutoLogin] 检测到有效 Token，跳过自动登录流程并直接恢复会话。');
-                    return;
-                }
-
-                console.log('[AutoLogin] 检测到本地账户且无有效 Token，正在自动登录...');
-                // Fill UI
-                const uInput = document.getElementById('sync-local-user');
-                const pInput = document.getElementById('sync-local-pass');
-                if (uInput) uInput.value = u;
-                if (pInput) pInput.value = p;
-                // Trigger login
-                handleLocalLogin();
+        const u = localStorage.getItem('lx_sync_user');
+        const p = localStorage.getItem('lx_sync_pass');
+        if (normalizeSyncUsername(u) && p) {
+            // [优化] 如果已经有有效的 Token，不再重复登录
+            if (userToken) {
+                console.log('[AutoLogin] 检测到有效 Token，跳过自动登录流程并直接恢复会话。');
+                return;
             }
-        } else if (savedMode === 'remote') {
-            const url = localStorage.getItem('lx_sync_url');
-            const code = localStorage.getItem('lx_sync_code');
-            if (url && code) {
-                console.log('[AutoLogin] 检测到远程同步设置，正在自动连接...');
-                // Fill UI
-                const remoteUrlInput = document.getElementById('sync-remote-url');
-                const remoteStep1 = document.getElementById('sync-remote-step1');
-                const remoteStep2 = document.getElementById('sync-remote-step2');
-                const remoteCodeInput = document.getElementById('sync-remote-code');
 
-                if (remoteUrlInput) remoteUrlInput.value = url;
-                if (remoteStep1) remoteStep1.classList.add('hidden');
-                if (remoteStep2) remoteStep2.classList.remove('hidden');
-                if (remoteCodeInput) remoteCodeInput.value = code;
-
-                // Trigger connect
-                handleRemoteConnect();
-            }
+            console.log('[AutoLogin] 检测到账户且无有效 Token，正在自动登录...');
+            const uInput = document.getElementById('sync-local-user');
+            const pInput = document.getElementById('sync-local-pass');
+            if (uInput) uInput.value = u;
+            if (pInput) pInput.value = p;
+            handleLocalLogin();
         }
     }, 100);
 

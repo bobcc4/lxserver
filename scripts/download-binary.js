@@ -139,6 +139,13 @@ async function main() {
                 console.log('检测到系统中已安装 fpcalc，跳过自动下载。');
                 return;
             }
+
+            const bundledName = os.platform() === 'win32' ? 'fpcalc.exe' : 'fpcalc';
+            const bundledPath = path.join(TARGET_DIR, bundledName);
+            if (fs.existsSync(bundledPath) && fs.statSync(bundledPath).size > 0) {
+                console.log(`检测到已打包的 fpcalc，跳过自动下载: ${bundledPath}`);
+                return;
+            }
         }
 
         if (!fs.existsSync(TARGET_DIR)) {

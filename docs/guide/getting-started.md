@@ -47,11 +47,9 @@ docker compose up -d
 
 升级容器不会删除已挂载目录。不要在未确认挂载正确前删除旧容器数据。
 
-## 桌面客户端部署
+## Windows 客户端
 
-从 [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest) 下载与系统和 CPU 对应的安装包。首次启动且没有有效历史路径时，程序会提示选择存储位置。
-
-桌面客户端关闭窗口后默认缩到系统托盘，服务仍继续运行。存储路径的查看和迁移请阅读[桌面客户端](/guide/desktop)。
+服务端部署完成后，可从 [Windows 客户端 Releases](https://github.com/bobcc4/yinyun-windows/releases/latest) 下载安装包。客户端只连接 NAS 服务端，不在电脑上启动第二套服务器；详细说明见[Windows 客户端](/guide/desktop)。
 
 ## 源码运行
 
@@ -86,22 +84,17 @@ npm start
 - `ADMIN_PATH` 修改管理后台路径。
 - `PLAYER_PATH` 修改播放器路径，默认 `/music`。
 - `SUBSONIC_PATH` 修改 Subsonic 路径，默认 `/rest`。
-- `USER_ENABLE_ROOT=true` 时，LX 同步地址可直接填写服务根地址。
-- `USER_ENABLE_PATH=true` 时，LX 同步地址使用 `服务地址/用户名`。
-
-根路径与用户路径的选择详见[账户与 LX 同步](/guide/accounts-sync)。
+- Windows 客户端填写服务根地址，并使用同步账户用户名和密码登录。
 
 ## 反向代理要点
 
-反向代理必须支持 WebSocket、Range 请求和较长的流媒体连接。建议保留以下请求头：
+反向代理必须支持 Range 请求、较长的流媒体连接，并放行 `/api/v1`。建议保留以下请求头：
 
 ```nginx
 proxy_set_header Host $host;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection "upgrade";
 proxy_http_version 1.1;
 proxy_read_timeout 3600s;
 ```

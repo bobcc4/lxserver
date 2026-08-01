@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.2.1-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -22,7 +22,7 @@
 [Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
 
 ---
-**Yinyun** is a self-hosted music server with a Web player, downloads, local-library management, LX Music data synchronization, and Subsonic client support.
+**Yinyun** is a self-hosted music server with a Web player, downloads, local-library management, encrypted Windows account snapshots, and Subsonic client support.
 
 ## ✨ Web Player Key Features
 
@@ -76,7 +76,7 @@ The dashboard summarizes connections, users, uptime, and resource usage, with di
 
 ### 7. Users and Permissions
 
-Create and manage sync accounts, identify administrator accounts, inspect connected devices, and keep each user's sync data, custom sources, cache, and download directories isolated.
+Create and manage sync accounts, identify administrator accounts, and keep each user's playlists, settings, custom sources, cache, and download directories isolated.
 
 <p align="center">
   <img src="docs/public/screenshots/admin-users.png" width="900" alt="User management">
@@ -84,7 +84,7 @@ Create and manage sync accounts, identify administrator accounts, inspect connec
 
 ### 8. Server Configuration
 
-Configure access paths, synchronization modes, Subsonic, WebDAV, cache limits, proxies, and other server options from the dashboard. Docker environment variables retain the highest priority.
+Configure access paths, Subsonic, WebDAV, cache limits, proxies, and other server options from the dashboard. Docker environment variables retain the highest priority.
 
 <p align="center">
   <img src="docs/public/screenshots/admin-config.png" width="900" alt="Server configuration">
@@ -109,17 +109,9 @@ Built with **Node.js**, supporting multiple deployment methods.
 Running from source requires Node.js `22.12.0` or later. Node.js 24 LTS is recommended.
 
 
-### Option 1: Desktop Client
+### Option 1: Windows Client
 
-Run Yinyun through the desktop client on Windows, macOS, and Linux.
-
-- **📦 Download Latest**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
-- **✨ Key Advantages**:
-    - **Single Window**: Integrated management dashboard and Web player for a unified experience.
-    - **System Tray**: Minimizes to tray on close, ensuring the sync service stays active in the background.
-    - **Port Conflict Resolution**: Automatically detects and switches ports if the default is in use.
-    - **Setup Wizard**: Guided data path selection on first launch, supports **Portable Mode**.
-    - **Multi-Arch Support**: Builds for Windows (x64/x86/ARM64 Setup & Portable), macOS (Intel x64 & Apple Silicon arm64), and Linux (amd64/arm64 deb/AppImage).
+The separate [Yinyun Windows client](https://github.com/bobcc4/yinyun-windows) connects to a server already deployed on your NAS. It signs in with the server URL, account username, and password, and keeps an encrypted local account snapshot for explicit disaster recovery. It does not start a second server on Windows.
 
 ### Option 2: Containerized Deployment via Docker
 
@@ -209,7 +201,7 @@ npm start
 
 Separated frontend and backend architecture based on Node.js:
 
-- **Backend (Express + WebSocket)**: Core sync logic and WebDAV backup.
+- **Backend (Node.js HTTP)**: Account APIs, media processing, Subsonic, and WebDAV backup.
 - **Console (Vanilla JS)**: Located in the root directory, handles user and data management.
 - **WebPlayer (Vanilla JS)**: Handles music playback, default access path is `/music`.
 
@@ -234,8 +226,6 @@ Edit `config.js` directly. Environment variables take precedence:
 | `DATA_PATH` | - | Absolute path to data storage directory | `./data` |
 | `LOG_PATH` | - | Absolute path to log output directory | `./logs` |
 | `PROXY_HEADER` | `proxy.header` | Proxy IP header (e.g., `x-real-ip`) | - |
-| `USER_ENABLE_ROOT` | `user.enableRoot` | Enable root path (use `ip:port`, password must be unique) | `true` |
-| `USER_ENABLE_PATH` | `user.enablePath` | Enable user path (use `ip:port/username`, passwords can repeat) | `false` |
 | `WEBDAV_ENABLE` | `webdav.enable` | Enable WebDAV sync and backup | `false` |
 | `WEBDAV_URL` | `webdav.url` | WebDAV URL | - |
 | `WEBDAV_USERNAME` | `webdav.username` | WebDAV Username | - |
@@ -268,8 +258,6 @@ Some advanced options are only configurable by directly editing `config.js`:
 | `artist.maxFetchPages` | Maximum fetch pages for artist songs | `20` |
 | `cache.namingPattern` | Cache file naming rule (`simple` / `custom`) | `"simple"` |
 | `system.allowUnsafeVM` | Allow VM mode custom source scripts (note security risks) | `false` |
-
-> **Note**: The service currently supports two types of sync connection URLs: `Root Path` (URL configuration is `ip:port`) and `User Path` (URL configuration is `ip:port/username`). If the User Path is disabled, all sync user passwords must be completely unique.
 
 ---
 

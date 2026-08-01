@@ -218,7 +218,7 @@
                             class="t-text-muted hover:t-text-muted transition-colors" title="GitHub">
                             <i class="fab fa-github text-xl"></i>
                         </a>
-                        <div class="text-sm t-text-muted" id="app-version">v1.2.0 Web</div>
+                        <div class="text-sm t-text-muted" id="app-version">v1.3.0 Web</div>
                     </div>
                 </div>
             </header>
@@ -1595,14 +1595,8 @@
                             <div class="pt-6 border-t t-border-main">
                                 <h3 class="font-medium text-emerald-600 mb-4">数据同步</h3>
 
-                                <div class="flex gap-4 mb-4">
-                                    <button id="btn-mode-local" onclick="switchSyncMode('local')"
-                                        class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 transition-all">本地服务器</button>
-                                    <button id="btn-mode-remote" onclick="switchSyncMode('remote')"
-                                        class="px-4 py-2 rounded-lg text-sm font-medium t-bg-track t-text-muted hover:t-bg-item-hover transition-all">远程同歩</button>
-                                </div>
+                                <p class="text-xs t-text-muted mb-4">使用音云同步账户保存歌单、设置和音源。Windows 客户端可在服务端数据丢失后恢复本地同步快照。</p>
 
-                                <!-- Local Mode Form -->
                                 <div id="sync-form-local" class="space-y-4">
                                     <input type="text" id="sync-local-user" placeholder="用户名"
                                         class="w-full px-4 py-2 border t-border-main rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm">
@@ -1610,39 +1604,6 @@
                                         class="w-full px-4 py-2 border t-border-main rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm">
                                     <button onclick="handleLocalLogin()"
                                         class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors shadow-md">登录并同步</button>
-                                </div>
-
-                                <!-- Remote Mode Form (Hidden) -->
-                                <div id="sync-form-remote" class="space-y-4 hidden">
-                                    <p class="text-xs text-gray-500">请输入 LX Music 桌面端或移动端的连接信息</p>
-
-                                    <!-- Step 1: URL -->
-                                    <div id="sync-remote-step1">
-                                        <label class="block text-xs font-bold t-text-muted mb-1">链接</label>
-                                        <input type="text" id="sync-remote-url" placeholder="ws://192.168.x.x:xxx"
-                                            class="w-full px-4 py-2 border t-border-main rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm mb-2">
-                                        <button onclick="handleRemoteStep1()"
-                                            class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors shadow-md">
-                                            下一步
-                                        </button>
-                                    </div>
-
-                                    <!-- Step 2: Code (Hidden) -->
-                                    <div id="sync-remote-step2" class="hidden">
-                                        <label class="block text-xs font-bold t-text-muted mb-1">连接码</label>
-                                        <input type="text" id="sync-remote-code" placeholder="输入连接码"
-                                            class="w-full px-4 py-2 border t-border-main rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm mb-2">
-                                        <div class="flex gap-2">
-                                            <button onclick="handleRemoteBack()"
-                                                class="flex-1 py-2 bg-gray-200 hover:bg-gray-300 t-text-muted font-bold rounded-lg transition-colors">
-                                                上一步
-                                            </button>
-                                            <button onclick="handleRemoteConnect()"
-                                                class="flex-[2] py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors shadow-md">
-                                                连接
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div id="sync-status" class="mt-3 text-sm text-gray-500 flex items-center gap-2">
@@ -3600,77 +3561,6 @@
         </div>
     </div>
 
-    <!-- Sync Auth Modal -->
-    <div id="sync-auth-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[70]">
-        <div class="t-bg-panel rounded-lg shadow-xl w-96 p-6 relative">
-            <button onclick="closeSyncModal()" class="absolute top-2 right-2 t-text-muted hover:t-text-muted">
-                <i class="fas fa-times"></i>
-            </button>
-            <h3 class="text-lg font-bold mb-4 flex items-center">
-                <i class="fas fa-lock mr-2 text-blue-500"></i> 数据同步 (Sync)
-            </h3>
-
-            <div id="sync-mode-selection" class="hidden">
-                <p class="mb-4 text-sm t-text-muted">检测到远程数据与本地不一致，请选择同步方式：</p>
-
-                <div class="space-y-3">
-                    <div class="border p-3 rounded hover:t-bg-main cursor-pointer"
-                        onclick="selectSyncMode('merge_local_remote')">
-                        <div class="font-bold text-sm">合并：本地 &rarr; 远程</div>
-                        <div class="text-xs text-gray-500">将本地变更合并到远程 (保留两者)</div>
-                    </div>
-                    <div class="border p-3 rounded hover:t-bg-main cursor-pointer"
-                        onclick="selectSyncMode('merge_remote_local')">
-                        <div class="font-bold text-sm">合并：远程 &rarr; 本地</div>
-                        <div class="text-xs text-gray-500">将远程变更合并到本地 (保留两者)</div>
-                    </div>
-                    <div class="border p-3 rounded hover:t-bg-main cursor-pointer"
-                        onclick="selectSyncMode('overwrite_local_remote')">
-                        <div class="font-bold text-sm">覆盖：本地 &rarr; 远程</div>
-                        <div class="text-xs text-gray-500">用本地数据完全覆盖远程 (慎用)</div>
-                    </div>
-                    <div class="border p-3 rounded hover:t-bg-main cursor-pointer"
-                        onclick="selectSyncMode('overwrite_remote_local')">
-                        <div class="font-bold text-sm">覆盖：远程 &rarr; 本地</div>
-                        <div class="text-xs text-gray-500">用远程数据完全覆盖本地 (推荐首次)</div>
-                    </div>
-                </div>
-
-                <div class="mt-4 flex justify-between items-center">
-                    <label class="flex items-center text-xs text-gray-500">
-                        <input type="checkbox" id="sync-full-overwrite" class="mr-1"> 完全覆盖 (清除其它)
-                    </label>
-                    <button onclick="cancelSyncMode()"
-                        class="px-3 py-1 text-sm text-gray-500 hover:t-text-main">取消</button>
-                </div>
-            </div>
-
-            <div id="sync-connect-form">
-                <div class="mb-4">
-                    <label class="block t-text-main text-sm font-bold mb-2">服务地址</label>
-                    <input type="text" id="sync-url" placeholder="ws://your-server:9527"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 t-text-main leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                <div class="mb-4">
-                    <label class="block t-text-main text-sm font-bold mb-2">连接码 (Connection Code)</label>
-                    <input type="password" id="sync-code" placeholder="输入连接码"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 t-text-main leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                <div id="sync-status" class="mb-4 text-xs text-gray-500"></div>
-                <div class="flex justify-between">
-                    <button onclick="closeSyncModal()"
-                        class="bg-gray-300 hover:bg-gray-400 t-text-main font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        取消
-                    </button>
-                    <button onclick="handleRemoteConnect()"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        连接 (Connect)
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Custom Source Modal -->
     <div id="custom-source-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[70] hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
@@ -4638,95 +4528,6 @@
                 <div class="mt-8 flex-shrink-0">
                     <button onclick="closeTokenLogsModal()"
                         class="w-full py-3.5 t-bg-track t-text-main font-bold rounded-2xl hover:opacity-80 transition-all">返回面板</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Remote Overwrite Modal -->
-    <div id="modal-remote-overwrite"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 hidden animate-fade-in px-4">
-        <div class="t-bg-panel w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden border t-border-main transition-all transform scale-95 opacity-0 duration-300"
-            id="modal-remote-overwrite-content">
-            <div class="p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold t-text-main tracking-tight">同步数据 (Sync)</h3>
-                    <button onclick="closeRemoteOverwriteModal()"
-                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                        <i class="fas fa-times t-text-muted"></i>
-                    </button>
-                </div>
-                <div id="remote-overwrite-step1" class="space-y-4">
-                    <p class="text-xs t-text-muted leading-relaxed">连接远程同步服务器，连接成功后可选择数据同步方向。</p>
-                    <div>
-                        <label
-                            class="block text-[11px] uppercase tracking-[0.1em] font-bold t-text-muted mb-2 ml-1 opacity-80">服务器地址
-                            (WS/HTTP)</label>
-                        <input type="text" id="remote-overwrite-url" placeholder="ws://192.168.1.1:9527"
-                            class="w-full px-4 py-3.5 t-bg-track border t-border-main rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 t-text-main transition-all placeholder:opacity-30">
-                    </div>
-                    <div>
-                        <label
-                            class="block text-[11px] uppercase tracking-[0.1em] font-bold t-text-muted mb-2 ml-1 opacity-80">连接码
-                            (Code)</label>
-                        <input type="password" id="remote-overwrite-code" placeholder="输入连接码"
-                            class="w-full px-4 py-3.5 t-bg-track border t-border-main rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 t-text-main transition-all placeholder:opacity-30">
-                    </div>
-                    <div id="remote-overwrite-status" class="text-xs text-center min-h-[1.5rem] t-text-muted"></div>
-                    <button onclick="handleRemoteOverwriteConnect()"
-                        class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
-                        连接远程服务器
-                    </button>
-                </div>
-                <div id="remote-overwrite-mode-selection" class="hidden space-y-3">
-                    <p class="text-xs t-text-muted mb-1 text-center font-medium">连接成功！请选择同步方向：</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="selectRemoteOverwriteMode('overwrite_local_remote_full')"
-                            class="p-4 border t-border-main rounded-2xl hover:t-bg-item-hover transition-all text-center group">
-                            <div class="font-bold text-xs t-text-main group-hover:text-emerald-500">本地覆盖远程</div>
-                            <div class="text-[9px] t-text-muted mt-1">(Local Overwrite)</div>
-                        </button>
-                        <button onclick="selectRemoteOverwriteMode('merge_local_remote')"
-                            class="p-4 border t-border-main rounded-2xl hover:t-bg-item-hover transition-all text-center group">
-                            <div class="font-bold text-xs t-text-main group-hover:text-emerald-500">本地合并至远程</div>
-                            <div class="text-[9px] t-text-muted mt-1">(Local Merge)</div>
-                        </button>
-                        <button onclick="selectRemoteOverwriteMode('overwrite_remote_local_full')"
-                            class="p-4 border t-border-main rounded-2xl hover:t-bg-item-hover transition-all text-center group">
-                            <div class="font-bold text-xs t-text-main group-hover:text-blue-500">远程覆盖本地</div>
-                            <div class="text-[9px] t-text-muted mt-1">(Remote Overwrite)</div>
-                        </button>
-                        <button onclick="selectRemoteOverwriteMode('merge_remote_local')"
-                            class="p-4 border t-border-main rounded-2xl hover:t-bg-item-hover transition-all text-center group">
-                            <div class="font-bold text-xs t-text-main group-hover:text-blue-500">远程合并至本地</div>
-                            <div class="text-[9px] t-text-muted mt-1">(Remote Merge)</div>
-                        </button>
-                    </div>
-                </div>
-                <div id="remote-overwrite-step2" class="hidden space-y-6 text-center py-4">
-                    <div class="flex justify-center">
-                        <div
-                            class="w-16 h-16 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin">
-                        </div>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-bold t-text-main">正在同步数据...</h4>
-                        <p class="text-xs t-text-muted mt-2">请勿关闭窗口，正在同步歌单数据...</p>
-                    </div>
-                </div>
-                <div id="remote-overwrite-result" class="hidden space-y-6 text-center py-4">
-                    <div class="flex justify-center">
-                        <div
-                            class="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg shadow-emerald-200">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 id="remote-overwrite-result-title" class="text-lg font-bold t-text-main">同步成功！</h4>
-                        <p id="remote-overwrite-result-text" class="text-xs t-text-muted mt-2">数据同步任务已完成。</p>
-                    </div>
-                    <button onclick="closeRemoteOverwriteModal(true)"
-                        class="w-full py-4 bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/25 transition-all">确定</button>
                 </div>
             </div>
         </div>

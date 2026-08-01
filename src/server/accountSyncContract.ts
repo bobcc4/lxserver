@@ -1,0 +1,2 @@
+export const ACCOUNT_SYNC_SCHEMA_VERSION = 1
+export const ACCOUNT_SYNC_MAX_BYTES = 12 * 1024 * 1024
