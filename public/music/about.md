@@ -63,7 +63,7 @@
 核心接口基于 `musicsdk` 实现。
 
 <div align="center" style="margin-top: 20px;">
-  <a href="https://github.com/bobcc4/lxserver" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+  <a href="https://github.com/bobcc4/yinyun-lxserver" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
     <i class="fab fa-github"></i> GitHub 仓库
   </a>
 </div>

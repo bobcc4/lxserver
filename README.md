@@ -10,19 +10,19 @@
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.2.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
-    <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
+    <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
     <br>
-    <a href="https://github.com/bobcc4/lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
-    <a href="https://github.com/bobcc4/lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/lxserver?style=flat-square" alt="GitHub forks"></a>
-    <a href="https://github.com/bobcc4/lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
-    <a href="https://github.com/bobcc4/lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
-    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
-    <a href="https://github.com/bobcc4/lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/yinyun-lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/yinyun-lxserver?style=flat-square" alt="GitHub forks"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/yinyun-lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/yinyun-lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
+    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/yinyun-lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
+    <a href="https://github.com/bobcc4/yinyun-lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/yinyun-lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
   </p>
 </div>
 
-[帮助文档 Documentation](https://bobcc4.github.io/lxserver/) | [同步服务器 SyncServer](md/lxserver.md) | [更新日志 Changelog](changelog.md) | [English](README_EN.md)
+[帮助文档 Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [同步服务器 SyncServer](md/lxserver.md) | [更新日志 Changelog](changelog.md) | [English](README_EN.md)
 
 ---
 
@@ -118,7 +118,7 @@
 
 可以通过桌面端更方便地运行音云，支持 Windows、macOS 和 Linux。
 
-- **📦 最新版本下载**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
+- **📦 最新版本下载**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
 - **✨ 桌面端优势**:
   - **单窗口管理**: 服务器管理与 Web 播放器合二为一，界面更统一。
   - **托盘常驻**: 窗口关闭后自动缩回托盘，服务在后台始终运行。
@@ -174,7 +174,7 @@ services:
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/bobcc4/lxserver.git && cd lxserver
+git clone https://github.com/bobcc4/yinyun-lxserver.git && cd yinyun-lxserver
 
 # 2. 安装依赖并编译
 npm ci && npm run build
@@ -284,14 +284,14 @@ npm start
 
 ### 👥 贡献者 (Contributors)
 
-<a href="https://github.com/bobcc4/lxserver/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=bobcc4/lxserver" />
+<a href="https://github.com/bobcc4/yinyun-lxserver/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bobcc4/yinyun-lxserver" />
 </a>
 
 
 ## 📈 Star History
 
-[![Star History Chart](md/star-history.svg)](https://github.com/bobcc4/lxserver/stargazers)
+[![Star History Chart](md/star-history.svg)](https://github.com/bobcc4/yinyun-lxserver/stargazers)
 
 
 

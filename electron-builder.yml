@@ -51,15 +51,14 @@ icon: electron/icons/icon.png
 
 # ── Windows ──────────────────────────────────────────────────────────────────
 win:
-  # GitHub Release 会移除文件名中的非 ASCII 字符，中文名由发布流程设置为资产标签。
-  artifactName: "Yinyun-${version}-${arch}.${ext}"
+  artifactName: "音云-服务端-${version}-windows-${arch}.${ext}"
   target:
     - nsis
     - portable
   requestedExecutionLevel: asInvoker
 
 nsis:
-  artifactName: "Yinyun-${version}-${arch}-Setup.${ext}"
+  artifactName: "音云-服务端-${version}-windows-${arch}-Setup.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -69,18 +68,18 @@ nsis:
   shortcutName: "音云"
 
 portable:
-  artifactName: "Yinyun-${version}-${arch}-Portable.${ext}"
+  artifactName: "音云-服务端-${version}-windows-${arch}-Portable.${ext}"
 
 # ── macOS ────────────────────────────────────────────────────────────────────
 mac:
-  artifactName: "Yinyun-${version}-${arch}.${ext}"
+  artifactName: "音云-服务端-${version}-macos-${arch}.${ext}"
   target:
     - dmg
   category: public.app-category.utilities
 
 # ── Linux ────────────────────────────────────────────────────────────────────
 linux:
-  artifactName: "Yinyun-${version}-${arch}.${ext}"
+  artifactName: "音云-服务端-${version}-linux-${arch}.${ext}"
   target:
     - AppImage
     - deb

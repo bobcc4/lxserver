@@ -4,7 +4,7 @@ Yinyun
 Copyright 2026 bobcc4
 
 Current project and maintenance:
-https://github.com/bobcc4/lxserver
+https://github.com/bobcc4/yinyun-lxserver
 
 This product includes software derived from the following projects:
 

@@ -7,19 +7,19 @@
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.2.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
-    <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
+    <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
     <br>
-    <a href="https://github.com/bobcc4/lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
-    <a href="https://github.com/bobcc4/lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/lxserver?style=flat-square" alt="GitHub forks"></a>
-    <a href="https://github.com/bobcc4/lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
-    <a href="https://github.com/bobcc4/lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
-    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
-    <a href="https://github.com/bobcc4/lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/yinyun-lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/yinyun-lxserver?style=flat-square" alt="GitHub forks"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/yinyun-lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/yinyun-lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
+    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/yinyun-lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
+    <a href="https://github.com/bobcc4/yinyun-lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/yinyun-lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
   </p>
 </div>
 
-[帮助文档 Documentation](https://bobcc4.github.io/lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](../changelog.md)
+[帮助文档 Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [网页播放器 WebPlayer](../README.md) | [更新日志 Changelog](../changelog.md)
 
 音云不仅内置了功能强大的网页播放器，还提供 **LX Music 数据同步服务**与 Web 可视化管理。
 

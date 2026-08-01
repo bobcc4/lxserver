@@ -14,7 +14,7 @@ hero:
       link: /en/guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/bobcc4/lxserver
+      link: https://github.com/bobcc4/yinyun-lxserver
 
 features:
   - title: Web Playback and Downloads

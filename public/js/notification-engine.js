@@ -1,14 +1,14 @@
 /**
  * LX Server 通用通知与版本检查引擎
  * 核心特性：
- * 1. 从 bobcc4/lxserver 获取版本与系统通知
+ * 1. 从 bobcc4/yinyun-lxserver 获取版本与系统通知
  * 2. 队列系统：FIFO 队列处理
  * 3. 智能样式：根据 type 和 title 自动匹配图标与配色 (版本火箭、警告三角、广播铃铛)
  */
 (function () {
     // ================= 1. 基础配置与资源 =================
     const CONFIG = {
-        LATEST_RELEASE_URL: 'https://api.github.com/repos/bobcc4/lxserver/releases/latest',
+        LATEST_RELEASE_URL: 'https://api.github.com/repos/bobcc4/yinyun-lxserver/releases/latest',
         getLocalVersion: () => (window.CONFIG && window.CONFIG.version) ? window.CONFIG.version : '0.0.0'
     };
 
@@ -334,7 +334,7 @@
                 },
                 action: {
                     type: 'link',
-                    url: release.html_url || 'https://github.com/bobcc4/lxserver/releases/latest'
+                    url: release.html_url || 'https://github.com/bobcc4/yinyun-lxserver/releases/latest'
                 }
             };
             const hasUpdate = processItem(releaseItem, isManual);
@@ -396,7 +396,7 @@
                     type: 'warning',
                     ui: {
                         title: '检查更新已禁用',
-                        message: '当前配置已禁用匿名统计与在线更新检查，请前往 bobcc4/lxserver 的 GitHub 发布页面查看最新版本。',
+                        message: '当前配置已禁用匿名统计与在线更新检查，请前往 bobcc4/yinyun-lxserver 的 GitHub 发布页面查看最新版本。',
                         confirm_text: '确定',
                         cancel_text: ''
                     },

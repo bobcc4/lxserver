@@ -26,9 +26,9 @@ cd lxserver
 ```
 
 ### 3. 设置上游仓库 (Upstream)
-你需要链接到源仓库 (bobcc4/lxserver)，以便同步最新的代码：
+你需要链接到源仓库 (bobcc4/yinyun-lxserver)，以便同步最新的代码：
 ```bash
-git remote add upstream https://github.com/bobcc4/lxserver.git
+git remote add upstream https://github.com/bobcc4/yinyun-lxserver.git
 ```
 
 ### 4. 创建分支

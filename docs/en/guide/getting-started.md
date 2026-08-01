@@ -24,7 +24,7 @@ Before starting this service project, please ensure that the host system (or vir
 
 For desktop users, we strongly recommend using the **Desktop Client** based on Electron. It integrates the server management and player, featuring system tray support.
 
-1. **Download**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
+1. **Download**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
 2. **Choose Version**:
    - **Windows**: Download `Universal.exe` (All-in-one) or `portable.exe` (Portable version).
    - **macOS**: Download `universal.dmg` (Supports Intel/M1/M2).
@@ -89,7 +89,7 @@ For restricted non-containerized environments or secondary research and developm
 
 ```bash
 # 1. Extract the code from the remote code repository to the current directory in the Main branch state
-git clone https://github.com/bobcc4/lxserver.git
+git clone https://github.com/bobcc4/yinyun-lxserver.git
 cd lxserver
 
 # 2. Call the strict analysis process to initialize the module dependency library

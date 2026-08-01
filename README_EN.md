@@ -7,19 +7,19 @@
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/version-v1.2.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
-    <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
+    <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
     <br>
-    <a href="https://github.com/bobcc4/lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
-    <a href="https://github.com/bobcc4/lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/lxserver?style=flat-square" alt="GitHub forks"></a>
-    <a href="https://github.com/bobcc4/lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
-    <a href="https://github.com/bobcc4/lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
-    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
-    <a href="https://github.com/bobcc4/lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/stargazers"><img src="https://img.shields.io/github/stars/bobcc4/yinyun-lxserver?style=flat-square&color=ffe16b" alt="GitHub stars"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/network/members"><img src="https://img.shields.io/github/forks/bobcc4/yinyun-lxserver?style=flat-square" alt="GitHub forks"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/issues"><img src="https://img.shields.io/github/issues/bobcc4/yinyun-lxserver?style=flat-square&color=red" alt="GitHub issues"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/commits/main"><img src="https://img.shields.io/github/last-commit/bobcc4/yinyun-lxserver?style=flat-square&color=blueviolet" alt="Last Commit"></a>
+    <img src="https://img.shields.io/github/commit-activity/m/bobcc4/yinyun-lxserver?style=flat-square&color=ff69b4" alt="Commit Activity">
+    <a href="https://github.com/bobcc4/yinyun-lxserver/releases"><img src="https://img.shields.io/github/downloads/bobcc4/yinyun-lxserver/total?style=flat-square&color=blue" alt="Total Downloads"></a>
   </p>
 </div>
 
-[Documentation](https://bobcc4.github.io/lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
+[Documentation](https://bobcc4.github.io/yinyun-lxserver/) | [SyncServer](md/lxserver_EN.md) | [Changelog](changelog.md) | [中文版](README.md)
 
 ---
 **Yinyun** is a self-hosted music server with a Web player, downloads, local-library management, LX Music data synchronization, and Subsonic client support.
@@ -113,7 +113,7 @@ Running from source requires Node.js `22.12.0` or later. Node.js 24 LTS is recom
 
 Run Yinyun through the desktop client on Windows, macOS, and Linux.
 
-- **📦 Download Latest**: [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest)
+- **📦 Download Latest**: [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest)
 - **✨ Key Advantages**:
     - **Single Window**: Integrated management dashboard and Web player for a unified experience.
     - **System Tray**: Minimizes to tray on close, ensuring the sync service stays active in the background.
@@ -170,7 +170,7 @@ services:
 
 ```bash
 # 1. Clone project
-git clone https://github.com/bobcc4/lxserver.git && cd lxserver
+git clone https://github.com/bobcc4/yinyun-lxserver.git && cd yinyun-lxserver
 
 # 2. Install dependencies and build
 npm ci && npm run build
@@ -280,13 +280,13 @@ Anonymous telemetry via PostHog is used for:
 
 ### 👥 Contributors
 
-<a href="https://github.com/bobcc4/lxserver/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=bobcc4/lxserver" />
+<a href="https://github.com/bobcc4/yinyun-lxserver/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bobcc4/yinyun-lxserver" />
 </a>
 
 ## 📈 Star History
 
-[![Star History Chart](md/star-history.svg)](https://github.com/bobcc4/lxserver/stargazers)
+[![Star History Chart](md/star-history.svg)](https://github.com/bobcc4/yinyun-lxserver/stargazers)
 
 
 ---

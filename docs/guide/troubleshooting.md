@@ -74,4 +74,4 @@
 - 桌面端：托盘菜单打开存储位置后查看日志目录。
 - 管理后台：系统日志页面可在线查看和检索。
 
-提交问题：[GitHub Issues](https://github.com/bobcc4/lxserver/issues)。
+提交问题：[GitHub Issues](https://github.com/bobcc4/yinyun-lxserver/issues)。

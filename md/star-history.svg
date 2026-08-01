@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-labelledby="title desc">
-  <title id="title">bobcc4/lxserver Star History</title>
+  <title id="title">bobcc4/yinyun-lxserver Star History</title>
   <desc id="desc">The repository reached five stars between June 30 and July 26, 2026.</desc>
   <style>
     .background { fill: #ffffff; }
@@ -24,7 +24,7 @@
   </style>
 
   <rect class="background" width="800" height="420" rx="8" />
-  <text class="title" x="48" y="42">bobcc4/lxserver Star History</text>
+  <text class="title" x="48" y="42">bobcc4/yinyun-lxserver Star History</text>
   <text class="subtitle" x="48" y="66">5 stars as of 2026-07-27</text>
 
   <line class="grid" x1="80" y1="350" x2="760" y2="350" />

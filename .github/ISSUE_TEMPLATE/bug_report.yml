@@ -14,7 +14,7 @@ body:
     attributes:
       label: 提交前核对 (Pre-submission Checklist)
       options:
-        - label: 我已经搜索过 [Issue Tracker](https://github.com/bobcc4/lxserver/issues)，确保没有重复的 Issue。
+        - label: 我已经搜索过 [Issue Tracker](https://github.com/bobcc4/yinyun-lxserver/issues)，确保没有重复的 Issue。
           required: true
         - label: 我已更新到项目的 **最新版本**，并确认问题依然存在。
           required: true

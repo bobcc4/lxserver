@@ -47,14 +47,14 @@ docker compose up -d
 
 ## 桌面客户端部署
 
-从 [GitHub Releases](https://github.com/bobcc4/lxserver/releases/latest) 下载与系统和 CPU 对应的安装包。首次启动且没有有效历史路径时，程序会提示选择存储位置。
+从 [GitHub Releases](https://github.com/bobcc4/yinyun-lxserver/releases/latest) 下载与系统和 CPU 对应的安装包。首次启动且没有有效历史路径时，程序会提示选择存储位置。
 
 桌面客户端关闭窗口后默认缩到系统托盘，服务仍继续运行。存储路径的查看和迁移请阅读[桌面客户端](/guide/desktop)。
 
 ## 源码运行
 
 ```bash
-git clone https://github.com/bobcc4/lxserver.git
+git clone https://github.com/bobcc4/yinyun-lxserver.git
 cd lxserver
 npm ci
 npm run build

@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bobcc4/lxserver.git"
+    "url": "git+https://github.com/bobcc4/yinyun-lxserver.git"
   },
   "author": {
     "name": "bobcc4",
@@ -34,9 +34,9 @@
   },
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/bobcc4/lxserver/issues"
+    "url": "https://github.com/bobcc4/yinyun-lxserver/issues"
   },
-  "homepage": "https://github.com/bobcc4/lxserver#readme",
+  "homepage": "https://github.com/bobcc4/yinyun-lxserver#readme",
   "dependencies": {
     "@foobar404/wave": "^2.0.5",
     "@types/formidable": "^3.5.1",

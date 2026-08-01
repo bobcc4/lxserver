@@ -1,16 +1,16 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  base: '/lxserver/',
+  base: '/yinyun-lxserver/',
   cleanUrls: true,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', href: '/lxserver/icon.svg' }]
+    ['link', { rel: 'icon', href: '/yinyun-lxserver/icon.svg' }]
   ],
   themeConfig: {
     logo: '/icon.svg',
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/bobcc4/lxserver' }
+      { icon: 'github', link: 'https://github.com/bobcc4/yinyun-lxserver' }
     ],
     search: {
       provider: 'local'
@@ -29,7 +29,7 @@ export default defineConfig({
           { text: '使用指南', link: '/guide/getting-started' },
           { text: '配置指南', link: '/guide/configuration' },
           { text: 'API 文档', link: '/api/reference' },
-          { text: '更新日志', link: 'https://github.com/bobcc4/lxserver/blob/main/changelog.md' }
+          { text: '更新日志', link: 'https://github.com/bobcc4/yinyun-lxserver/blob/main/changelog.md' }
         ],
         sidebar: [
           {
