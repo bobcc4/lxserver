@@ -1,0 +1,51 @@
+name: Verify Docker Hub repositories
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect repository visibility and tags
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth_payload=$(jq -nc \
+            --arg username "$DOCKER_USERNAME" \
+            --arg password "$DOCKER_PASSWORD" \
+            '{username: $username, password: $password}')
+          token=$(curl -fsS -H 'Content-Type: application/json' \
+            -d "$auth_payload" https://hub.docker.com/v2/users/login/ | jq -r '.token')
+          [[ -n "$token" && "$token" != "null" ]]
+
+          for repository in yinyun-lxserver yinyun-lxserver-test; do
+            body=$(mktemp)
+            status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+              -o "$body" -w '%{http_code}' \
+              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/")
+            echo "${repository}: HTTP ${status}"
+            if [[ "$status" == "200" ]]; then
+              jq '{name, is_private, status}' "$body"
+              private=false
+              [[ "$repository" == "yinyun-lxserver-test" ]] && private=true
+              curl -fsS -X PATCH \
+                -H "Authorization: JWT ${token}" \
+                -H 'Content-Type: application/json' \
+                -d "{\"is_private\":${private}}" \
+                "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" | jq '{name, is_private, status}'
+              curl -fsS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+                "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/tags?page_size=100" \
+                | jq -r '.results[]?.name' | sort | sed 's/^/tag: /'
+            else
+              cat "$body"
+              exit 1
+            fi
+            rm -f "$body"
+          done
