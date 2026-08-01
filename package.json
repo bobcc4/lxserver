@@ -1,8 +1,9 @@
 {
   "name": "yinyun",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
+    "test": "tsx --test test/**/*.test.ts",
     "prebuild": "node scripts/download-binary.js && node scripts/update-build-hash.js",
     "build": "rimraf server && tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
     "prestart": "node scripts/download-binary.js && node scripts/update-build-hash.js",

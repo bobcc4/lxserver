@@ -24,6 +24,7 @@ import * as customSourceHandlers from './customSourceHandlers'
 import * as fileCache from './fileCache'
 import * as serverDownloadQueue from './serverDownloadQueue'
 import * as remasterQueue from './remasterQueue'
+import { createApiV1Handler } from './apiV1'
 import {
   PlaylistSharingError,
   createPlaylistShare,
@@ -910,6 +911,17 @@ const resolveServerSong = async (
   throw new Error(`No downloadable source found (${errors.join('; ')})`)
 }
 
+const handleApiV1 = createApiV1Handler({
+  serverVersion: '1.2.0',
+  getAuthSecret: () => `${getServerId()}:${global.lx.config['frontend.password']}`,
+  getUsers: () => global.lx.config.users,
+  musicSdk,
+  normalizeSongInfo,
+  resolveSong: resolveServerSong,
+  isSourceSupported,
+  getLoadedSources: getLoadedApis,
+})
+
 const isPathInside = (child: string, parent: string): boolean => {
   const resolvedParent = path.resolve(parent)
   const resolvedChild = path.resolve(child)
@@ -992,6 +1004,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     const urlObj = new URL(req.url ?? '', `http://${req.headers.host}`)
     const pathname = urlObj.pathname
 
+    if (await handleApiV1(req, res, urlObj)) return
+
     // 读取路径配置（每次请求都重新读取，保存后立刻生效）
     const normalizePath = (p: string) => (p || '').replace(/\/+$/, '')
     const playerPath = global.lx.config['player.path'] ?? '/music'
@@ -1070,7 +1084,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.1.4'
+      let version = 'v1.2.0'
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')

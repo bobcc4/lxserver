@@ -1070,7 +1070,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.4';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.2.0';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);

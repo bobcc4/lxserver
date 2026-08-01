@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.1.4-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.2.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -104,7 +104,7 @@
 
 ## 📱 移动端适配
 
-Web 播放器针对移动端进行了深度优化，手机浏览器访问也能获得原生 App 般的体验。
+音云提供不使用 WebView 的 [Flutter 原生 Android 客户端](https://github.com/bobcc4/yinyun-mobile)，支持服务器登录、本地曲库、在线搜索、后台播放、歌词、歌单、服务端下载、手机离线下载、共享音源平台开关和歌单分享。Android 客户端使用稳定的 [`/api/v1`](md/api-v1.md)；第三方音乐客户端仍可继续使用 Subsonic `/rest`。
 
 ---
 
