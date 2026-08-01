@@ -28,11 +28,22 @@ jobs:
           create_repository() {
             local repository="$1"
             local private="$2"
-            curl -fsS -X POST \
+            local response
+            response=$(mktemp)
+            local status
+            status=$(curl -sS -X POST \
               -H "Authorization: JWT ${token}" \
               -H 'Content-Type: application/json' \
-              -d "{\"namespace\":\"${DOCKER_USERNAME}\",\"name\":\"${repository}\",\"is_private\":${private}}" \
-              'https://hub.docker.com/v2/repositories/' >/dev/null
+              -d "{\"namespace\":\"${DOCKER_USERNAME}\",\"name\":\"${repository}\",\"description\":\"Yinyun music server\",\"full_description\":\"\",\"is_private\":${private}}" \
+              -o "$response" -w '%{http_code}' \
+              'https://hub.docker.com/v2/repositories/')
+            echo "Create ${repository}: HTTP ${status}"
+            if [[ "$status" != "201" && "$status" != "200" ]]; then
+              jq -c 'if type == "object" then with_entries(select(.key | test("token|password|secret"; "i") | not)) else . end' "$response" 2>/dev/null || cat "$response"
+              rm -f "$response"
+              return 1
+            fi
+            rm -f "$response"
           }
 
           for repository in yinyun-lxserver yinyun-lxserver-test; do
