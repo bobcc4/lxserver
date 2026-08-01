@@ -48,3 +48,23 @@ jobs:
           restore_image formal-v1 "docker.io/${OWNER}/yinyun-lxserver:v1"
           restore_image test-v1 "docker.io/${OWNER}/yinyun-lxserver-test:v1"
           restore_image test-v2 "docker.io/${OWNER}/yinyun-lxserver-test:v2"
+
+      - name: Remove private GHCR migration package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="yinyun-lxserver-migration"
+          mapfile -t versions < <(
+            gh api --paginate \
+              "/users/${OWNER}/packages/container/${package}/versions" \
+              --jq '.[].id'
+          )
+          for version in "${versions[@]}"; do
+            [[ -z "$version" ]] && continue
+            echo "Deleting GHCR migration version ${version}"
+            gh api --method DELETE \
+              "/users/${OWNER}/packages/container/${package}/versions/${version}"
+          done
