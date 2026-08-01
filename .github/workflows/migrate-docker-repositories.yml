@@ -1,4 +1,4 @@
-name: Stage Docker Hub repository migration
+name: Restore Docker Hub repository migration
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ permissions:
   packages: write
 
 jobs:
-  stage:
+  restore:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -27,7 +27,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Stage all images in private GHCR storage
+      - name: Restore all images from private GHCR storage
         env:
           OWNER: ${{ github.repository_owner }}
         shell: bash
@@ -35,16 +35,16 @@ jobs:
           set -euo pipefail
           staging="ghcr.io/${OWNER}/yinyun-lxserver-migration"
 
-          stage_image() {
-            local source="$1"
-            local target_tag="$2"
-            echo "Staging ${source} as ${staging}:${target_tag}"
+          restore_image() {
+            local source_tag="$1"
+            local target="$2"
+            echo "Restoring ${staging}:${source_tag} as ${target}"
             docker buildx imagetools create \
-              --tag "${staging}:${target_tag}" \
-              "${source}"
-            docker buildx imagetools inspect "${staging}:${target_tag}"
+              --tag "${target}" \
+              "${staging}:${source_tag}"
+            docker buildx imagetools inspect "${target}"
           }
 
-          stage_image "docker.io/${OWNER}/yinyun-lxserver:v1" formal-v1
-          stage_image "docker.io/${OWNER}/lxserver-test:v1" test-v1
-          stage_image "docker.io/${OWNER}/lxserver-test:v2" test-v2
+          restore_image formal-v1 "docker.io/${OWNER}/yinyun-lxserver:v1"
+          restore_image test-v1 "docker.io/${OWNER}/yinyun-lxserver-test:v1"
+          restore_image test-v2 "docker.io/${OWNER}/yinyun-lxserver-test:v2"
