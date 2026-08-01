@@ -48,7 +48,7 @@ jobs:
 
           for repository in yinyun-lxserver yinyun-lxserver-test; do
             body=$(mktemp)
-            status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+            status=$(curl -sS -H "Authorization: JWT ${token}" \
               -o "$body" -w '%{http_code}' \
               "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/")
             echo "${repository}: HTTP ${status}"
@@ -57,7 +57,7 @@ jobs:
             if [[ "$status" == "404" ]]; then
               echo "Creating Docker Hub repository metadata for ${repository}"
               create_repository "$repository" "$private"
-              status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+              status=$(curl -sS -H "Authorization: JWT ${token}" \
                 -o "$body" -w '%{http_code}' \
                 "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/")
               echo "${repository} after create: HTTP ${status}"
@@ -69,7 +69,7 @@ jobs:
                 -H 'Content-Type: application/json' \
                 -d "{\"is_private\":${private}}" \
                 "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" | jq '{name, is_private, status}'
-              curl -fsS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+              curl -fsS -H "Authorization: JWT ${token}" \
                 "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/tags?page_size=100" \
                 | jq -r '.results[]?.name' | sort | sed 's/^/tag: /'
             else
