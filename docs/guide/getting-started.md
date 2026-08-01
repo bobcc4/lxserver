@@ -30,7 +30,6 @@ services:
       - ./music:/server/music
     environment:
       NODE_ENV: production
-      # FRONTEND_PASSWORD: change-me
 ```
 
 启动：

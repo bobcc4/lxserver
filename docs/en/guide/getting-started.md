@@ -62,11 +62,11 @@ docker run -d \
 - `-v $(pwd)/cache:/server/cache`: Used to store music cache files, significantly improving loading speed during repeated playback.
 - `-v $(pwd)/music:/server/music`: **Used exclusively for storing downloaded songs.**
 
-**Declarative Docker Compose:**
-For standardized long-term management in production implementation, create a definition configuration named `docker-compose.yml`:
+**Docker Compose deployment:**
+
+Create a `docker-compose.yml` file:
 
 ```yaml
-version: '3'
 services:
   yinyun:
     image: bobcc4/yinyun-lxserver:v1
@@ -80,11 +80,23 @@ services:
       - ./cache:/server/cache
       - ./music:/server/music
     environment:
-      - NODE_ENV=production
-      # - FRONTEND_PASSWORD=123456
+      NODE_ENV: production
 ```
 
-After reviewing the configuration correctly, start the infrastructure instance set with the command `docker-compose up -d`.
+Start the service:
+
+```bash
+docker compose up -d
+```
+
+Upgrade the image:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Recreating the container does not remove mounted directories. Always keep `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounted to persistent storage.
 
 ### Option 2: Source Compilation Deployment Based on Physical Environment
 

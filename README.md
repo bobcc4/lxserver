@@ -165,11 +165,23 @@ services:
       - ./cache:/server/cache
       - ./music:/server/music
     environment:
-      - NODE_ENV=production
-      # - FRONTEND_PASSWORD=123456
-      # - ADMIN_PATH=
-      # - PLAYER_PATH=/music
+      NODE_ENV: production
 ```
+
+启动服务：
+
+```bash
+docker compose up -d
+```
+
+升级镜像：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+升级容器不会删除已挂载目录。请始终保留 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 的持久化挂载。
 
 ### 方式三：直接运行 (Git Clone)
 

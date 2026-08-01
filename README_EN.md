@@ -161,11 +161,23 @@ services:
       - ./cache:/server/cache
       - ./music:/server/music
     environment:
-      - NODE_ENV=production
-      # - FRONTEND_PASSWORD=123456
-      # - ADMIN_PATH=
-      # - PLAYER_PATH=/music
+      NODE_ENV: production
 ```
+
+Start the service:
+
+```bash
+docker compose up -d
+```
+
+Upgrade the image:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Recreating the container does not remove mounted directories. Always keep `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounted to persistent storage.
 
 ### Option 3: Manual Run (Git Clone)
 
