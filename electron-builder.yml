@@ -51,14 +51,14 @@ icon: electron/icons/icon.png
 
 # ── Windows ──────────────────────────────────────────────────────────────────
 win:
-  artifactName: "音云-服务端-${version}-windows-${arch}.${ext}"
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}.${ext}"
   target:
     - nsis
     - portable
   requestedExecutionLevel: asInvoker
 
 nsis:
-  artifactName: "音云-服务端-${version}-windows-${arch}-Setup.${ext}"
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}-Setup.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -68,18 +68,18 @@ nsis:
   shortcutName: "音云"
 
 portable:
-  artifactName: "音云-服务端-${version}-windows-${arch}-Portable.${ext}"
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}-Portable.${ext}"
 
 # ── macOS ────────────────────────────────────────────────────────────────────
 mac:
-  artifactName: "音云-服务端-${version}-macos-${arch}.${ext}"
+  artifactName: "Yinyun-Server-${version}-macOS-${arch}.${ext}"
   target:
     - dmg
   category: public.app-category.utilities
 
 # ── Linux ────────────────────────────────────────────────────────────────────
 linux:
-  artifactName: "音云-服务端-${version}-linux-${arch}.${ext}"
+  artifactName: "Yinyun-Server-${version}-Linux-${arch}.${ext}"
   target:
     - AppImage
     - deb

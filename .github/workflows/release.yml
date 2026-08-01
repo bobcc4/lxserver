@@ -181,7 +181,7 @@ jobs:
           cp -r server node_modules public scripts index.js package.json LICENSE NOTICE.md release/yinyun/
           [[ -f config.js ]] && cp config.js release/yinyun/
           cd release
-          zip -r "音云-服务端-${VERSION#v}-linux-x64.zip" yinyun
+          zip -r "Yinyun-Server-${VERSION#v}-Linux-x64.zip" yinyun
 
       - name: Upload server package
         uses: actions/upload-artifact@v7
@@ -237,3 +237,13 @@ jobs:
               --notes-file release-assets/RELEASE_NOTES.md \
               --latest
           fi
+
+          gh api "repos/$GH_REPO/releases/tags/$VERSION" --jq '.assets[] | [.id, .name] | @tsv' |
+            while IFS=$'\t' read -r ASSET_ID ASSET_NAME; do
+              case "$ASSET_NAME" in
+                Yinyun-Server-*)
+                  LABEL="音云-服务端-${ASSET_NAME#Yinyun-Server-}"
+                  gh api --method PATCH "repos/$GH_REPO/releases/assets/$ASSET_ID" -f label="$LABEL" >/dev/null
+                  ;;
+              esac
+            done
