@@ -1,13 +1,14 @@
-name: Migrate Docker Hub repositories
+name: Stage Docker Hub repository migration
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
-  migrate:
+  stage:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -19,108 +20,31 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Copy all tags and rename repositories
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage all images in private GHCR storage
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          OWNER: ${{ github.repository_owner }}
         shell: bash
         run: |
           set -euo pipefail
+          staging="ghcr.io/${OWNER}/yinyun-lxserver-migration"
 
-          migrate_repository() {
+          stage_image() {
             local source="$1"
-            local target="$2"
-            local next="https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${source}/tags?page_size=100"
-            local copied=0
-
-            while [[ -n "$next" && "$next" != "null" ]]; do
-              local response_file
-              response_file=$(mktemp)
-              trap 'rm -f "$response_file"' RETURN
-              local status
-              status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" -o "$response_file" -w '%{http_code}' "$next")
-              if [[ "$status" != "200" ]]; then
-                echo "Unable to list ${DOCKER_USERNAME}/${source}: HTTP ${status}"
-                cat "$response_file"
-                return 1
-              fi
-
-              mapfile -t tags < <(jq -r '.results[]?.name' "$response_file")
-              for tag in "${tags[@]}"; do
-                [[ -z "$tag" ]] && continue
-                echo "Copying ${DOCKER_USERNAME}/${source}:${tag} -> ${DOCKER_USERNAME}/${target}:${tag}"
-                docker buildx imagetools create \
-                  --tag "docker.io/${DOCKER_USERNAME}/${target}:${tag}" \
-                  "docker.io/${DOCKER_USERNAME}/${source}:${tag}"
-                copied=$((copied + 1))
-              done
-              next=$(jq -r '.next // empty' "$response_file")
-              rm -f "$response_file"
-              trap - RETURN
-            done
-
-            if [[ "$copied" -eq 0 ]]; then
-              echo "No tags were copied from ${DOCKER_USERNAME}/${source}"
-              return 1
-            fi
-          }
-
-          migrate_repository lxserver yinyun-lxserver
-
-          test_source=""
-          test_source_found=false
-          test_check_file=$(mktemp)
-          test_status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
-            -o "$test_check_file" -w '%{http_code}' \
-            "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/lxserver-test/")
-          if [[ "$test_status" != "200" ]]; then
-            echo "lxserver-test was not found; searching Docker Hub repositories in the account"
-            repositories=$(curl -fsS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
-              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/?page_size=100")
-            echo "$repositories" | jq -r '.results[]?.name' | sort
-            test_source=$(echo "$repositories" | jq -r \
-              '[.results[]?.name | select(test("lxserver.*test|test.*lxserver"; "i"))][0] // empty')
-          fi
-          rm -f "$test_check_file"
-          if [[ -n "$test_source" ]]; then
-            test_source_found=true
-            migrate_repository "$test_source" yinyun-lxserver-test
-          else
-            echo "No old test repository exists; creating a private baseline from yinyun-lxserver:v1"
+            local target_tag="$2"
+            echo "Staging ${source} as ${staging}:${target_tag}"
             docker buildx imagetools create \
-              --tag "docker.io/${DOCKER_USERNAME}/yinyun-lxserver-test:v1" \
-              "docker.io/${DOCKER_USERNAME}/yinyun-lxserver:v1"
-          fi
-
-          auth_payload=$(jq -nc \
-            --arg username "$DOCKER_USERNAME" \
-            --arg password "$DOCKER_PASSWORD" \
-            '{username: $username, password: $password}')
-          token=$(curl -fsS -H 'Content-Type: application/json' \
-            -d "$auth_payload" https://hub.docker.com/v2/users/login/ | jq -r '.token')
-          [[ -n "$token" && "$token" != "null" ]]
-
-          patch_visibility() {
-            local repository="$1"
-            local private="$2"
-            curl -fsS -X PATCH \
-              -H "Authorization: JWT ${token}" \
-              -H 'Content-Type: application/json' \
-              -d "{\"is_private\":${private}}" \
-              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" >/dev/null
+              --tag "${staging}:${target_tag}" \
+              "${source}"
+            docker buildx imagetools inspect "${staging}:${target_tag}"
           }
 
-          patch_visibility yinyun-lxserver false
-          patch_visibility yinyun-lxserver-test true
-
-          delete_repository() {
-            local repository="$1"
-            curl -fsS -X DELETE \
-              -H "Authorization: JWT ${token}" \
-              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${repository}/" >/dev/null
-          }
-
-          delete_repository lxserver
-          if [[ "$test_source_found" == true ]]; then
-            delete_repository "$test_source"
-          fi
+          stage_image "docker.io/${OWNER}/yinyun-lxserver:v1" formal-v1
+          stage_image "docker.io/${OWNER}/lxserver-test:v1" test-v1
+          stage_image "docker.io/${OWNER}/lxserver-test:v2" test-v2
