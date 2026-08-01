@@ -38,6 +38,9 @@ This project supports pulling images from Docker Hub or GitHub Packages:
 - **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
+> [!IMPORTANT]
+> The project and image were renamed from `bobcc4/lxserver` to `bobcc4/yinyun-lxserver`. The old Docker Hub repository no longer provides images. Existing deployments only need to change the image name and keep the current four volume mounts; no data migration is required.
+
 Execute the following command to start the container:
 
 ```bash

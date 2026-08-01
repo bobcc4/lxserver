@@ -127,6 +127,8 @@ This project supports pulling images from Docker Hub or GitHub Packages:
 - **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
+> The repository was renamed from `bobcc4/lxserver` to `bobcc4/yinyun-lxserver`. The old Docker Hub repository no longer provides images. Before upgrading, change the image in Docker Compose or your NAS container settings to `bobcc4/yinyun-lxserver:v1`. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
+
 **Docker Run Example:**
 
 ```bash
@@ -146,7 +148,6 @@ docker run -d \
 Create a `docker-compose.yml` file:
 
 ```yaml
-version: '3'
 services:
   yinyun:
     image: bobcc4/yinyun-lxserver:v1

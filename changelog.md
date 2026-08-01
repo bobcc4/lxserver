@@ -13,6 +13,7 @@
 
 - 新增 API v1 令牌签名、过期校验和本地歌曲 ID 安全校验测试。
 - 新增 [API v1 文档](md/api-v1.md)，服务端可通过 `/api/v1/openapi.json` 直接读取机器可解析的接口说明。
+- **仓库与镜像更名**：GitHub 仓库及正式 Docker 镜像统一为 `bobcc4/yinyun-lxserver`，正式标签继续使用 `v1`；旧 `bobcc4/lxserver` Docker Hub 仓库停止提供镜像，现有数据目录和挂载方式保持不变。
 
 ## v1.1.4 (2026-08-01)
 

@@ -131,6 +131,8 @@
 - **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
 
+> 仓库已由 `bobcc4/lxserver` 更名为 `bobcc4/yinyun-lxserver`。旧 Docker Hub 仓库已停止提供镜像；现有用户升级前需要把 Compose 或 NAS 容器中的镜像名称改为 `bobcc4/yinyun-lxserver:v1`。数据目录结构没有变化，保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载即可。
+
 **Docker Run 示例：**
 
 ```bash
@@ -150,7 +152,6 @@ docker run -d \
 新建 `docker-compose.yml` 文件：
 
 ```yaml
-version: '3'
 services:
   yinyun:
     image: bobcc4/yinyun-lxserver:v1

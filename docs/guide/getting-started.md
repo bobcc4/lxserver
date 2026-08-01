@@ -10,6 +10,9 @@ V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使�
 - 正式镜像：`bobcc4/yinyun-lxserver:v1`。
 - 至少持久化 `/server/data`；需要下载和管理源文件时，还应持久化 `/server/cache`、`/server/music` 和 `/server/logs`。
 
+> [!IMPORTANT]
+> 项目仓库和正式镜像已由 `bobcc4/lxserver` 更名为 `bobcc4/yinyun-lxserver`，旧 Docker Hub 仓库已停止提供镜像。已有部署只需修改镜像名称并保留原来的四个目录挂载，不需要迁移数据。
+
 ## Docker Compose 部署
 
 ```yaml
@@ -55,7 +58,7 @@ docker compose up -d
 
 ```bash
 git clone https://github.com/bobcc4/yinyun-lxserver.git
-cd lxserver
+cd yinyun-lxserver
 npm ci
 npm run build
 npm start
