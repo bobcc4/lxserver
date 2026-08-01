@@ -35,8 +35,6 @@ V1 可以通过环境变量、外部配置文件、项目根目录 `config.js` �
 | `FRONTEND_PASSWORD` | `frontend.password` | `123456` | 管理后台密码 |
 | `USER_ENABLE_ROOT` | `user.enableRoot` | `true` | 允许使用根地址连接 LX 同步 |
 | `USER_ENABLE_PATH` | `user.enablePath` | `false` | 允许使用 `/用户名` 地址连接 |
-| `ENABLE_WEBPLAYER_AUTH` | `player.enableAuth` | `false` | 启用播放器入口密码 |
-| `WEBPLAYER_PASSWORD` | `player.password` | `123456` | 播放器入口密码 |
 | `LX_USER_<用户名>` | `users` | - | 启动时预置同步账户 |
 
 根路径与用户名路径只决定同步连接如何定位用户，不会关闭用户数据隔离。根路径依赖密码识别账户，因此用户密码必须唯一；用户名路径会同时校验路径和凭据。
@@ -114,7 +112,6 @@ environment:
   FRONTEND_PASSWORD: "replace-admin-password"
   USER_ENABLE_ROOT: "true"
   USER_ENABLE_PATH: "false"
-  ENABLE_WEBPLAYER_AUTH: "false"
   SUBSONIC_ENABLE: "true"
   PROXY_ALL_ENABLED: "false"
 ```

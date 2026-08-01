@@ -160,14 +160,10 @@
 
 ## 8. Web 播放器专属 API
 
-专为 Web 播放器前端逻辑设计的接口，支持基于 Session 的访问。
+专为 Web 播放器前端逻辑设计的接口。涉及用户数据的请求使用同步账户 Token 鉴权。
 
-### 8.1 基础配置与认证
-- `GET /api/music/config`: **公开接口**，获取 Web 播放器的运行状态配置。
-  - **响应**: `{"player.enableAuth": boolean}`
-- `POST /api/music/auth`: 校验访问密码，成功后下发 `lx_player_session` HttpOnly Cookie。
-- `POST /api/music/auth/logout`: 彻底注销当前的 Session 会话。
-- `GET /api/music/auth/verify`: 检查当前 Session 是否依然有效。
+### 8.1 运行配置
+- `GET /api/music/config`: 获取播放器路径和用户缓存限制等公开运行配置，用于兼容旧版浏览器缓存。
 
 ### 8.2 增强元数据详情
 - `GET /api/music/artistDetail`: 获取歌手精美详情。

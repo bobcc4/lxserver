@@ -141,16 +141,6 @@ declare namespace LX {
     'sync.backupInterval'?: number
 
     /**
-     * 是否开启Web播放器访问密码
-     */
-    'player.enableAuth'?: boolean
-
-    /**
-     * Web播放器访问密码
-     */
-    'player.password'?: string
-
-    /**
      * 是否启用针对所有外发请求的代理 (目前主要用于 Music SDK)
      */
     'proxy.all.enabled'?: boolean

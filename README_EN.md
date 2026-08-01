@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.1.3-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.4-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -95,14 +95,7 @@ Configure access paths, synchronization modes, Subsonic, WebDAV, cache limits, p
 Connect clients such as Stream Music, LMP, and Feishin to the local library and playlists through the Subsonic API. Search supports `wy:`, `kg:`, `tx:`, `kw:`, and `mg:` platform prefixes, plus `online:` and `local:` scope prefixes.
 
 ## 🔒 Access Control & Security
-To protect your privacy, the Web Player supports password protection.
-### How to Enable
-
-1. **Environment Variable** (Recommended for Docker users):
-   - `ENABLE_WEBPLAYER_AUTH=true`: Enable authentication
-   - `WEBPLAYER_PASSWORD=yourpassword`: Set access password
-2. **Web Interface**:
-   Log in to the management dashboard (default port 9527), go to **"System Config"**, check **"Enable Web Player Password"** and set your password.
+The management dashboard is protected by `FRONTEND_PASSWORD`. Playlists, custom sources, downloads, and personal settings in the Web Player are authenticated through sync accounts and isolated per user. For public access, enable HTTPS and access control at the reverse proxy as well.
 
 ## 📱 Mobile Adaptation
 The Web Player is deeply optimized for mobile devices, providing a native App-like experience in mobile browsers.
@@ -169,8 +162,6 @@ services:
     environment:
       - NODE_ENV=production
       # - FRONTEND_PASSWORD=123456
-      # - ENABLE_WEBPLAYER_AUTH=true
-      # - WEBPLAYER_PASSWORD=yourpassword
       # - ADMIN_PATH=
       # - PLAYER_PATH=/music
 ```
@@ -240,8 +231,6 @@ Edit `config.js` directly. Environment variables take precedence:
 | `WEBDAV_BACKUP_PATH` | `webdav.backupPath` | WebDAV remote backup path | `/lx-sync-backups` |
 | `SYNC_INTERVAL` | `sync.interval` | WebDAV incremental sync interval (min) | `60` |
 | `BACKUP_INTERVAL` | `sync.backupInterval` | WebDAV full backup interval (hours) | `24` |
-| `ENABLE_WEBPLAYER_AUTH` | `player.enableAuth` | Enable Web Player password | `false` |
-| `WEBPLAYER_PASSWORD` | `player.password` | Web Player password | `123456` |
 | `DISABLE_TELEMETRY` | `disableTelemetry` | Disable anonymous telemetry and update notifications | `false` |
 | `ENABLE_LOGIN_USER_CACHE_RESTRICTION` | `user.enableLoginCacheRestriction` | Enable cache settings restriction for logged-in non-admin users | `false` |
 | `ENABLE_CACHE_SIZE_LIMIT` | `user.enableCacheSizeLimit` | Enable cache size limit (auto-cleanup via LRU) | `false` |

@@ -28,8 +28,6 @@ services:
     environment:
       NODE_ENV: production
       # FRONTEND_PASSWORD: change-me
-      # ENABLE_WEBPLAYER_AUTH: "true"
-      # WEBPLAYER_PASSWORD: change-me
 ```
 
 启动：

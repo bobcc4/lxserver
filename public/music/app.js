@@ -123,8 +123,6 @@ const DEFAULT_SETTINGS = {
     preferServerCache: true, // 优先播放缓存歌曲 (默认开启)
     remoteSyncUrl: '', // 远程同步地址
     remoteSyncCode: '', // 远程同步连接码
-    enableClientModeSync: false, // 客户端模式: 每次登陆本地账户都会模拟客户端向远程服务器发起同步请求
-    lastRemoteSyncMode: 'merge_remote_local', // 上次使用的远程同步模式
     deduplicatePlaylistByQuality: true, // 同 ID 歌曲仅加入最高音质 (默认开启)
 };
 
@@ -306,10 +304,7 @@ window.selectedSongObjects = new Map();
 let expandBtnTimeout = null; // 展开按钮淡化计时器
 let toggleLyricsBtnTimeout = null; // 歌词按钮淡化计时器
 
-// ===== 认证相关代码 (Player Cookie Session + User Token) =====
-let authEnabled = false;
-// authToken 保留用于播放器登录 (player.password) 颁发的 session
-let authToken = sessionStorage.getItem('lx_player_auth');
+// ===== 同步账户认证 =====
 // 用户 Token：将明文密码传输改为 Token 验证
 let userToken = localStorage.getItem('lx_user_token');
 
@@ -582,22 +577,10 @@ async function handleHeaderLogout(e) {
 }
 window.handleHeaderLogout = handleHeaderLogout;
 
-// 页面加载时：检查是否开启认证，若开启则显示登出按钮
+// 页面加载时恢复并验证同步账户状态
 (async () => {
     try {
-        const response = await fetch('/api/music/config');
-        const config = await response.json();
-        window.lx_config = config; // 获取公共配置供权限模块使用
-        authEnabled = config['player.enableAuth'] === true;
-
-        // 若开启认证，显示登出按钮
-        if (authEnabled) {
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.classList.remove('hidden');
-                logoutBtn.classList.add('flex');
-            }
-        }
+        window.lx_config = window.CONFIG || {};
 
         // 获取到公共配置后，立即刷新一次 UI 状态 (管理员按钮/设置项禁用等)
         if (typeof syncSettingsUI === 'function') syncSettingsUI();
@@ -628,17 +611,6 @@ window.handleHeaderLogout = handleHeaderLogout;
             }
         }
 
-        // [新增] 客户端模式自动连接远程同步
-        if (userToken && settings.enableClientModeSync && settings.remoteSyncUrl && settings.remoteSyncCode) {
-            console.info('[Sync] Client mode enabled, auto-connecting to remote server...');
-            // 降低延迟，只要认证完成后即可触发
-            setTimeout(() => {
-                if (typeof handleRemoteOverwriteConnect === 'function') {
-                    handleRemoteOverwriteConnect(true);
-                }
-            }, 500);
-        }
-
         // [新增] 更新 UI 上的用户名状态
         updateUserUI();
 
@@ -652,39 +624,7 @@ window.handleHeaderLogout = handleHeaderLogout;
     }
 })();
 
-// 登出：调用服务端清除 Session，清除本地全量缓存，跳转到登录页
-async function handleLogout() {
-    try {
-        await fetch('/api/music/auth/logout', { method: 'POST' });
-    } catch (e) {
-        console.error('[Auth] 登出请求失败:', e);
-    }
-
-    try {
-        if (typeof audio !== 'undefined' && audio) {
-            audio.pause();
-            audio.currentTime = 0;
-            audio.src = '';
-        }
-        if (window.ListStore && typeof window.ListStore.remove === 'function') {
-            await window.ListStore.remove().catch(() => {});
-        }
-        if ('caches' in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-        }
-    } catch (e) {}
-
-    const agreementAccepted = localStorage.getItem('lx_agreement_accepted');
-    localStorage.clear();
-    sessionStorage.clear();
-    if (agreementAccepted) localStorage.setItem('lx_agreement_accepted', agreementAccepted);
-
-    const playerPath = (window.CONFIG && window.CONFIG['player.path']) || (window.lx_config && window.lx_config['player.path']) || '/music';
-    const normalizedPlayerPath = (playerPath === '/' || playerPath === '') ? '' : playerPath.replace(/\/+$/, '');
-    window.location.replace(`${normalizedPlayerPath}/login`);
-}
-// ===== 认证代码结束 =====
+// ===== 同步账户认证结束 =====
 
 // 音质选择器初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -1130,7 +1070,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.3';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.4';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -1576,7 +1516,6 @@ async function doSearch(page = 1, append = false, prefetch = false) {
 
     try {
         const headers = {};
-        if (typeof authToken !== 'undefined' && authToken) headers['x-user-token'] = authToken;
         Object.assign(headers, getUserAuthHeaders());
 
         let list = [];
@@ -4173,21 +4112,19 @@ function updateAdminUI() {
         }
     });
 
-    // 2. 弹窗内的远程同步输入框及客户端模式勾选框：仅在远程已连或开启了客户端模式时才禁用
-    // (勾选客户端模式后锁定输入，防止在自动同步流程中改动配置)
-    const disableModalRemote = isRemoteConnected || settings.enableClientModeSync;
-    const modalInputIds = ['remote-overwrite-url', 'remote-overwrite-code', 'setting-client-mode-sync'];
+    // 2. 远程连接建立后锁定连接信息，断开后恢复编辑
+    const disableModalRemote = isRemoteConnected;
+    const modalInputIds = ['remote-overwrite-url', 'remote-overwrite-code'];
     modalInputIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.disabled = disableModalRemote;
             if (disableModalRemote) {
                 el.classList.add('opacity-40', 'cursor-not-allowed', 'grayscale');
-                // 注意：勾选框的父级不要加 pointer-events-none，否则无法取消
-                if (id !== 'setting-client-mode-sync') el.parentElement?.classList.add('pointer-events-none');
+                el.parentElement?.classList.add('pointer-events-none');
             } else {
                 el.classList.remove('opacity-40', 'cursor-not-allowed', 'grayscale');
-                if (id !== 'setting-client-mode-sync') el.parentElement?.classList.remove('pointer-events-none');
+                el.parentElement?.classList.remove('pointer-events-none');
             }
         }
     });
@@ -6280,8 +6217,7 @@ const SETTINGS_UI_MAP = {
         type: 'value',
         action: () => document.getElementById('search-results-header')?.classList.contains('hidden') && showInitialSearchState()
     },
-    itemsPerPage: { id: 'items-per-page-select', type: 'value' },
-    enableClientModeSync: { id: 'setting-client-mode-sync', type: 'checkbox' }
+    itemsPerPage: { id: 'items-per-page-select', type: 'value' }
 };
 
 //缓存设置项
@@ -8862,13 +8798,6 @@ async function handleLocalLogin() {
             await loadPlaylistSharingSetting();
             startPlaylistSharePolling();
 
-            // [新增] 客户端模式：登录本地服务器后自动触发远程同步
-            if (settings.enableClientModeSync && settings.remoteSyncUrl && settings.remoteSyncCode) {
-                console.info('[Sync] Client mode auto-triggering remote sync after local login...');
-                setTimeout(() => {
-                    handleRemoteOverwriteConnect(true);
-                }, 1000);
-            }
         } else {
             statusEl.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> 登录失败: 用户名或密码错误';
         }
@@ -9097,16 +9026,12 @@ let lastSelectedRemoteSyncMode = null;
 function selectRemoteOverwriteMode(mode) {
     if (remoteSyncModeResolve) {
         lastSelectedRemoteSyncMode = mode;
-        // 保存上次选择的同步模式到设置中，以便客户端模式自动使用
-        if (settings.lastRemoteSyncMode !== mode) {
-            updateSetting('lastRemoteSyncMode', mode);
-        }
         remoteSyncModeResolve(mode);
         remoteSyncModeResolve = null;
     }
 }
 
-async function handleRemoteOverwriteConnect(silent = false) {
+async function handleRemoteOverwriteConnect() {
     let url = settings.remoteSyncUrl || '';
     let code = settings.remoteSyncCode || '';
 
@@ -9119,11 +9044,11 @@ async function handleRemoteOverwriteConnect(silent = false) {
     const statusEl = document.getElementById('remote-overwrite-status');
 
     if (!url || !code) {
-        if (!silent && statusEl) statusEl.innerText = '请输入完整的连接信息';
+        if (statusEl) statusEl.innerText = '请输入完整的连接信息';
         return;
     }
 
-    if (!silent && statusEl) {
+    if (statusEl) {
         statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-emerald-500"></i> 正在建立安全连接...';
     }
 
@@ -9157,24 +9082,9 @@ async function handleRemoteOverwriteConnect(silent = false) {
         },
         getSyncMode: async () => {
             console.log('[RemoteOverwrite] Server requested sync mode');
-            // 如果开启了客户端模式且有上次选择的模式，则自动选择
-            if (settings.enableClientModeSync && settings.lastRemoteSyncMode) {
-                console.log('[RemoteOverwrite] Client mode: auto-selecting mode:', settings.lastRemoteSyncMode);
-                lastSelectedRemoteSyncMode = settings.lastRemoteSyncMode;
-                return settings.lastRemoteSyncMode;
-            }
-
             return new Promise((resolve) => {
                 remoteSyncModeResolve = resolve;
-                // If silent and no mode saved, we might have to show the modal anyway
                 switchRemoteModalStep('remote-overwrite-mode-selection');
-                if (silent) {
-                    // Force show modal if it's hidden during silent sync but needs interaction
-                    const modal = document.getElementById('modal-remote-overwrite');
-                    if (modal && modal.classList.contains('hidden')) {
-                        showRemoteOverwriteModal();
-                    }
-                }
             });
         }
     };
@@ -9188,28 +9098,21 @@ async function handleRemoteOverwriteConnect(silent = false) {
             if (settings.saveAccountSettingsToFile) {
                 pushSettingsToServer();
             }
-            if (!silent && statusEl) {
+            if (statusEl) {
                 statusEl.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> 已连通，等待同步指令...';
             }
         } else {
-            if (!silent && statusEl) {
+            if (statusEl) {
                 statusEl.classList.remove('t-text-muted');
                 statusEl.classList.add('text-red-500');
                 statusEl.innerText = '连接失败: ' + (msg || '未知错误');
-            } else if (silent) {
-                console.warn('[Sync] Silent connect failed:', msg);
             }
         }
     };
 
     tempRemoteClient.onSync = (status) => {
         if (status === 'finished') {
-            if (!silent) {
-                switchRemoteModalStep('remote-overwrite-result');
-            } else {
-                console.info('[Sync] Silent sync finished.');
-                if (window.showInfo) showInfo('远程同步成功');
-            }
+            switchRemoteModalStep('remote-overwrite-result');
             tempRemoteClient.close();
             currentRemoteOverwriteClient = null;
 
@@ -9238,17 +9141,15 @@ async function handleRemoteOverwriteConnect(silent = false) {
             // Update the status on the main settings page too
             updateSyncStatus(`<i class="fas fa-check-circle text-emerald-500"></i> 远程同步任务已完成 (${username})`);
         } else if (status === 'started' || status === 'syncing') {
-            if (!silent) {
-                switchRemoteModalStep('remote-overwrite-step2');
-            }
+            switchRemoteModalStep('remote-overwrite-step2');
         }
     };
 
     try {
         await tempRemoteClient.connect();
     } catch (err) {
-        if (!silent && statusEl) statusEl.innerText = '初始化失败: ' + err.message;
-        else console.error('[Sync] Silent connect failed:', err);
+        if (statusEl) statusEl.innerText = '初始化失败: ' + err.message;
+        else console.error('[Sync] Remote connect failed:', err);
     }
 }
 

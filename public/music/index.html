@@ -211,13 +211,6 @@
                         <span class="hidden md:inline">安装应用</span>
                     </button>
 
-                    <!-- Legacy Logout Button (Hidden on all screens as we have the new one above, or keep hidden md:flex if user really wants both) -->
-                    <button id="logout-btn" onclick="handleLogout()"
-                        class="hidden items-center gap-1.5 t-text-muted hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50 shrink-0"
-                        title="退出登录">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span class="hidden sm:inline text-xs font-medium">退出</span>
-                    </button>
 
                     <!-- Hide social/version info on mobile -->
                     <div class="hidden lg:flex items-center gap-4">
@@ -225,7 +218,7 @@
                             class="t-text-muted hover:t-text-muted transition-colors" title="GitHub">
                             <i class="fab fa-github text-xl"></i>
                         </a>
-                        <div class="text-sm t-text-muted" id="app-version">v1.1.3 Web</div>
+                        <div class="text-sm t-text-muted" id="app-version">v1.1.4 Web</div>
                     </div>
                 </div>
             </header>
@@ -4678,21 +4671,6 @@
                             (Code)</label>
                         <input type="password" id="remote-overwrite-code" placeholder="输入连接码"
                             class="w-full px-4 py-3.5 t-bg-track border t-border-main rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/50 t-text-main transition-all placeholder:opacity-30">
-                    </div>
-                    <div class="flex items-center justify-between px-1">
-                        <div class="flex items-center gap-2">
-                            <label
-                                class="text-[11px] font-bold t-text-main flex items-center cursor-pointer select-none">
-                                <input type="checkbox" id="setting-client-mode-sync"
-                                    class="mr-2 accent-emerald-500 w-3.5 h-3.5"
-                                    onchange="updateSetting('enableClientModeSync', this.checked)">
-                                客户端模式 (Client Mode)
-                            </label>
-                            <span class="setting-tooltip-trigger">
-                                <i class="fas fa-question-circle text-[10px] t-text-muted opacity-60"></i>
-                                <span class="setting-tooltip-content">模仿客户端模式每次登陆本地账户都会模拟客户端向远程服务器发起同步请求</span>
-                            </span>
-                        </div>
                     </div>
                     <div id="remote-overwrite-status" class="text-xs text-center min-h-[1.5rem] t-text-muted"></div>
                     <button onclick="handleRemoteOverwriteConnect()"

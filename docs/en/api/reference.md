@@ -138,14 +138,10 @@ Used by the management dashboard for real-time adjustments of server behavior. R
 
 ## 8. Web Player Specific API
 
-Interfaces designed specifically for Web Player frontend logic, supporting Session-based access.
+Interfaces designed specifically for Web Player frontend logic. Requests involving user data use sync-account token authentication.
 
-### 8.1 Basic Config & Auth
-- `GET /api/music/config`: **Public interface**, get runtime status configuration of the Web Player.
-  - **Response**: `{"player.enableAuth": boolean}`
-- `POST /api/music/auth`: Validate access password and issue `lx_player_session` HttpOnly Cookie upon success.
-- `POST /api/music/auth/logout`: Completely invalidate the current Session.
-- `GET /api/music/auth/verify`: Check if the current Session is still valid.
+### 8.1 Runtime Config
+- `GET /api/music/config`: Get public runtime settings such as the player path and user cache restrictions. Retained for compatibility with older browser caches.
 
 ### 8.2 Enhanced Metadata Details
 - `GET /api/music/artistDetail`: Get rich artist information.

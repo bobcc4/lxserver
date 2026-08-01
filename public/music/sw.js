@@ -1,8 +1,7 @@
-const CACHE_NAME = 'lx-music-web-v25';
+const CACHE_NAME = 'lx-music-web-v26';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './login.html',
     './app.js',
     // CSS
     './css/theme_variables.css',

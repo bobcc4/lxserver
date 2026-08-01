@@ -79,8 +79,6 @@ services:
     environment:
       - NODE_ENV=production
       # - FRONTEND_PASSWORD=123456
-      # - ENABLE_WEBPLAYER_AUTH=true
-      # - WEBPLAYER_PASSWORD=yourpassword
 ```
 
 After reviewing the configuration correctly, start the infrastructure instance set with the command `docker-compose up -d`.

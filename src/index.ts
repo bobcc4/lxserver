@@ -215,12 +215,6 @@ if (envParams.PORT) {
 if (envParams.BIND_IP) {
   global.lx.config.bindIP = envParams.BIND_IP
 }
-if (envParams.ENABLE_WEBPLAYER_AUTH) {
-  global.lx.config['player.enableAuth'] = envParams.ENABLE_WEBPLAYER_AUTH === 'true'
-}
-if (envParams.WEBPLAYER_PASSWORD) {
-  global.lx.config['player.password'] = envParams.WEBPLAYER_PASSWORD
-}
 if (envParams.DISABLE_TELEMETRY) {
   global.lx.config.disableTelemetry = envParams.DISABLE_TELEMETRY === 'true'
 }

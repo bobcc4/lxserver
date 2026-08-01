@@ -344,7 +344,7 @@ class App {
             // Render Markdown
             if (window.marked) {
                 // Replace {{version}} and {{buildHash}} placeholder
-                const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.3';
+                const version = (window.CONFIG && window.CONFIG.version) || 'v1.1.4';
                 const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
                 let content = text.replace(/{{version}}/g, version);
                 content = content.replace(/{{buildHash}}/g, buildHash);
@@ -1741,14 +1741,6 @@ class App {
             }
             form.elements['frontend.password'].value = config['frontend.password'] || '';
 
-            // Web播放器配置
-            if (form.elements['player.enableAuth']) {
-                form.elements['player.enableAuth'].checked = config['player.enableAuth'] === true;
-            }
-            if (form.elements['player.password']) {
-                form.elements['player.password'].value = config['player.password'] || '';
-            }
-
             // WebDAV 配置
             if (form.elements['webdav.enable']) {
                 form.elements['webdav.enable'].checked = config['webdav.enable'] === true;
@@ -1858,8 +1850,6 @@ class App {
             'user.enableCacheSizeLimit': formData.get('user.enableCacheSizeLimit') === 'on',
             'user.cacheSizeLimit': parseInt(formData.get('user.cacheSizeLimit')) || 2000,
             'frontend.password': formData.get('frontend.password'),
-            'player.enableAuth': formData.get('player.enableAuth') === 'on',
-            'player.password': formData.get('player.password'),
             'webdav.enable': formData.get('webdav.enable') === 'on',
             'webdav.url': formData.get('webdav.url'),
             'webdav.username': formData.get('webdav.username'),

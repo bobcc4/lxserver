@@ -38,8 +38,6 @@ const config: LX.Config = {
   'sync.backupInterval': 24, // 全量备份间隔（小时）默认24小时
 
   // Web播放器配置
-  'player.enableAuth': false,
-  'player.password': '123456',
 
   // 代理配置
   'proxy.all.enabled': false,

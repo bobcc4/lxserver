@@ -23,7 +23,7 @@ Functions currently supported by the Web player:
 Default access address:
 **Example**: `http://IP:9527/music`
 
-If the administrator has set `ENABLE_WEBPLAYER_AUTH = true` in the server environment variables, the set `WEBPLAYER_PASSWORD` must be entered every time this page is opened to enter the playback interface.
+Sign in with a sync account to load and isolate playlists, custom sources, downloads, and personal settings. The management dashboard uses a separate administrator password. For public access, enable HTTPS and additional access control at the reverse proxy.
 
 ---
 

@@ -38,48 +38,8 @@ import crypto from 'node:crypto'
 import needle from 'needle'
 const { MusicTagger, MetaPicture } = require('music-tag-native')
 
-// ===== Player Session Store =====
-const playerSessions = new Map<string, { createdAt: number }>()
-const SESSION_TTL = 24 * 60 * 60 * 1000 // 24小时
-const SESSION_COOKIE_NAME = 'lx_player_session'
-
 /** 生成随机 sessionId */
 const generateSessionId = () => crypto.randomBytes(32).toString('hex')
-
-/** 解析 Cookie 字符串 */
-const parseCookies = (cookieHeader: string | undefined): Record<string, string> => {
-  if (!cookieHeader) return {}
-  return Object.fromEntries(
-    cookieHeader.split(';').map(c => {
-      const [k, ...v] = c.trim().split('=')
-      return [k.trim(), decodeURIComponent(v.join('='))]
-    })
-  )
-}
-
-/** 检查请求是否携带有效的 Player Session Cookie */
-const checkPlayerAuth = (req: IncomingMessage): boolean => {
-  if (!global.lx.config['player.enableAuth']) return true // 未开启认证，直接放行
-  const cookies = parseCookies(req.headers['cookie'])
-  const sessionId = cookies[SESSION_COOKIE_NAME]
-  if (!sessionId) return false
-  const session = playerSessions.get(sessionId)
-  if (!session) return false
-  if (Date.now() - session.createdAt > SESSION_TTL) {
-    playerSessions.delete(sessionId)
-    return false
-  }
-  return true
-}
-
-/** 定期清理过期 Session（每小时） */
-setInterval(() => {
-  const now = Date.now()
-  for (const [id, session] of playerSessions) {
-    if (now - session.createdAt > SESSION_TTL) playerSessions.delete(id)
-  }
-}, 60 * 60 * 1000)
-// ===== End Player Session Store =====
 
 // ===== User Session Token Store =====
 interface UserToken {
@@ -1078,26 +1038,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (isPlayerRequest || isLegacyPlayerAsset) {
       const activePrefix = isPlayerRequest ? playerPath : '/music'
       const normalizedPrefix = (activePrefix === '/' || activePrefix === '') ? '' : activePrefix.replace(/\/+$/, '')
-      // 白名单：登录页、静态资源无需认证
-      const isLoginPage = pathname === `${normalizedPrefix}/login` || pathname === `${normalizedPrefix}/login.html`
-      const isPublicAsset = pathname.startsWith(`${normalizedPrefix}/assets/`) ||
-        pathname.startsWith(`${normalizedPrefix}/css/`) ||
-        pathname.startsWith(`${normalizedPrefix}/js/`) ||
-        pathname.startsWith(`${normalizedPrefix}/fonts/`) ||
-        pathname.startsWith(`${normalizedPrefix}/img/`) ||
-        pathname === `${normalizedPrefix}/manifest.json` ||
-        pathname === `${normalizedPrefix}/sw.js` ||
-        isLegacyPlayerAsset
-
-      // 认证检查
-      if (!isLoginPage && !isPublicAsset && global.lx.config['player.enableAuth']) {
-        if (!checkPlayerAuth(req)) {
-          res.writeHead(302, { 'Location': `${normalizedPrefix}/login` })
-          res.end()
-          return
-        }
-      }
-
       // 规范化物理路径
       let targetPath = pathname
       // 将请求路径中的前缀映射到真实的 /music 物理目录
@@ -1110,8 +1050,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       const subPath = pathname.slice(normalizedPrefix.length)
       if (subPath === '/' || subPath === '') {
         targetPath = 'music/index.html'
-      } else if (isLoginPage) {
-        targetPath = 'music/login.html'
       } else {
         // [优化] 如果根路径是播放器，且请求已经包含 /music/ 前缀，则不再重复叠加
         if ((activePrefix === '/' || activePrefix === '') && subPath.startsWith('/music/')) {
@@ -1132,7 +1070,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     if (pathname === '/js/config.js') {
       // 从静态文件读取版本号和构建哈希
       const staticConfigPath = path.join(global.lx.staticPath, 'js', 'config.js')
-      let version = 'v1.1.3'
+      let version = 'v1.1.4'
       let buildHash = 'unknown'
       try {
         const content = fs.readFileSync(staticConfigPath, 'utf-8')
@@ -1156,7 +1094,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         'user.cacheSizeLimit': global.lx.config['user.cacheSizeLimit'] || 2000,
         maxSnapshotNum: global.lx.config.maxSnapshotNum,
         'list.addMusicLocationType': global.lx.config['list.addMusicLocationType'],
-        'player.enableAuth': global.lx.config['player.enableAuth'] || false,
         port: global.lx.config.port,
         bindIP: global.lx.config.bindIP,
         'admin.path': global.lx.config['admin.path'] ?? '',
@@ -4187,64 +4124,16 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      // [新增] Web播放器公共配置 API (无需鉴权)
+      // 保留公共配置接口，兼容容器更新后仍缓存旧版脚本的浏览器。
       if (pathname === '/api/music/config' && req.method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
         })
         res.end(JSON.stringify({
-          'player.enableAuth': global.lx.config['player.enableAuth'] || false
+          'user.enableLoginCacheRestriction': global.lx.config['user.enableLoginCacheRestriction'] || false,
+          'player.path': global.lx.config['player.path'] ?? '/music',
         }))
-        return
-      }
-
-      // [新增] Web播放器认证 API（颁发 HttpOnly Cookie Session）
-      if (pathname === '/api/music/auth' && req.method === 'POST') {
-        void readBody(req).then(body => {
-          try {
-            const { password } = JSON.parse(body)
-            const correctPassword = global.lx.config['player.password'] || ''
-
-            if (password === correctPassword) {
-              const sessionId = generateSessionId()
-              playerSessions.set(sessionId, { createdAt: Date.now() })
-              loginLog.info(`Player login success from ${ip}`)
-              res.writeHead(200, {
-                'Content-Type': 'application/json',
-                'Set-Cookie': `${SESSION_COOKIE_NAME}=${sessionId}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${SESSION_TTL / 1000}`
-              })
-              res.end(JSON.stringify({ success: true }))
-            } else {
-              loginLog.warn(`Player login failed from ${ip}`)
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ success: false }))
-            }
-          } catch (err: any) {
-            res.writeHead(500)
-            res.end(JSON.stringify({ success: false, error: err.message }))
-          }
-        })
-        return
-      }
-
-      // [新增] Web播放器登出 API（清除 Session Cookie）
-      if (pathname === '/api/music/auth/logout' && req.method === 'POST') {
-        const cookies = parseCookies(req.headers['cookie'])
-        const sessionId = cookies[SESSION_COOKIE_NAME]
-        if (sessionId) playerSessions.delete(sessionId)
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Set-Cookie': `${SESSION_COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`
-        })
-        res.end(JSON.stringify({ success: true }))
-        return
-      }
-
-      // [新增] Web播放器认证状态检查 API
-      if (pathname === '/api/music/auth/verify' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ valid: checkPlayerAuth(req) }))
         return
       }
 
@@ -5093,8 +4982,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             'user.enableCacheSizeLimit': global.lx.config['user.enableCacheSizeLimit'],
             'user.cacheSizeLimit': global.lx.config['user.cacheSizeLimit'],
             'frontend.password': global.lx.config['frontend.password'],
-            'player.enableAuth': global.lx.config['player.enableAuth'] || false,
-            'player.password': global.lx.config['player.password'] || '',
             'webdav.enable': global.lx.config['webdav.enable'] ?? false,
             'webdav.url': global.lx.config['webdav.url'] || '',
             'webdav.username': global.lx.config['webdav.username'] || '',
@@ -5161,10 +5048,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 }
               }
               if (newConfig['frontend.password'] !== undefined) global.lx.config['frontend.password'] = newConfig['frontend.password']
-
-              // Web播放器配置
-              if (newConfig['player.enableAuth'] !== undefined) global.lx.config['player.enableAuth'] = newConfig['player.enableAuth']
-              if (newConfig['player.password'] !== undefined) global.lx.config['player.password'] = newConfig['player.password']
 
               // WebDAV 配置
               if (newConfig['webdav.enable'] !== undefined) global.lx.config['webdav.enable'] = newConfig['webdav.enable']
@@ -5259,8 +5142,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 'list.addMusicLocationType': global.lx.config['list.addMusicLocationType'],
                 disableTelemetry: global.lx.config.disableTelemetry,
                 'frontend.password': global.lx.config['frontend.password'],
-                'player.enableAuth': global.lx.config['player.enableAuth'],
-                'player.password': global.lx.config['player.password'],
                 'webdav.enable': global.lx.config['webdav.enable'],
                 'webdav.url': global.lx.config['webdav.url'],
                 'webdav.username': global.lx.config['webdav.username'],

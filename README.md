@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.1.3-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.1.4-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/lxserver?style=flat-square" alt="License">
     <br>
@@ -100,15 +100,7 @@
 
 ## 🔒 访问控制与安全
 
-为了保护你的隐私，Web 播放器支持开启访问密码。
-
-### 开启方式
-
-1. **环境变量配置**（推荐 Docker 用户使用）：
-   - `ENABLE_WEBPLAYER_AUTH=true`: 开启认证
-   - `WEBPLAYER_PASSWORD=yourpassword`: 设置访问密码
-2. **Web 界面配置**：
-   登录管理后台（默认端口 9527），进入 **"系统配置"**，勾选 **"启用 Web 播放器访问密码"** 并设置密码。
+管理后台使用 `FRONTEND_PASSWORD` 保护服务器配置；Web 播放器中的歌单、自定义源、下载与个人设置由同步账户认证并按用户隔离。通过公网访问时，建议同时在反向代理层启用 HTTPS 和访问控制。
 
 ## 📱 移动端适配
 
@@ -174,8 +166,6 @@ services:
     environment:
       - NODE_ENV=production
       # - FRONTEND_PASSWORD=123456
-      # - ENABLE_WEBPLAYER_AUTH=true
-      # - WEBPLAYER_PASSWORD=yourpassword
       # - ADMIN_PATH=
       # - PLAYER_PATH=/music
 ```
@@ -245,8 +235,6 @@ npm start
 | `WEBDAV_BACKUP_PATH`                  | `webdav.backupPath`                | WebDAV 全量备份远端路径                                            | `/lx-sync-backups` |
 | `SYNC_INTERVAL`                       | `sync.interval`                    | WebDAV 增量同步检测间隔(分钟)                                      | `60`             |
 | `BACKUP_INTERVAL`                     | `sync.backupInterval`              | WebDAV 全量备份间隔(小时)                                          | `24`             |
-| `ENABLE_WEBPLAYER_AUTH`               | `player.enableAuth`                | 是否启用 Web 播放器访问密码                                        | `false`          |
-| `WEBPLAYER_PASSWORD`                  | `player.password`                  | Web 播放器访问密码                                                 | `123456`         |
 | `DISABLE_TELEMETRY`                   | `disableTelemetry`                 | 是否禁用匿名数据统计，系统更新提示以及系统公告提示                 | `false`          |
 | `ENABLE_LOGIN_USER_CACHE_RESTRICTION` | `user.enableLoginCacheRestriction` | 是否启用登录用户缓存限制 (开启后限非管理员登录用户的缓存设置)      | `false`          |
 | `ENABLE_CACHE_SIZE_LIMIT`             | `user.enableCacheSizeLimit`        | 是否启用缓存空间限制 (开启后超出容量将按 LRU 自动清理)             | `false`          |
