@@ -67,13 +67,14 @@ jobs:
 
           migrate_repository lxserver yinyun-lxserver
 
-          test_source="lxserver-test"
+          test_source=""
+          test_source_found=false
           test_check_file=$(mktemp)
           test_status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
             -o "$test_check_file" -w '%{http_code}' \
-            "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${test_source}/")
+            "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/lxserver-test/")
           if [[ "$test_status" != "200" ]]; then
-            echo "${test_source} was not found; searching Docker Hub repositories in the account"
+            echo "lxserver-test was not found; searching Docker Hub repositories in the account"
             repositories=$(curl -fsS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
               "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/?page_size=100")
             echo "$repositories" | jq -r '.results[]?.name' | sort
@@ -81,11 +82,15 @@ jobs:
               '[.results[]?.name | select(test("lxserver.*test|test.*lxserver"; "i"))][0] // empty')
           fi
           rm -f "$test_check_file"
-          if [[ -z "$test_source" ]]; then
-            echo "Unable to locate the old Docker Hub test repository"
-            exit 1
+          if [[ -n "$test_source" ]]; then
+            test_source_found=true
+            migrate_repository "$test_source" yinyun-lxserver-test
+          else
+            echo "No old test repository exists; creating a private baseline from yinyun-lxserver:v1"
+            docker buildx imagetools create \
+              --tag "docker.io/${DOCKER_USERNAME}/yinyun-lxserver-test:v1" \
+              "docker.io/${DOCKER_USERNAME}/yinyun-lxserver:v1"
           fi
-          migrate_repository "$test_source" yinyun-lxserver-test
 
           auth_payload=$(jq -nc \
             --arg username "$DOCKER_USERNAME" \
@@ -116,4 +121,6 @@ jobs:
           }
 
           delete_repository lxserver
-          delete_repository lxserver-test
+          if [[ "$test_source_found" == true ]]; then
+            delete_repository "$test_source"
+          fi
