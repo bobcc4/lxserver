@@ -66,7 +66,26 @@ jobs:
           }
 
           migrate_repository lxserver yinyun-lxserver
-          migrate_repository lxserver-test yinyun-lxserver-test
+
+          test_source="lxserver-test"
+          test_check_file=$(mktemp)
+          test_status=$(curl -sS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+            -o "$test_check_file" -w '%{http_code}' \
+            "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/${test_source}/")
+          if [[ "$test_status" != "200" ]]; then
+            echo "${test_source} was not found; searching Docker Hub repositories in the account"
+            repositories=$(curl -fsS -u "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" \
+              "https://hub.docker.com/v2/repositories/${DOCKER_USERNAME}/?page_size=100")
+            echo "$repositories" | jq -r '.results[]?.name' | sort
+            test_source=$(echo "$repositories" | jq -r \
+              '[.results[]?.name | select(test("lxserver.*test|test.*lxserver"; "i"))][0] // empty')
+          fi
+          rm -f "$test_check_file"
+          if [[ -z "$test_source" ]]; then
+            echo "Unable to locate the old Docker Hub test repository"
+            exit 1
+          fi
+          migrate_repository "$test_source" yinyun-lxserver-test
 
           auth_payload=$(jq -nc \
             --arg username "$DOCKER_USERNAME" \
