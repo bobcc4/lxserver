@@ -3431,9 +3431,8 @@ input:-webkit-autofill:active {
         margin: 0;
     }
 
-    .mobile-header-row #console-version {
+    .top-bar-actions #console-version {
         display: inline-block !important; /* 在手机端强制显示版本号 */
-        margin-left: 0.5rem;
     }
 
     .header-left-group {

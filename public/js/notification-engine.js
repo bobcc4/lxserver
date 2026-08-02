@@ -47,6 +47,7 @@
         const indicators = document.querySelectorAll('#console-version, #sidebar-version');
 
         indicators.forEach((element) => {
+            element.classList.remove('hidden');
             if (hasUpdate) {
                 element.textContent = currentVersion + ' · 有新版本 ' + latestVersion;
                 element.classList.add('lx-version-update');
@@ -298,7 +299,7 @@
 
         if (hasCancel) {
             document.getElementById('ph-btn-cancel').onclick = () => {
-                if (item.logic.interval_hours > 0) {
+                if (item.logic.interval_hours !== 0) {
                     localStorage.setItem(storageKey, Date.now().toString());
                 }
                 close();
@@ -364,7 +365,7 @@
                 logic: {
                     target_version: latestVersion,
                     operator: '<',
-                    interval_hours: 24
+                    interval_hours: -1
                 },
                 ui: {
                     title: `发现新版本 ${latestVersion}`,
@@ -372,7 +373,7 @@
                         ? `GitHub Release 已于 ${publishedDate} 发布，点击下方按钮查看更新说明和安装包。`
                         : 'GitHub Release 已发布，点击下方按钮查看更新说明和安装包。',
                     confirm_text: '查看发布页',
-                    cancel_text: '稍后提醒'
+                    cancel_text: '关闭'
                 },
                 action: {
                     type: 'link',
@@ -427,8 +428,8 @@
 
     // ================= 5. 初始化入口 =================
     function init() {
-        // 每次进入页面都检查一次，确保新版本不会因为此前的“稍后提醒”而长期隐藏。
-        checkUpdates(false, true);
+        // 每次进入页面都刷新版本状态，但同一版本只自动弹窗一次。
+        checkUpdates(false, false);
     }
 
     async function checkUpdates(isManual = false, force = false) {
