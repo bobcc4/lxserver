@@ -38,6 +38,12 @@ test('account sync API supports login, large restore, and conflict protection', 
           searchSinger: async () => ({ list: [{ id: 'artist-1', name: 'Test singer', source: 'tx' }] }),
           searchAlbum: async () => ({ list: [{ id: 'album-1', name: 'Test album', artistName: 'Test singer', source: 'tx' }] }),
         },
+        extendDetail: {
+          getArtistDetail: async () => ({ id: 'artist-1', name: 'Test singer', avatar: 'https://img.test/artist.jpg', desc: 'Artist description' }),
+          getArtistSongs: async () => ({ list: [{ songmid: 'song-1', name: 'Test song', singer: 'Test singer', albumName: 'Test album', img: 'https://img.test/album.jpg', source: 'tx' }], total: 1 }),
+          getArtistAlbums: async () => ({ list: [{ id: 'album-1', name: 'Test album', singer: 'Test singer', img: 'https://img.test/album.jpg', total: 1, source: 'tx' }], total: 1 }),
+          getAlbumSongs: async () => ({ name: 'Test album', publishTime: '2026-01-01', list: [{ songmid: 'song-1', name: 'Test song', singer: 'Test singer', albumName: 'Test album', img: 'https://img.test/album.jpg', source: 'tx' }], total: 1 }),
+        },
       },
     },
     normalizeSongInfo: value => value,
@@ -83,6 +89,9 @@ test('account sync API supports login, large restore, and conflict protection', 
     const snapshot = (await snapshotResponse.json() as any).data
     assert.equal(snapshot.empty, true)
 
+    const capabilitiesResponse = await fetch(`${origin}/api/v1/capabilities`)
+    assert.equal((await capabilitiesResponse.json() as any).data.apiVersion, '1.2.0')
+
     const boardsResponse = await fetch(`${origin}/api/v1/leaderboards?source=tx`, { headers })
     assert.equal(boardsResponse.status, 200)
     assert.equal((await boardsResponse.json() as any).data.list[0].bangid, '4')
@@ -101,6 +110,19 @@ test('account sync API supports login, large restore, and conflict protection', 
     assert.equal(albumSearch.kind, 'album')
     assert.equal(albumSearch.artist, 'Test singer')
 
+    const artistDetailResponse = await fetch(`${origin}/api/v1/artists/artist-1?source=tx`, { headers })
+    assert.equal(artistDetailResponse.status, 200)
+    const artistDetail = (await artistDetailResponse.json() as any).data
+    assert.equal(artistDetail.entity.name, 'Test singer')
+    assert.equal(artistDetail.songs[0].title, 'Test song')
+    assert.equal(artistDetail.albums[0].name, 'Test album')
+
+    const albumDetailResponse = await fetch(`${origin}/api/v1/albums/album-1?source=tx`, { headers })
+    assert.equal(albumDetailResponse.status, 200)
+    const albumDetail = (await albumDetailResponse.json() as any).data
+    assert.equal(albumDetail.entity.name, 'Test album')
+    assert.equal(albumDetail.songs[0].artworkUrl, 'https://img.test/album.jpg')
+
     const saveArtistsResponse = await fetch(`${origin}/api/v1/library/artists`, {
       method: 'PUT',
       headers,
@@ -112,6 +134,14 @@ test('account sync API supports login, large restore, and conflict protection', 
     assert.equal((await artistsResponse.json() as any).data[0].name, 'Test singer')
 
     snapshot.data.settings = { largeValue: 'x'.repeat(2_250_000) }
+    snapshot.data.lists.defaultList = [{
+      id: 'tx_playlist-song',
+      name: 'Playlist song',
+      singer: 'Test singer',
+      source: 'tx',
+      interval: '03:21',
+      meta: { albumName: 'Playlist album', picUrl: 'https://img.test/playlist.jpg' },
+    }]
     const restoreBody = JSON.stringify({
       confirm: 'restore',
       snapshot,
@@ -127,6 +157,11 @@ test('account sync API supports login, large restore, and conflict protection', 
     assert.equal(restoreResponse.status, 200)
     const restored = (await restoreResponse.json() as any).data
     assert.equal(restored.data.settings.largeValue.length, 2_250_000)
+
+    const playlistResponse = await fetch(`${origin}/api/v1/playlists/default`, { headers })
+    const playlistTrack = (await playlistResponse.json() as any).data.items[0]
+    assert.equal(playlistTrack.album, 'Playlist album')
+    assert.equal(playlistTrack.artworkUrl, 'https://img.test/playlist.jpg')
 
     const conflictResponse = await fetch(`${origin}/api/v1/sync/snapshot`, {
       method: 'PUT',

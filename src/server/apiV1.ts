@@ -234,23 +234,58 @@ const getTrackItem = async (username: string, rawId: string) => {
   return { item, decoded }
 }
 
+const normalizeOnlineTrack = (song: any, source: string) => ({
+  id: song.id || `${song.source || source}_${song.songmid || song.hash || ''}`,
+  title: song.name || song.title || '',
+  artist: song.singer || song.artist || '',
+  album: song.albumName || song.album || song.meta?.albumName || '',
+  source: song.source || source,
+  duration: song.interval || song.duration || null,
+  artworkUrl: song.img || song.picUrl || song.meta?.picUrl || null,
+  raw: song,
+})
+
 const normalizeSearchResult = (value: any, source: string) => {
   const list = Array.isArray(value) ? value : Array.isArray(value?.list) ? value.list : []
   return {
-    items: list.map((song: any) => ({
-      id: song.id || `${source}_${song.songmid || ''}`,
-      title: song.name || '',
-      artist: song.singer || '',
-      album: song.albumName || '',
-      source: song.source || source,
-      duration: song.interval || null,
-      artworkUrl: song.img || null,
-      raw: song,
-    })),
+    items: list.map((song: any) => normalizeOnlineTrack(song, source)),
     total: Number(value?.total || list.length),
     page: Number(value?.page || 1),
     limit: Number(value?.limit || list.length),
   }
+}
+
+const normalizeAlbum = (item: any, source: string) => ({
+  id: String(item.id || item.mid || item.albumMid || ''),
+  name: item.name || item.albumName || item.info?.name || '',
+  artist: item.artistName || item.artist || item.singer || item.info?.author || '',
+  artworkUrl: item.picUrl || item.img || item.info?.img || null,
+  source: item.source || source,
+  publishTime: item.publishTime || item.info?.publishTime || null,
+  trackCount: Number(item.size || item.total || item.count || 0),
+  kind: 'album',
+  raw: item,
+})
+
+const fetchAllPages = async (
+  fetchPage: (page: number, limit: number) => Promise<any>,
+  pageSize = 100,
+  maxPages = 20,
+) => {
+  const items: any[] = []
+  let total = 0
+  let complete = false
+  for (let page = 1; page <= maxPages; page++) {
+    const result = await fetchPage(page, pageSize)
+    const pageItems = Array.isArray(result) ? result : Array.isArray(result?.list) ? result.list : []
+    items.push(...pageItems)
+    total = Math.max(total, Number(result?.total) || 0)
+    if (pageItems.length < pageSize || (total > 0 && items.length >= total)) {
+      complete = true
+      break
+    }
+  }
+  return { items, total: total || items.length, complete }
 }
 
 const normalizeEntityResult = (value: any, source: string, type: 'singer' | 'album') => {
@@ -310,7 +345,7 @@ export const apiV1OpenApi = {
   openapi: '3.1.0',
   info: {
     title: '音云 API',
-    version: '1.1.0',
+    version: '1.2.0',
     description: '音云原生客户端使用的稳定接口。旧网页接口与 Subsonic 接口不属于本契约。',
   },
   servers: [{ url: '/' }],
@@ -338,6 +373,8 @@ export const apiV1OpenApi = {
     '/api/v1/leaderboards/{id}/tracks': { get: { summary: '查询排行榜歌曲' } },
     '/api/v1/library/artists': { get: { summary: '查询收藏歌手' }, put: { summary: '覆盖收藏歌手' } },
     '/api/v1/library/albums': { get: { summary: '查询收藏专辑' }, put: { summary: '覆盖收藏专辑' } },
+    '/api/v1/artists/{id}': { get: { summary: '查询歌手、全部歌曲及专辑' } },
+    '/api/v1/albums/{id}': { get: { summary: '查询专辑及全部歌曲' } },
     '/api/v1/tracks/resolve': { post: { summary: '解析在线歌曲播放地址' } },
     '/api/v1/tracks/qualities': { get: { summary: '查询支持的音质标识' } },
     '/api/v1/lyrics': { post: { summary: '读取歌词' } },
@@ -363,7 +400,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       success(res, {
         product: 'yinyun',
         serverVersion: deps.serverVersion,
-        apiVersion: '1.1.0',
+        apiVersion: '1.2.0',
         playerPath: global.lx.config['player.path'] || '/music',
         features: {
           localLibrary: true,
@@ -373,6 +410,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
           playlists: true,
           favoriteArtists: true,
           favoriteAlbums: true,
+          artistAlbumDetails: true,
           leaderboards: true,
           serverDownloads: true,
           replacement: true,
@@ -526,6 +564,68 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       return true
     }
 
+    const entityDetailMatch = pathname.match(/^\/api\/v1\/(artists|albums)\/([^/]+)$/)
+    if (entityDetailMatch && req.method === 'GET') {
+      const kind = entityDetailMatch[1] as 'artists' | 'albums'
+      const id = decodeURIComponent(entityDetailMatch[2])
+      const source = url.searchParams.get('source') || 'tx'
+      if (!id) throw new ApiError(400, 'entity_id_required', '缺少歌手或专辑 ID')
+      if (!deps.isSourceSupported(source, username)) throw new ApiError(409, 'source_unavailable', `当前账户没有可用的 ${source} 音源`)
+      const detailSdk = deps.musicSdk[source]?.extendDetail
+      if (!detailSdk) throw new ApiError(400, 'detail_unsupported', '该平台不支持歌手或专辑详情')
+
+      if (kind === 'artists') {
+        if (!detailSdk.getArtistSongs || !detailSdk.getArtistAlbums) {
+          throw new ApiError(400, 'artist_detail_unsupported', '该平台不支持歌手详情')
+        }
+        const detailPromise = detailSdk.getArtistDetail
+          ? Promise.resolve(detailSdk.getArtistDetail(id)).catch(() => null)
+          : Promise.resolve(null)
+        const [detail, songs, albums] = await Promise.all([
+          detailPromise,
+          fetchAllPages((page, limit) => detailSdk.getArtistSongs(id, page, limit, 'hot')),
+          fetchAllPages((page, limit) => detailSdk.getArtistAlbums(id, page, limit, 'time')),
+        ])
+        const normalizedSongs = normalizeSearchResult({ list: songs.items, total: songs.total }, source)
+        success(res, {
+          kind: 'singer',
+          entity: {
+            id,
+            name: detail?.name || url.searchParams.get('name') || '',
+            source,
+            artworkUrl: detail?.avatar || null,
+            description: detail?.desc || '',
+          },
+          songs: normalizedSongs.items,
+          songCount: normalizedSongs.total,
+          songsComplete: songs.complete,
+          albums: albums.items.map(item => normalizeAlbum(item, source)),
+          albumCount: albums.total,
+          albumsComplete: albums.complete,
+        })
+        return true
+      }
+
+      if (!detailSdk.getAlbumSongs) throw new ApiError(400, 'album_detail_unsupported', '该平台不支持专辑详情')
+      const album = await detailSdk.getAlbumSongs(id)
+      const normalizedSongs = normalizeSearchResult(album, source)
+      const firstTrack = normalizedSongs.items[0]
+      success(res, {
+        kind: 'album',
+        entity: {
+          id,
+          name: album?.name || url.searchParams.get('name') || firstTrack?.album || '',
+          artist: url.searchParams.get('artist') || firstTrack?.artist || '',
+          source,
+          artworkUrl: firstTrack?.artworkUrl || null,
+          publishTime: album?.publishTime || null,
+        },
+        songs: normalizedSongs.items,
+        songCount: normalizedSongs.total,
+      })
+      return true
+    }
+
     const libraryMatch = pathname.match(/^\/api\/v1\/library\/(artists|albums)$/)
     if (libraryMatch && (req.method === 'GET' || req.method === 'PUT')) {
       const type = libraryMatch[1] as 'artists' | 'albums'
@@ -620,7 +720,8 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       const manage = getUserSpace(username).listManage
       if (req.method === 'GET' && !trackId) {
         const playlist = await getPlaylist(username, playlistId)
-        success(res, { id: playlist.id, name: playlist.name, items: playlist.list })
+        const items = playlist.list.map(song => normalizeOnlineTrack(deps.normalizeSongInfo({ ...song }), song.source || 'unknown'))
+        success(res, { id: playlist.id, name: playlist.name, items })
         return true
       }
       if (req.method === 'PATCH' && !pathname.includes('/tracks')) {

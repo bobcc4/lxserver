@@ -25,6 +25,9 @@ Authorization: Bearer <accessToken>
 | 本地曲库 | `/api/v1/library/tracks` | 分页、搜索并区分缓存和下载目录 |
 | 本地音频 | `/api/v1/library/tracks/{id}/stream` | 支持 `Range` 和 `HEAD` |
 | 在线搜索 | `/api/v1/search` | 由服务端执行音源脚本 |
+| 收藏歌手与专辑 | `/api/v1/library/artists`、`/api/v1/library/albums` | 按同步账户保存收藏数据 |
+| 歌手详情 | `/api/v1/artists/{id}` | 返回歌手的全部歌曲与专辑 |
+| 专辑详情 | `/api/v1/albums/{id}` | 返回专辑信息与全部歌曲 |
 | 播放解析 | `/api/v1/tracks/resolve` | 返回实际音质、平台和音源信息 |
 | 歌词 | `/api/v1/lyrics` | 优先读取本地歌词，再请求音源 |
 | 歌单 | `/api/v1/playlists` | 创建、重命名、删除及增删歌曲 |
