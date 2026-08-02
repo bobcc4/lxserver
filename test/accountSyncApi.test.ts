@@ -27,15 +27,27 @@ test('account sync API supports login, large restore, and conflict protection', 
 
   const { createApiV1Handler } = await import('../src/server/apiV1')
   const { releaseUserSpace } = await import('../src/user')
+  const libraries: Record<'artists' | 'albums', any[]> = { artists: [], albums: [] }
   const handler = createApiV1Handler({
     serverVersion: 'test',
     getAuthSecret: () => 'test-secret',
     getUsers: () => global.lx.config.users,
-    musicSdk: {},
+    musicSdk: {
+      tx: {
+        extendSearch: {
+          searchSinger: async () => ({ list: [{ id: 'artist-1', name: 'Test singer', source: 'tx' }] }),
+          searchAlbum: async () => ({ list: [{ id: 'album-1', name: 'Test album', artistName: 'Test singer', source: 'tx' }] }),
+        },
+      },
+    },
     normalizeSongInfo: value => value,
     resolveSong: async () => null,
-    isSourceSupported: () => false,
+    isSourceSupported: source => source === 'tx',
     getLoadedSources: () => [],
+    getLibrary: async (_username, type) => libraries[type],
+    saveLibrary: async (_username, type, items) => { libraries[type] = items },
+    getLeaderboardBoards: async () => ({ list: [{ id: 'tx__4', bangid: '4', name: 'Test board' }] }),
+    getLeaderboardList: async () => ({ list: [{ songmid: 'song-1', name: 'Test song', singer: 'Test singer', source: 'tx' }] }),
   })
   const server = http.createServer((req, res) => {
     void handler(req, res, new URL(req.url || '/', 'http://127.0.0.1')).then(handled => {
@@ -70,6 +82,34 @@ test('account sync API supports login, large restore, and conflict protection', 
     assert.equal(snapshotResponse.status, 200)
     const snapshot = (await snapshotResponse.json() as any).data
     assert.equal(snapshot.empty, true)
+
+    const boardsResponse = await fetch(`${origin}/api/v1/leaderboards?source=tx`, { headers })
+    assert.equal(boardsResponse.status, 200)
+    assert.equal((await boardsResponse.json() as any).data.list[0].bangid, '4')
+
+    const boardTracksResponse = await fetch(`${origin}/api/v1/leaderboards/4/tracks?source=tx`, { headers })
+    assert.equal(boardTracksResponse.status, 200)
+    assert.equal((await boardTracksResponse.json() as any).data.items[0].title, 'Test song')
+
+    const singerSearchResponse = await fetch(`${origin}/api/v1/search?query=test&type=singer&source=tx`, { headers })
+    assert.equal(singerSearchResponse.status, 200)
+    assert.equal((await singerSearchResponse.json() as any).data.items[0].kind, 'singer')
+
+    const albumSearchResponse = await fetch(`${origin}/api/v1/search?query=test&type=album&source=tx`, { headers })
+    assert.equal(albumSearchResponse.status, 200)
+    const albumSearch = (await albumSearchResponse.json() as any).data.items[0]
+    assert.equal(albumSearch.kind, 'album')
+    assert.equal(albumSearch.artist, 'Test singer')
+
+    const saveArtistsResponse = await fetch(`${origin}/api/v1/library/artists`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ items: [{ id: 'artist-1', name: 'Test singer', source: 'tx' }] }),
+    })
+    assert.equal(saveArtistsResponse.status, 200)
+    const artistsResponse = await fetch(`${origin}/api/v1/library/artists`, { headers })
+    assert.equal(artistsResponse.status, 200)
+    assert.equal((await artistsResponse.json() as any).data[0].name, 'Test singer')
 
     snapshot.data.settings = { largeValue: 'x'.repeat(2_250_000) }
     const restoreBody = JSON.stringify({

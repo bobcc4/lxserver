@@ -39,7 +39,14 @@ test('account snapshots restore data and reject unsafe or conflicting restores',
   try {
     const empty = await buildAccountSyncSnapshot('restore')
     assert.equal(empty.empty, true)
-    assert.deepEqual(empty.stats, { playlists: 0, tracks: 0, dislikeRules: 0, sources: 0 })
+    assert.deepEqual(empty.stats, {
+      playlists: 0,
+      tracks: 0,
+      dislikeRules: 0,
+      sources: 0,
+      favoriteArtists: 0,
+      favoriteAlbums: 0,
+    })
 
     const music = {
       id: 'tx_001',
@@ -60,6 +67,8 @@ test('account snapshots restore data and reject unsafe or conflicting restores',
         settings: { theme: 'green' },
         soundEffects: { enabled: true },
         sources: [],
+        favoriteArtists: [{ id: 'tx_artist', name: 'Test singer', source: 'tx' }],
+        favoriteAlbums: [{ id: 'tx_album', name: 'Test album', source: 'tx' }],
       },
     }
     const restored = await restoreAccountSyncSnapshot('restore', input, {
@@ -67,11 +76,20 @@ test('account snapshots restore data and reject unsafe or conflicting restores',
       expectedRevision: empty.revision,
     })
     assert.equal(restored.empty, false)
-    assert.deepEqual(restored.stats, { playlists: 1, tracks: 2, dislikeRules: 1, sources: 0 })
+    assert.deepEqual(restored.stats, {
+      playlists: 1,
+      tracks: 2,
+      dislikeRules: 1,
+      sources: 0,
+      favoriteArtists: 1,
+      favoriteAlbums: 1,
+    })
     assert.equal(restored.data.settings.theme, 'green')
     assert.equal(restored.data.soundEffects.enabled, true)
     assert.equal(restored.data.dislikeRules, 'blocked song@blocked singer')
     assert.equal(restored.data.lists.userList[0].name, 'Backup playlist')
+    assert.equal(restored.data.favoriteArtists[0].name, 'Test singer')
+    assert.equal(restored.data.favoriteAlbums[0].name, 'Test album')
 
     await assert.rejects(
       restoreAccountSyncSnapshot('restore', input, { expectedEmpty: true }),

@@ -807,6 +807,42 @@ const resolveServerSong = async (
   throw new Error(`No downloadable source found (${errors.join('; ')})`)
 }
 
+const getUserLibraryPath = (username: string, type: 'artists' | 'albums') => {
+  const directory = path.join(global.lx.userPath, getUserDirname(username), 'library')
+  if (!fs.existsSync(directory)) fs.mkdirSync(directory, { recursive: true })
+  return path.join(directory, `${type}.json`)
+}
+
+const readUserLibrary = async (username: string, type: 'artists' | 'albums') => {
+  const filePath = getUserLibraryPath(username, type)
+  try {
+    const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'))
+    return Array.isArray(value) ? value : []
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') return []
+    throw error
+  }
+}
+
+const writeUserLibrary = async (username: string, type: 'artists' | 'albums', items: any[]) => {
+  const filePath = getUserLibraryPath(username, type)
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`
+  await fs.promises.writeFile(temporaryPath, `${JSON.stringify(items, null, 2)}\n`, 'utf8')
+  await fs.promises.rename(temporaryPath, filePath)
+}
+
+const getLeaderboardBoards = async (source: string, username: string) => {
+  const sdk = musicSdk[source]
+  if (!sdk?.leaderboard?.getBoards) throw new Error(`Source ${source} does not support leaderboard`)
+  return sdk.leaderboard.getBoards()
+}
+
+const getLeaderboardList = async (source: string, bangid: string, page: number, username: string) => {
+  const sdk = musicSdk[source]
+  if (!sdk?.leaderboard?.getList) throw new Error(`Source ${source} does not support leaderboard`)
+  return sdk.leaderboard.getList(bangid, page)
+}
+
 const handleApiV1 = createApiV1Handler({
   serverVersion: APP_VERSION,
   getAuthSecret: () => `${getServerId()}:${global.lx.config['frontend.password']}`,
@@ -816,6 +852,10 @@ const handleApiV1 = createApiV1Handler({
   resolveSong: resolveServerSong,
   isSourceSupported,
   getLoadedSources: getLoadedApis,
+  getLibrary: readUserLibrary,
+  saveLibrary: writeUserLibrary,
+  getLeaderboardBoards,
+  getLeaderboardList,
 })
 
 const isPathInside = (child: string, parent: string): boolean => {

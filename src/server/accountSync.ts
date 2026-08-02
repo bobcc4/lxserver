@@ -19,6 +19,8 @@ interface AccountSyncData {
   settings: Record<string, unknown>
   soundEffects: Record<string, unknown>
   sources: AccountSyncSource[]
+  favoriteArtists: unknown[]
+  favoriteAlbums: unknown[]
 }
 
 export interface AccountSyncSnapshot {
@@ -32,6 +34,8 @@ export interface AccountSyncSnapshot {
     tracks: number
     dislikeRules: number
     sources: number
+    favoriteArtists: number
+    favoriteAlbums: number
   }
   data: AccountSyncData
 }
@@ -43,6 +47,16 @@ const readJsonObject = (filePath: string): Record<string, unknown> => {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
   } catch {
     return {}
+  }
+}
+
+const readJsonArray = (filePath: string): unknown[] => {
+  if (!fs.existsSync(filePath)) return []
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+    return Array.isArray(value) ? value : []
+  } catch {
+    return []
   }
 }
 
@@ -77,6 +91,12 @@ const normalizeSources = (value: unknown): AccountSyncSource[] => {
   return normalizeAccountSyncSources(value)
 }
 
+const normalizeArray = (value: unknown, field: string): unknown[] => {
+  if (value == null) return []
+  if (!Array.isArray(value)) throw new Error(`${field} must be an array`)
+  return JSON.parse(JSON.stringify(value)) as unknown[]
+}
+
 const normalizeData = (value: unknown): AccountSyncData => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('snapshot data is required')
   const data = value as Partial<AccountSyncData>
@@ -86,6 +106,8 @@ const normalizeData = (value: unknown): AccountSyncData => {
     settings: normalizeObject(data.settings, 'settings'),
     soundEffects: normalizeObject(data.soundEffects, 'soundEffects'),
     sources: normalizeSources(data.sources),
+    favoriteArtists: normalizeArray(data.favoriteArtists, 'favoriteArtists'),
+    favoriteAlbums: normalizeArray(data.favoriteAlbums, 'favoriteAlbums'),
   }
 }
 
@@ -98,6 +120,8 @@ const getStats = (data: AccountSyncData) => ({
   tracks: countTracks(data.lists),
   dislikeRules: data.dislikeRules.split(/\r?\n/).filter(Boolean).length,
   sources: data.sources.length,
+  favoriteArtists: data.favoriteArtists.length,
+  favoriteAlbums: data.favoriteAlbums.length,
 })
 
 const getRevision = (data: AccountSyncData) => crypto
@@ -113,6 +137,8 @@ export const buildAccountSyncSnapshot = async (username: string): Promise<Accoun
     settings: readJsonObject(path.join(userSpace.dataManage.userDir, File.userSettingsJSON)),
     soundEffects: readJsonObject(path.join(userSpace.dataManage.userDir, File.userSoundEffectsJSON)),
     sources: exportOwnedSourcesForSync(username),
+    favoriteArtists: readJsonArray(path.join(userSpace.dataManage.userDir, 'library', 'artists.json')),
+    favoriteAlbums: readJsonArray(path.join(userSpace.dataManage.userDir, 'library', 'albums.json')),
   }
   const stats = getStats(data)
   const hasSettings = Object.keys(data.settings).length > 0 || Object.keys(data.soundEffects).length > 0
@@ -121,7 +147,7 @@ export const buildAccountSyncSnapshot = async (username: string): Promise<Accoun
     username,
     exportedAt: new Date().toISOString(),
     revision: getRevision(data),
-    empty: stats.playlists === 0 && stats.tracks === 0 && stats.dislikeRules === 0 && stats.sources === 0 && !hasSettings,
+    empty: stats.playlists === 0 && stats.tracks === 0 && stats.dislikeRules === 0 && stats.sources === 0 && stats.favoriteArtists === 0 && stats.favoriteAlbums === 0 && !hasSettings,
     stats,
     data,
   }
@@ -155,6 +181,8 @@ export const restoreAccountSyncSnapshot = async (
   await userSpace.dislikeManage.createSnapshot()
   writeJsonAtomic(path.join(userSpace.dataManage.userDir, File.userSettingsJSON), data.settings)
   writeJsonAtomic(path.join(userSpace.dataManage.userDir, File.userSoundEffectsJSON), data.soundEffects)
+  writeJsonAtomic(path.join(userSpace.dataManage.userDir, 'library', 'artists.json'), data.favoriteArtists)
+  writeJsonAtomic(path.join(userSpace.dataManage.userDir, 'library', 'albums.json'), data.favoriteAlbums)
   await restoreOwnedSourcesFromSync(username, data.sources)
 
   return buildAccountSyncSnapshot(username)

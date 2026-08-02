@@ -51,6 +51,10 @@ interface ApiV1Dependencies {
   ) => Promise<any>
   isSourceSupported: (source: string, username: string) => boolean
   getLoadedSources: () => any[]
+  getLibrary: (username: string, type: 'artists' | 'albums') => Promise<any[]>
+  saveLibrary: (username: string, type: 'artists' | 'albums', items: any[]) => Promise<void>
+  getLeaderboardBoards: (source: string, username: string) => Promise<any>
+  getLeaderboardList: (source: string, bangid: string, page: number, username: string) => Promise<any>
 }
 
 interface ApiErrorShape {
@@ -249,6 +253,34 @@ const normalizeSearchResult = (value: any, source: string) => {
   }
 }
 
+const normalizeEntityResult = (value: any, source: string, type: 'singer' | 'album') => {
+  const list = Array.isArray(value) ? value : Array.isArray(value?.list) ? value.list : []
+  return {
+    items: list.map((item: any) => type === 'singer' ? ({
+      id: String(item.id || item.mid || ''),
+      name: item.name || '',
+      title: item.name || '',
+      artist: item.name || '',
+      artworkUrl: item.picUrl || item.img || null,
+      source: item.source || source,
+      kind: 'singer',
+      raw: item,
+    }) : ({
+      id: String(item.id || item.mid || ''),
+      name: item.name || '',
+      title: item.name || '',
+      artist: item.artistName || item.artist || '',
+      artworkUrl: item.picUrl || item.img || null,
+      source: item.source || source,
+      kind: 'album',
+      raw: item,
+    })),
+    total: Number(value?.total || list.length),
+    page: Number(value?.page || 1),
+    limit: Number(value?.limit || list.length),
+  }
+}
+
 const getPlaylist = async (username: string, playlistId: string) => {
   const data = await getUserSpace(username).listManage.getListData()
   if (playlistId === 'default') return { id: 'default', name: '试听列表', list: data.defaultList }
@@ -302,6 +334,10 @@ export const apiV1OpenApi = {
     '/api/v1/library/tracks/{id}/stream': { get: { summary: 'Range 流式播放本地歌曲' } },
     '/api/v1/library/tracks/{id}/cover': { get: { summary: '读取本地歌曲封面' } },
     '/api/v1/search': { get: { summary: '搜索在线曲库' } },
+    '/api/v1/leaderboards': { get: { summary: '查询排行榜列表' } },
+    '/api/v1/leaderboards/{id}/tracks': { get: { summary: '查询排行榜歌曲' } },
+    '/api/v1/library/artists': { get: { summary: '查询收藏歌手' }, put: { summary: '覆盖收藏歌手' } },
+    '/api/v1/library/albums': { get: { summary: '查询收藏专辑' }, put: { summary: '覆盖收藏专辑' } },
     '/api/v1/tracks/resolve': { post: { summary: '解析在线歌曲播放地址' } },
     '/api/v1/tracks/qualities': { get: { summary: '查询支持的音质标识' } },
     '/api/v1/lyrics': { post: { summary: '读取歌词' } },
@@ -335,6 +371,9 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
           rangeStreaming: true,
           lyrics: true,
           playlists: true,
+          favoriteArtists: true,
+          favoriteAlbums: true,
+          leaderboards: true,
           serverDownloads: true,
           replacement: true,
           customSources: true,
@@ -469,13 +508,50 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
     if (pathname === `${API_PREFIX}/search` && req.method === 'GET') {
       const query = (url.searchParams.get('query') || '').trim()
       const source = url.searchParams.get('source') || 'tx'
+      const type = url.searchParams.get('type') || 'song'
       const page = parsePositiveInt(url.searchParams.get('page'), 1, 10000)
       const limit = parsePositiveInt(url.searchParams.get('limit'), 30, 100)
       if (!query) throw new ApiError(400, 'query_required', '请输入搜索内容')
       if (!deps.isSourceSupported(source, username)) throw new ApiError(409, 'source_unavailable', `当前账户没有可用的 ${source} 音源`)
+      if (type === 'singer' || type === 'album') {
+        const method = type === 'singer' ? 'searchSinger' : 'searchAlbum'
+        if (!deps.musicSdk[source]?.extendSearch?.[method]) throw new ApiError(400, 'search_unsupported', '该平台不支持此类搜索')
+        const result = await deps.musicSdk[source].extendSearch[method](query, page, limit)
+        success(res, normalizeEntityResult(result, source, type))
+        return true
+      }
       if (!deps.musicSdk[source]?.musicSearch?.search) throw new ApiError(400, 'search_unsupported', '该平台不支持歌曲搜索')
       const result = await deps.musicSdk[source].musicSearch.search(query, page, limit)
       success(res, normalizeSearchResult(result, source))
+      return true
+    }
+
+    const libraryMatch = pathname.match(/^\/api\/v1\/library\/(artists|albums)$/)
+    if (libraryMatch && (req.method === 'GET' || req.method === 'PUT')) {
+      const type = libraryMatch[1] as 'artists' | 'albums'
+      if (req.method === 'GET') {
+        success(res, await deps.getLibrary(username, type))
+        return true
+      }
+      const body = await readJson(req)
+      if (!Array.isArray(body.items)) throw new ApiError(400, 'items_required', '收藏数据必须是数组')
+      if (body.items.length > 10000) throw new ApiError(413, 'items_too_large', '收藏数量超过限制')
+      await deps.saveLibrary(username, type, body.items)
+      success(res, { items: body.items })
+      return true
+    }
+
+    const leaderboardMatch = pathname.match(/^\/api\/v1\/leaderboards(?:\/([^/]+)\/tracks)?$/)
+    if (leaderboardMatch && req.method === 'GET') {
+      const source = url.searchParams.get('source') || 'tx'
+      if (!deps.isSourceSupported(source, username)) throw new ApiError(409, 'source_unavailable', `当前账户没有可用的 ${source} 音源`)
+      if (leaderboardMatch[1]) {
+        const page = parsePositiveInt(url.searchParams.get('page'), 1, 10000)
+        const result = await deps.getLeaderboardList(source, decodeURIComponent(leaderboardMatch[1]), page, username)
+        success(res, normalizeSearchResult(result, source))
+      } else {
+        success(res, await deps.getLeaderboardBoards(source, username))
+      }
       return true
     }
 

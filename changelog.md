@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.1 (2026-08-02)
+
+### Windows 客户端支持
+
+- 新增 `/api/v1/leaderboards` 与 `/api/v1/leaderboards/{id}/tracks`，支持按平台读取排行榜及榜单歌曲。
+- `/api/v1/search` 新增歌手和专辑搜索类型。
+- 新增 `/api/v1/library/artists` 与 `/api/v1/library/albums`，按同步账户保存收藏歌手和收藏专辑。
+- 账户同步快照新增收藏歌手、收藏专辑数据及统计，支持在服务器数据丢失后随快照恢复。
+
 ## v1.3.0 (2026-08-02)
 
 ### 不兼容变更
