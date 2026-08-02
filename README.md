@@ -102,12 +102,6 @@
 
 管理后台使用 `FRONTEND_PASSWORD` 保护服务器配置；Web 播放器中的歌单、自定义源、下载与个人设置由同步账户认证并按用户隔离。通过公网访问时，建议同时在反向代理层启用 HTTPS 和访问控制。
 
-## 📱 移动端适配
-
-音云提供不使用 WebView 的 [Flutter 原生 Android 客户端](https://github.com/bobcc4/yinyun-mobile)，支持服务器登录、本地曲库、在线搜索、后台播放、歌词、歌单、服务端下载、手机离线下载、共享音源平台开关和歌单分享。Android 客户端使用稳定的 [`/api/v1`](md/api-v1.md)；第三方音乐客户端仍可继续使用 Subsonic `/rest`。
-
----
-
 ## 🚀 快速启动
 
 本项目基于 **Node.js** 开发，支持多种部署方式。
