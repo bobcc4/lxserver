@@ -28,6 +28,7 @@ import {
   verifySignedApiToken,
   type ApiTokenPayload,
 } from './apiV1Contract'
+import { normalizeLyricsResponse } from './utils/apiLyrics'
 
 const API_PREFIX = '/api/v1'
 const ACCESS_TOKEN_TTL = 60 * 60
@@ -166,7 +167,7 @@ const requireUser = (req: IncomingMessage, deps: ApiV1Dependencies, url?: URL) =
   if (!payload && url?.searchParams.get('token')) {
     const mediaToken = url.searchParams.get('token')!
     const mediaPayload = verifyApiToken(mediaToken, deps.getAuthSecret(), 'media')
-    const trackId = url.pathname.match(/^\/api\/v1\/library\/tracks\/([^/]+)\/stream$/)?.[1]
+    const trackId = url.pathname.match(/^\/api\/v1\/library\/tracks\/([^/]+)\/(?:stream|cover)$/)?.[1]
     if (mediaPayload && trackId && mediaPayload.trackId === decodeURIComponent(trackId)) payload = mediaPayload
   }
   const username = payload ? tryNormalizeUsername(payload.sub) : null
@@ -187,6 +188,16 @@ const encodeTrackId = (item: any) => encodeApiValue(JSON.stringify({
   l: item.storageLocation,
 }))
 
+const parseDurationSeconds = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const text = String(value || '').trim()
+  if (/^\d+(?:\.\d+)?$/.test(text)) return Number(text)
+  const parts = text.split(':').map(Number)
+  if (parts.some(part => !Number.isFinite(part))) return 0
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  return 0
+}
 
 const toTrack = (item: any) => ({
   id: encodeTrackId(item),
@@ -196,10 +207,17 @@ const toTrack = (item: any) => ({
   artist: item.singer || '',
   album: item.album || '',
   albumId: item.albumId || null,
+  addedAt: Number(item.mtime || 0),
+  publishTime: item.releaseDate || item.songInfo?.publishTime || item.songInfo?.releaseDate || item.songInfo?.year || null,
   source: item.source || 'unknown',
   requestedSource: item.requestedSource || null,
   downloadSource: item.downloadSource || item.source || 'unknown',
   quality: item.quality || 'unknown',
+  bitrate: Number(item.bitrate || 0) || (
+    Number(item.size) > 0 && parseDurationSeconds(item.interval) > 0
+      ? Math.round(Number(item.size) * 8 / parseDurationSeconds(item.interval) / 1000)
+      : 0
+  ),
   duration: item.interval || null,
   size: Number(item.size || 0),
   folder: item.folder,
@@ -215,6 +233,7 @@ const toTrack = (item: any) => ({
     singer: item.singer,
     albumName: item.album,
     albumId: item.albumId,
+    publishTime: item.releaseDate || null,
     source: item.source,
     interval: item.interval,
     img: item.img,
@@ -244,6 +263,65 @@ const normalizeOnlineTrack = (song: any, source: string) => ({
   artworkUrl: song.img || song.picUrl || song.meta?.picUrl || null,
   raw: song,
 })
+
+const collectTrackIds = (value: any) => {
+  const source = String(value?.source || value?.meta?.source || '').toLowerCase()
+  const ids = new Set<string>()
+  for (const candidate of [value?.id, value?.songmid, value?.songId, value?.hash, value?.meta?.songId, value?.meta?.songmid, value?.meta?.hash]) {
+    if (candidate === undefined || candidate === null || String(candidate).trim() === '') continue
+    const id = String(candidate).trim()
+    ids.add(id)
+    if (!source) continue
+    const prefix = `${source}_`
+    ids.add(id.startsWith(prefix) ? id.slice(prefix.length) : `${prefix}${id}`)
+  }
+  return ids
+}
+
+const createLocalTrackIndex = (localItems: any[]) => {
+  const index = new Map<string, any[]>()
+  for (const item of localItems) {
+    const ids = collectTrackIds({ ...item.songInfo, id: item.id, songmid: item.songmid, source: item.source })
+    for (const id of ids) index.set(id, [...(index.get(id) || []), item])
+  }
+  return index
+}
+
+const findLocalPlaylistTrack = (song: any, localIndex: Map<string, any[]>) => {
+  const songIds = collectTrackIds(song)
+  const candidates = [...new Set([...songIds].flatMap(id => localIndex.get(id) || []))]
+  if (!candidates.length) return null
+  return candidates.sort((left, right) => {
+    const folderScore = Number(right.folder === 'music') - Number(left.folder === 'music')
+    if (folderScore) return folderScore
+    const qualityScore = QUALITY_ORDER.indexOf(right.quality) - QUALITY_ORDER.indexOf(left.quality)
+    return qualityScore || Number(right.size || 0) - Number(left.size || 0)
+  })[0]
+}
+
+const mergeLocalTrackMetadata = (onlineTrack: any, localItem: any) => {
+  if (!localItem) return onlineTrack
+  const localTrack = toTrack(localItem)
+  return {
+    ...onlineTrack,
+    quality: localTrack.quality,
+    bitrate: localTrack.bitrate,
+    size: localTrack.size,
+    extension: localTrack.extension,
+    hasCover: localTrack.hasCover,
+    hasLyrics: localTrack.hasLyrics,
+    localTrackId: localTrack.id,
+    streamPath: localTrack.streamPath,
+    coverPath: localTrack.coverPath,
+  }
+}
+
+const withSignedArtwork = (track: any, username: string, secret: string) => {
+  const localTrackId = track.localTrackId || (track.streamPath ? track.id : '')
+  if (!track.hasCover || !track.coverPath || !localTrackId) return track
+  const token = issueToken(username, 'media', MEDIA_TOKEN_TTL, secret, { trackId: localTrackId })
+  return { ...track, artworkUrl: `${track.coverPath}?token=${encodeURIComponent(token)}` }
+}
 
 const normalizeSearchResult = (value: any, source: string) => {
   const list = Array.isArray(value) ? value : Array.isArray(value?.list) ? value.list : []
@@ -516,7 +594,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
         (!query || `${item.name}\n${item.singer}\n${item.album}`.toLocaleLowerCase().includes(query))
       ))
       const offset = (page - 1) * limit
-      success(res, { items: filtered.slice(offset, offset + limit).map(toTrack), page, limit, total: filtered.length })
+      success(res, { items: filtered.slice(offset, offset + limit).map(toTrack).map(track => withSignedArtwork(track, username, deps.getAuthSecret())), page, limit, total: filtered.length })
       return true
     }
 
@@ -681,7 +759,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       const song = deps.normalizeSongInfo(body.track || body.songInfo)
       const local = fileCache.getLocalLyrics(song, username)
       if (local.exists && local.content) {
-        success(res, { content: local.content, source: local.source || 'local' })
+        success(res, normalizeLyricsResponse(local.content, local.source || 'local'))
         return true
       }
       if (!song?.source || !deps.musicSdk[song.source]?.getLyric) throw new ApiError(404, 'lyrics_not_found', '没有可用歌词')
@@ -720,7 +798,15 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       const manage = getUserSpace(username).listManage
       if (req.method === 'GET' && !trackId) {
         const playlist = await getPlaylist(username, playlistId)
-        const items = playlist.list.map(song => normalizeOnlineTrack(deps.normalizeSongInfo({ ...song }), song.source || 'unknown'))
+        const localItems = await fileCache.getCacheList(username)
+        const localIndex = createLocalTrackIndex(localItems)
+        const items = playlist.list.map(song => {
+          const normalizedSong = deps.normalizeSongInfo({ ...song })
+          return withSignedArtwork(mergeLocalTrackMetadata(
+            normalizeOnlineTrack(normalizedSong, song.source || 'unknown'),
+            findLocalPlaylistTrack(normalizedSong, localIndex),
+          ), username, deps.getAuthSecret())
+        })
         success(res, { id: playlist.id, name: playlist.name, items })
         return true
       }

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createSearchRequestBody, handleAlbumResult, handleSingerResult } from '../src/modules/utils/musicSdk/tx/extendSearch.js'
+import { createSearchRequestBody, extractSearchList, handleAlbumResult, handleSingerResult } from '../src/modules/utils/musicSdk/tx/extendSearch.js'
 
 test('TX entity search uses the current mobile request contract', () => {
   const request = createSearchRequestBody('王力宏', 1, 50, 2)
@@ -10,6 +10,13 @@ test('TX entity search uses the current mobile request contract', () => {
   assert.equal(request.req.param.num_per_page, 50)
   assert.equal(request.req.param.page_num, 2)
   assert.equal(request.comm.ct, '11')
+})
+
+test('TX entity search finds alternate nested result lists', () => {
+  const singer = { singerMID: '001JDzPT3JdvqK', singerName: '王力宏' }
+  const album = { albumMID: '002ElVxf43rOue', albumName: '心中的日月', singerName: '王力宏' }
+  assert.deepEqual(extractSearchList({ req: { data: { body: { item_singer: { items: [singer] } } } } }, 'singer'), [singer])
+  assert.deepEqual(extractSearchList({ req: { data: { body: { alternate: { itemlist: [album] } } } } }, 'album'), [album])
 })
 
 test('TX singer and album results normalize current response fields', () => {

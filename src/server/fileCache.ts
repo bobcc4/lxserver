@@ -107,6 +107,7 @@ export interface CacheItem {
     singer: string
     album: string
     albumId?: string
+    releaseDate?: string
     img?: string
     interval?: string
     source: string
@@ -519,10 +520,24 @@ const extractSongMetadata = (songInfo: any) => {
         album: songInfo.albumName || meta.albumName ||
             (typeof songInfo.album === 'string' ? songInfo.album : songInfo.album?.name) || '',
         albumId: String(songInfo.albumId || meta.albumId || ''),
+        releaseDate: normalizeReleaseDate(songInfo.publishTime || songInfo.releaseDate || songInfo.year || meta.publishTime || meta.releaseDate || meta.year),
         img: songInfo.img || meta.picUrl || '',
         interval: songInfo.interval || meta.interval || '',
         source: songInfo.source || 'unknown'
     }
+}
+
+const normalizeReleaseDate = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return ''
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        if (value >= 1000 && value <= 9999) return String(Math.trunc(value))
+        const date = new Date(value < 10_000_000_000 ? value * 1000 : value)
+        return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+    }
+    const text = String(value).trim()
+    if (/^\d{4}(?:[-/.]\d{1,2}(?:[-/.]\d{1,2})?)?$/.test(text)) return text.replace(/[/.]/g, '-')
+    const parsed = Date.parse(text)
+    return Number.isNaN(parsed) ? '' : new Date(parsed).toISOString().slice(0, 10)
 }
 
 /**
@@ -831,7 +846,7 @@ export const syncCacheIndex = async (
                     }
 
                     // If interval or quality/bitrate is missing/unknown, or hasEmbedLyric not yet detected, try to extract it
-                    if (!existing.interval || existing.quality === 'unknown' || !existing.bitrate || existing.hasEmbedLyric === undefined || existing.metadataWritable === undefined || qualityCorrectionNeeded) {
+                    if (!existing.interval || existing.quality === 'unknown' || !existing.bitrate || existing.releaseDate === undefined || existing.hasEmbedLyric === undefined || existing.metadataWritable === undefined || qualityCorrectionNeeded) {
                         let tagger: any
                         try {
                             tagger = new MusicTagger()
@@ -841,6 +856,7 @@ export const syncCacheIndex = async (
                             existing.bitrate = tagger.bitRate
                             existing.sampleRate = tagger.sampleRate
                             existing.bitDepth = tagger.bitDepth
+                            if (existing.releaseDate === undefined) existing.releaseDate = normalizeReleaseDate(tagger.year)
                             if (!existing.quality || existing.quality === 'unknown' || qualityCorrectionNeeded) {
                                 const detectedQuality = detectQualityFromBitrate(tagger.bitRate, ext, tagger)
                                 existing.quality = resolveInspectedQuality(existing.quality, detectedQuality, currentAudioContainer, tagger)
@@ -871,6 +887,7 @@ export const syncCacheIndex = async (
                     let bitrate: number | undefined
                     let sampleRate: number | undefined
                     let bitDepth: number | undefined
+                    let releaseDate = ''
                     let hasEmbedLyric = false
                     let metadataWritable = false
                     let metadataError: string | undefined
@@ -890,6 +907,7 @@ export const syncCacheIndex = async (
                         bitrate = tagger.bitRate
                         sampleRate = tagger.sampleRate
                         bitDepth = tagger.bitDepth
+                        releaseDate = normalizeReleaseDate(tagger.year)
                         finalQuality = detectQualityFromBitrate(tagger.bitRate, ext, tagger)
 
                         // [新增] 检测是否已嵌入歌词 USLT 标签
@@ -917,6 +935,7 @@ export const syncCacheIndex = async (
                         singer: singer || 'Unknown',
                         album: album || '',
                         albumId: '',
+                        releaseDate,
                         img: '',
                         interval: interval,
                         source: source || 'unknown',
@@ -1180,6 +1199,7 @@ export const batchUpdateMetadata = async (filenames: string[], username: string 
                 tagger.title = item.name || 'Unknown'
                 tagger.artist = item.singer || 'Unknown'
                 if (item.album) tagger.album = item.album
+                if (item.releaseDate) tagger.year = Number.parseInt(item.releaseDate.slice(0, 4), 10)
                 if (imageBuffer && imageBuffer.length > 0) {
                     tagger.pictures = [new MetaPicture(imageMime, new Uint8Array(imageBuffer), 'Cover')]
                 }
@@ -2070,7 +2090,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
 
             indexManager.update(normalizedUsername, {
                 id, songmid: id, name: metadata.name, singer: metadata.singer,
-                album: metadata.album, albumId: metadata.albumId, img: metadata.img,
+                album: metadata.album, albumId: metadata.albumId, releaseDate: metadata.releaseDate, img: metadata.img,
                 interval: metadata.interval, source: metadata.source, requestedSource,
                 downloadSource: actualDownloadSource, sourceName: actualSourceName,
                 quality: actualQuality, filename: path.basename(finalPath),
@@ -2289,7 +2309,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
 
                     indexManager.update(normalizedUsername, {
                         id, songmid: id, name: metadata.name, singer: metadata.singer,
-                        album: metadata.album, albumId: metadata.albumId, img: metadata.img,
+                        album: metadata.album, albumId: metadata.albumId, releaseDate: metadata.releaseDate, img: metadata.img,
                         interval: metadata.interval, source: metadata.source, requestedSource,
                         downloadSource, sourceName,
                         quality: actualQuality, filename: finalBaseName + ext,
@@ -2309,6 +2329,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                         tagger.title = metadata.name
                         tagger.artist = metadata.singer
                         tagger.album = metadata.album
+                        if (metadata.releaseDate) tagger.year = Number.parseInt(metadata.releaseDate.slice(0, 4), 10)
                         if (imageBuffer && imageBuffer.length > 0) tagger.pictures = [new MetaPicture(imageMime, new Uint8Array(imageBuffer), 'Cover')]
                         tagger.save()
                         metadataWritable = true

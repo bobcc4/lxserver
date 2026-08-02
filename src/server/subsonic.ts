@@ -14,6 +14,7 @@ import fs from 'fs'
 import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
 import { APP_VERSION } from '@/version'
+import { resolveAlbumReleaseDate, sortAlbumsByReleaseDate } from '@/server/utils/albumReleaseDate'
 // @ts-ignore
 import musicSdkRaw from '@/modules/utils/musicSdk/index.js'
 const musicSdk = musicSdkRaw as any
@@ -45,6 +46,30 @@ class SubsonicHandler {
         expiresAt: number
         pending?: Promise<CacheItem[]>
     }>()
+
+    private albumReleaseDateCache = new Map<string, { date: string, expiresAt: number }>()
+    private albumReleaseDateCacheLoaded = false
+
+    private loadAlbumReleaseDateCache() {
+        if (this.albumReleaseDateCacheLoaded) return
+        this.albumReleaseDateCacheLoaded = true
+        try {
+            const value = JSON.parse(fs.readFileSync(path.join(global.lx.dataPath, 'subsonic-album-release-cache.json'), 'utf8'))
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return
+            for (const [key, entry] of Object.entries(value)) {
+                const cached = entry as any
+                if (typeof cached?.date === 'string' && Number.isFinite(cached?.expiresAt)) this.albumReleaseDateCache.set(key, cached)
+            }
+        } catch { /* The cache is created after the first successful lookup. */ }
+    }
+
+    private saveAlbumReleaseDateCache() {
+        try {
+            fs.writeFileSync(path.join(global.lx.dataPath, 'subsonic-album-release-cache.json'), JSON.stringify(Object.fromEntries(this.albumReleaseDateCache)), 'utf8')
+        } catch (error: any) {
+            console.warn('[Subsonic] Failed to persist album release cache:', error?.message || error)
+        }
+    }
 
     private cacheOnlineSong(music: LX.Music.MusicInfo) {
         if (!music || !music.id) return
@@ -416,6 +441,7 @@ class SubsonicHandler {
             interval: item.interval || '0',
             img: item.img,
             quality: item.quality,
+            year: item.releaseDate ? parseInt(String(item.releaseDate).slice(0, 4), 10) : undefined,
             types: quality ? { [quality]: { size: item.size } } : {},
             meta: {
                 source,
@@ -423,6 +449,8 @@ class SubsonicHandler {
                 picUrl: item.img,
                 albumName: item.album,
                 albumId: item.albumId,
+                publishTime: item.releaseDate,
+                addedAt: item.mtime,
             },
             // Used only by the Subsonic handler to serve this exact physical file.
             _localFilename: item.filename,
@@ -519,15 +547,10 @@ class SubsonicHandler {
         return item ? { item, music: this.cacheItemToMusic(item) } : null
     }
 
-    private async collectAllLibrarySongs(username: string, listData: any) {
+    private async collectLocalLibrarySongs(username: string) {
         const songs = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
-        for (const entry of this.collectUniqueListSongs(listData)) songs.set(entry.music.id, entry)
 
         for (const item of await this.getLocalMusicItems(username)) {
-            // A physical file is the authoritative library record. Remove the
-            // matching playlist placeholder before adding the exact local file.
-            const platformId = this.getCacheItemPlatformId(item)
-            for (const alias of this.getLocalMusicAliases(item)) songs.delete(alias)
             const music = this.cacheItemToMusic(item)
             songs.set(music.id, { music, listId: 'local_music' })
         }
@@ -747,23 +770,6 @@ class SubsonicHandler {
         return { attrs: this.musicToSongFlat(music, parentId, artistIdOverride, isStarred) }
     }
 
-    private collectUniqueListSongs(listData: any): Array<{ music: LX.Music.MusicInfo, listId: string }> {
-        const songs = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
-        const collect = (list: LX.Music.MusicInfo[], listId: string) => {
-            for (const music of list) {
-                if (!music?.id || songs.has(music.id)) continue
-                songs.set(music.id, { music, listId })
-            }
-        }
-
-        collect(listData.loveList || [], 'love')
-        collect(listData.defaultList || [], 'default')
-        for (const list of listData.userList || []) {
-            collect((list.list || []) as LX.Music.MusicInfo[], list.id)
-        }
-        return Array.from(songs.values())
-    }
-
     private buildLocalAlbumGroups(entries: Array<{ music: LX.Music.MusicInfo, listId: string }>) {
         const groups = new Map<string, { album: any, songs: LX.Music.MusicInfo[] }>()
 
@@ -775,6 +781,8 @@ class SubsonicHandler {
                 ? `alb_${music.source}_${rawAlbumId}`
                 : `album_${Buffer.from(`${albumName}__${music.singer || 'Unknown Artist'}`).toString('base64url').slice(0, 24)}`
             const song = this.musicToSongFlat(music, albumId)
+            const releaseDate = String(meta.publishTime || (music as any).releaseDate || (music as any).year || '')
+            const addedAt = Number(meta.addedAt || (music as any).addedAt || 0)
             let group = groups.get(albumId)
             if (!group) {
                 group = {
@@ -789,9 +797,12 @@ class SubsonicHandler {
                         coverArt: song.coverArt || albumId,
                         songCount: 0,
                         duration: 0,
-                        created: new Date(0).toISOString(),
+                        created: new Date(addedAt || 0).toISOString(),
                         playCount: 0,
                         year: song.year || undefined,
+                        _releaseDate: releaseDate,
+                        _source: music.source,
+                        _rawAlbumId: rawAlbumId ? String(rawAlbumId) : '',
                     },
                     songs: [],
                 }
@@ -800,6 +811,11 @@ class SubsonicHandler {
             group.songs.push(music)
             group.album.songCount = group.songs.length
             group.album.duration += Number(song.duration) || 0
+            if (releaseDate && (!group.album._releaseDate || Date.parse(releaseDate) > Date.parse(group.album._releaseDate))) {
+                group.album._releaseDate = releaseDate
+                group.album.year = parseInt(releaseDate.slice(0, 4), 10) || group.album.year
+            }
+            if (addedAt > Date.parse(group.album.created || '')) group.album.created = new Date(addedAt).toISOString()
         }
 
         return groups
@@ -823,6 +839,9 @@ class SubsonicHandler {
             created: new Date().toISOString(),
             playCount: 0,
             year: album.publishTime ? parseInt(String(album.publishTime).split(/[/-]/)[0]) : undefined,
+            _releaseDate: album.publishTime || '',
+            _source: source,
+            _rawAlbumId: String(album.id || ''),
         }
     }
 
@@ -880,6 +899,40 @@ class SubsonicHandler {
         }
 
         return Array.from(albumsById.values())
+    }
+
+    private async enrichAlbumReleaseDates(albums: any[]) {
+        this.loadAlbumReleaseDateCache()
+        const missing = albums.filter(album => !album._releaseDate && !album.year)
+        let cursor = 0
+        let cacheChanged = false
+        const worker = async () => {
+            while (cursor < missing.length) {
+                const album = missing[cursor++]
+                const match = String(album.id || '').match(/^alb_([^_]+)_(.+)$/)
+                const source = String(album._source || match?.[1] || '').toLowerCase()
+                const rawId = String(album._rawAlbumId || match?.[2] || '')
+                const key = `${source}:${rawId || album.name}:${album.artist || ''}`
+                const cached = this.albumReleaseDateCache.get(key)
+                let date = cached && cached.expiresAt > Date.now() ? cached.date : ''
+                if (!cached || cached.expiresAt <= Date.now()) {
+                    date = await resolveAlbumReleaseDate(musicSdk, { source, id: rawId, name: album.name || '', artist: album.artist || '' })
+                    this.albumReleaseDateCache.set(key, { date, expiresAt: Date.now() + (date ? 365 * 24 * 60 * 60_000 : 10 * 60_000) })
+                    cacheChanged = true
+                }
+                if (date) {
+                    album._releaseDate = date
+                    album.year = parseInt(date.slice(0, 4), 10) || album.year
+                }
+            }
+        }
+        await Promise.all(Array.from({ length: Math.min(6, missing.length) }, worker))
+        if (cacheChanged) this.saveAlbumReleaseDateCache()
+    }
+
+    private stripInternalAlbumMetadata(album: any) {
+        const { _releaseDate, _source, _rawAlbumId, ...publicAlbum } = album
+        return publicAlbum
     }
 
     /** 查找某个用户下所有列表中的某首歌 */
@@ -995,9 +1048,7 @@ class SubsonicHandler {
     }
 
     private async handleScanStatus(res: http.ServerResponse, username: string, format: string) {
-        const userSpace = getUserSpace(username)
-        const listData = await userSpace.listManage.getListData()
-        const count = (await this.collectAllLibrarySongs(username, listData)).length
+        const count = (await this.collectLocalLibrarySongs(username)).length
         const scanStatus = { scanning: false, count }
         if (format === 'json') return this.sendResponse(res, { scanStatus }, format)
         return this.sendResponse(res, { scanStatus: { attrs: scanStatus } }, format)
@@ -1240,7 +1291,7 @@ class SubsonicHandler {
         const userSpace = getUserSpace(username)
         const listData = await userSpace.listManage.getListData()
         const localAlbumGroup = this.buildLocalAlbumGroups(
-            await this.collectAllLibrarySongs(username, listData),
+            await this.collectLocalLibrarySongs(username),
         ).get(id)
 
         let musics: LX.Music.MusicInfo[] = []
@@ -1661,19 +1712,20 @@ class SubsonicHandler {
         // 如果未命中推荐逻辑，或推荐获取为空，则回退到本地收藏库
         if (albums.length === 0) {
             const libAlbums = await this.getLibraryData(username, 'albums')
-            const userSpace = getUserSpace(username)
-            const listData = await userSpace.listManage.getListData()
             const localAlbumGroups = this.buildLocalAlbumGroups(
-                await this.collectAllLibrarySongs(username, listData),
+                await this.collectLocalLibrarySongs(username),
             )
 
             const mergedAlbums = this.mergeAlbumCatalog(libAlbums, localAlbumGroups)
-            if (type === 'alphabeticalByName') {
+            if (type === 'newest') {
+                await this.enrichAlbumReleaseDates(mergedAlbums)
+                sortAlbumsByReleaseDate(mergedAlbums)
+            } else if (type === 'alphabeticalByName') {
                 mergedAlbums.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN'))
             } else if (type === 'alphabeticalByArtist') {
                 mergedAlbums.sort((a, b) => String(a.artist || '').localeCompare(String(b.artist || ''), 'zh-CN'))
             }
-            albums = mergedAlbums.slice(offset, offset + size)
+            albums = mergedAlbums.slice(offset, offset + size).map(album => this.stripInternalAlbumMetadata(album))
         }
 
         const wrapKey = isV2 ? 'albumList2' : 'albumList'
@@ -1706,9 +1758,7 @@ class SubsonicHandler {
             })
         }
 
-        const userSpace = getUserSpace(username)
-        const listData = await userSpace.listManage.getListData()
-        const librarySongs = await this.collectAllLibrarySongs(username, listData)
+        const librarySongs = await this.collectLocalLibrarySongs(username)
         const localAlbums = this.buildLocalAlbumGroups(librarySongs)
         const albumIdsByArtist = new Map<string, Set<string>>()
 
@@ -1772,10 +1822,8 @@ class SubsonicHandler {
         const id = params.get('id')
         if (!id) return this.sendError(res, 10, 'Required parameter is missing: id', format)
 
-        const userSpace = getUserSpace(username)
-        const listData = await userSpace.listManage.getListData()
         const localGroups = Array.from(this.buildLocalAlbumGroups(
-            await this.collectAllLibrarySongs(username, listData),
+            await this.collectLocalLibrarySongs(username),
         ).values()).filter(group => group.album.artistId === id)
 
         if (localGroups.length > 0) {
@@ -2139,49 +2187,13 @@ class SubsonicHandler {
             starredSongIds.has(music.id) || starredSongIds.has((music as any)._platformId)
         )
 
-        // Musiver builds its media library from search3. Use the unified
-        // collection so files already represented in a synced playlist are
-        // still returned as exact physical-file records.
-        const allSongsMap = new Map<string, { music: LX.Music.MusicInfo, listId: string }>()
-        const representedPlatformIds = new Set<string>()
-        for (const entry of await this.collectAllLibrarySongs(username, listData)) {
-            allSongsMap.set(entry.music.id, entry)
-            representedPlatformIds.add(entry.music.id)
-            const platformId = (entry.music as any)._platformId
-            if (platformId) representedPlatformIds.add(platformId)
-        }
+        // Musiver builds its media library from search3. Keep that library
+        // aligned with the physical files shown by the server's local-music
+        // page. Playlist-only and favorited-album tracks remain available from
+        // their dedicated Subsonic endpoints, but must not inflate this count.
+        const allLocalSongs = await this.collectLocalLibrarySongs(username)
 
-        // 补充本地收藏专辑库中的歌曲
         const libAlbums = await this.getLibraryData(username, 'albums')
-        for (const alb of libAlbums) {
-            const source = alb.source || 'wy'
-            for (const s of (alb.list || [])) {
-                const songId = `${source}_${s.songmid || s.songId}`
-                if (!representedPlatformIds.has(songId)) {
-                    allSongsMap.set(songId, {
-                        music: {
-                            id: songId,
-                            name: s.name,
-                            singer: s.singer,
-                            source: source,
-                            songmid: s.songmid,
-                            interval: s.interval || '0',
-                            img: s.img,
-                            meta: {
-                                picUrl: s.img,
-                                albumName: s.albumName || alb.name,
-                                albumId: s.albumMid || alb.id,
-                            },
-                        } as any,
-                        listId: `alb_${source}_${alb.id}`,
-                    })
-                    representedPlatformIds.add(songId)
-                }
-            }
-        }
-
-        // 收藏专辑中未下载、也未出现在同步歌单里的项目继续作为在线记录保留。
-        const allLocalSongs = Array.from(allSongsMap.values())
 
         // 2. 汇总所有歌手 (去重)
         const allArtistsMap = new Map<string, any>()
@@ -2363,9 +2375,6 @@ class SubsonicHandler {
     ) {
         const size = Math.min(parseInt(params.get('size') || '10'), 100)
         const genreNameOrId = params.get('genre') || ''
-        const userSpace = getUserSpace(username)
-        const listData = await userSpace.listManage.getListData()
-
 
         const isGenreQuery = params.has('genre')
         const rootKey = isGenreQuery ? 'songsByGenre' : 'randomSongs'
@@ -2394,7 +2403,7 @@ class SubsonicHandler {
         }
 
         // 汇聚所有歌曲
-        const all = await this.collectAllLibrarySongs(username, listData)
+        const all = await this.collectLocalLibrarySongs(username)
 
         // Fisher-Yates 随机打乱，取前 size 条
         for (let i = all.length - 1; i > 0; i--) {

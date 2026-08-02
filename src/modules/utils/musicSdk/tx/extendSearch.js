@@ -1,6 +1,7 @@
 import { httpFetch } from '../../request'
 
 const MUSICU_URL = 'https://u.y.qq.com/cgi-bin/musicu.fcg'
+const SMARTBOX_URL = 'https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg'
 
 export const createSearchRequestBody = (str, searchType, resultNum, pageNum) => ({
     comm: {
@@ -62,6 +63,57 @@ const createSearchFetch = (str, searchType, resultNum, pageNum) => {
     })
 }
 
+const createSmartboxFetch = str => httpFetch(`${SMARTBOX_URL}?key=${encodeURIComponent(str)}&format=json&inCharset=utf8&outCharset=utf-8`, {
+    headers: {
+        'User-Agent': 'Mozilla/5.0',
+        Referer: 'https://y.qq.com/',
+    },
+})
+
+const isSingerItem = item => item && typeof item === 'object' && (
+    item.singerMID || item.singerName || (item.mid && item.name && !item.albumMID && !item.albummid)
+)
+
+const isAlbumItem = item => item && typeof item === 'object' && (
+    item.albumMID || item.albummid || (item.mid && item.name && (item.singer || item.singerName))
+)
+
+const findNestedList = (value, predicate, visited = new Set()) => {
+    if (!value || typeof value !== 'object' || visited.has(value)) return []
+    visited.add(value)
+    if (Array.isArray(value)) {
+        if (value.length && value.some(predicate)) return value.filter(predicate)
+        for (const item of value) {
+            const result = findNestedList(item, predicate, visited)
+            if (result.length) return result
+        }
+        return []
+    }
+    for (const item of Object.values(value)) {
+        const result = findNestedList(item, predicate, visited)
+        if (result.length) return result
+    }
+    return []
+}
+
+export const extractSearchList = (body, type) => {
+    const responseBody = body?.req?.data?.body || {}
+    const predicate = type === 'singer' ? isSingerItem : isAlbumItem
+    const knownValues = type === 'singer'
+        ? [responseBody.singer, responseBody.item_singer]
+        : [responseBody.item_album, responseBody.album]
+    for (const value of knownValues) {
+        const knownList = Array.isArray(value) ? value : value?.list || value?.itemlist || value?.items
+        if (Array.isArray(knownList) && knownList.length) return knownList.filter(predicate)
+    }
+    return findNestedList(responseBody, predicate)
+}
+
+const readSmartboxList = (body, type) => {
+    const section = body?.data?.[type]
+    return Array.isArray(section?.itemlist) ? section.itemlist : []
+}
+
 export const handleSingerResult = rawList => {
     if (!Array.isArray(rawList)) return []
     return rawList.map(item => {
@@ -105,12 +157,15 @@ export default {
      * @param {number} limit 每页数量
      */
     searchSinger(str, page = 1, limit = 20) {
-        return createSearchFetch(str, 1, limit, page).promise.then(({ body }) => {
+        return createSearchFetch(str, 1, limit, page).promise.then(async ({ body }) => {
             if (body.code !== 0 || body.req?.code !== 0) throw new Error('TX singer search failed: ' + (body.req?.code ?? body.code))
-            const singerData = body.req?.data?.body?.singer
-            const rawList = Array.isArray(singerData) ? singerData : singerData?.list || []
+            let rawList = extractSearchList(body, 'singer')
+            if (!rawList.length) {
+                const fallback = await createSmartboxFetch(str).promise
+                rawList = readSmartboxList(fallback.body, 'singer')
+            }
             const list = handleSingerResult(rawList)
-            const total = Number(body.req?.data?.meta?.estimate_sum || singerData?.total || list.length)
+            const total = list.length ? Math.max(list.length, Number(body.req?.data?.meta?.estimate_sum) || 0) : 0
             return {
                 list,
                 total,
@@ -128,12 +183,15 @@ export default {
      * @param {number} limit 每页数量
      */
     searchAlbum(str, page = 1, limit = 20) {
-        return createSearchFetch(str, 2, limit, page).promise.then(({ body }) => {
+        return createSearchFetch(str, 2, limit, page).promise.then(async ({ body }) => {
             if (body.code !== 0 || body.req?.code !== 0) throw new Error('TX album search failed: ' + (body.req?.code ?? body.code))
-            const albumData = body.req?.data?.body?.item_album || body.req?.data?.body?.album
-            const rawList = Array.isArray(albumData) ? albumData : albumData?.list || []
+            let rawList = extractSearchList(body, 'album')
+            if (!rawList.length) {
+                const fallback = await createSmartboxFetch(str).promise
+                rawList = readSmartboxList(fallback.body, 'album')
+            }
             const list = handleAlbumResult(rawList)
-            const total = Number(body.req?.data?.meta?.estimate_sum || albumData?.total || list.length)
+            const total = list.length ? Math.max(list.length, Number(body.req?.data?.meta?.estimate_sum) || 0) : 0
             return {
                 list,
                 total,
