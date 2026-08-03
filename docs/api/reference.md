@@ -54,8 +54,8 @@
 
 用于在管理面板或客户端管理持久化的 API Token。要求使用 `x-user-token` 进行鉴权。
 
-- `GET /api/user/token/config`: 获取当前用户的 Token 认证配置（是否开启及列表）。
-- `POST /api/user/token/config`: 开启或关闭 Token 认证功能 (`{"enabled": true/false}`)。
+- `GET /api/user/token/config`: 获取当前用户的持久化 API Token 配置（是否开启及列表）。
+- `POST /api/user/token/config`: 开启或关闭持久化 API Token 功能 (`{"enabled": true/false}`)。
 - `POST /api/user/token/add`: 生成新的持久化 API Token (`{"name": "名称", "expireDays": 7}`)。
 - `POST /api/user/token/remove`: 删除指定 Token (`{"token": "..."}`)。
 - `POST /api/user/token/update`: 更新 Token 信息（名称、有效期）。

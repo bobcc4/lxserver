@@ -27,6 +27,7 @@ import {
   setPlaylistSharingEnabled,
 } from './playlistSharing'
 import { getDownloadQualityCandidates } from './downloadQuality'
+import { normalizeSongInfo } from './utils/songInfo'
 import { normalizeUsername, tryNormalizeUsername, validateUsername } from '@/utils/username'
 import crypto from 'node:crypto'
 import needle from 'needle'
@@ -315,84 +316,6 @@ const getMime = (filename: string) => {
     '.mp4': 'video/mp4',
   }
   return mimeTypes[ext] || 'application/octet-stream'
-}
-
-/**
- * 规范化歌曲信息，确保收藏列表中的 meta 属性在根节点也可用
- * 解决 SDK 无法识别收藏歌曲音质的问题
- */
-const normalizeSongInfo = (songInfo: any) => {
-  if (!songInfo) return songInfo
-  const meta = songInfo.meta || {}
-
-  const stripSourcePrefix = (value: unknown) => {
-    if (typeof value !== 'string' || !songInfo.source) return value
-    const prefix = `${songInfo.source}_`
-    return value.startsWith(prefix) ? value.slice(prefix.length) : value
-  }
-
-  // 1. 处理音质信息 (types / _types)
-  if (!songInfo.types && meta) {
-    songInfo.types = meta.qualitys || meta.types
-  }
-  if (!songInfo._types && meta) {
-    songInfo._types = meta._qualitys || meta._types
-  }
-
-  // 2. 处理基础字段备用根节点映射
-  if (!songInfo.albumName && meta.albumName) songInfo.albumName = meta.albumName
-  if (!songInfo.albumId && meta.albumId) songInfo.albumId = meta.albumId
-  if (!songInfo.img && meta.picUrl) songInfo.img = meta.picUrl
-  if (!songInfo.name && meta.name) songInfo.name = meta.name
-  if (!songInfo.singer && meta.singer) songInfo.singer = meta.singer
-  if (!songInfo.source && meta.source) songInfo.source = meta.source
-  if (!songInfo.interval && meta.interval) songInfo.interval = meta.interval
-
-  // 3. 处理通用 ID 转换 (id -> songmid)
-  if (!songInfo.songmid) {
-    if (meta.songId) {
-      songInfo.songmid = stripSourcePrefix(meta.songId)
-    } else if (songInfo.id) {
-      songInfo.songmid = stripSourcePrefix(songInfo.id)
-    }
-  } else {
-    songInfo.songmid = stripSourcePrefix(songInfo.songmid)
-  }
-
-  // 4. 针对各平台 SDK 所需的特定字段进行补全
-  switch (songInfo.source) {
-    case 'wy': // 网易
-      if (!songInfo.id && meta.songId) songInfo.id = Number(meta.songId)
-      if (!songInfo.songmid && songInfo.id) songInfo.songmid = String(songInfo.id)
-      break
-
-    case 'kg': // 酷狗
-      if (!songInfo.hash && meta.hash) songInfo.hash = meta.hash
-      // 兼容某些 SDK 可能需要的 songmid 格式 (数字_哈希 或 仅哈Hash)
-      break
-
-    case 'tx': // 腾讯
-      if (!songInfo.strMediaMid && meta.strMediaMid) songInfo.strMediaMid = meta.strMediaMid
-      if (!songInfo.albumMid && meta.albumMid) songInfo.albumMid = meta.albumMid
-      // 只有当 meta 中的 songId 是纯数字时才回填至 root.songId，否则保持 undefined 触发 SDK 自动获取
-      const metaSongId = String(meta.songId || '')
-      if (/^\d+$/.test(metaSongId)) {
-        songInfo.songId = metaSongId
-      }
-      break
-
-    case 'mg': // 咪咕
-      if (!songInfo.copyrightId && meta.copyrightId) songInfo.copyrightId = meta.copyrightId
-      if (!songInfo.lrcUrl && meta.lrcUrl) songInfo.lrcUrl = meta.lrcUrl
-      if (!songInfo.songId) songInfo.songId = songInfo.songmid
-      break
-
-    case 'kw': // 酷我
-      // 已在步骤 3 中通用处理
-      break
-  }
-
-  return songInfo
 }
 
 let status: { status: boolean; message: string; address: string[] } = {
