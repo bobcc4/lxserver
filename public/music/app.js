@@ -1068,7 +1068,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.0';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.6';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -4542,19 +4542,10 @@ async function playSong(song, index, forceQuality = null, noPlay = false, isRetr
                 addToDefaultList(playbackSong);
                 // 切换逻辑说明：
                 // - 搜索结果(network)：updatePlaylist 把队列设为搜索结果，开启设置才把队列切换到 defaultList
-                // - 歌单/排行榜(songlist/leaderboard)：updatePlaylist 已把队列设为歌单/排行榜，
-                //   开启设置=保持歌单/排行榜队列(do nothing)，关闭设置=退回 defaultList
+                // - 歌单/排行榜(songlist/leaderboard)：调用方已根据设置选择完整列表或单曲列表，
+                //   播放成功后不得再改写为 defaultList
                 const isSongListOrLeaderboard = currentPlayingScope === 'songlist' || currentPlayingScope === 'leaderboard';
-                if (isSongListOrLeaderboard) {
-                    // 歌单/排行榜：关闭"切换歌单"时，才退回 defaultList
-                    const shouldFallback = settings.switchPlaylistOnSongListPlay === false;
-                    if (shouldFallback && typeof currentListData !== 'undefined' && currentListData.defaultList) {
-                        currentPlaylist = currentListData.defaultList;
-                        currentIndex = 0;
-                        currentPlayingScope = 'local_list';
-                        window.currentViewingListId = 'default';
-                    }
-                } else {
+                if (!isSongListOrLeaderboard) {
                     // 搜索结果：关闭"切换歌单"时，才退回 defaultList
                     const shouldSearchFallback = settings.switchPlaylistOnSearchPlay === false;
                     if (shouldSearchFallback && typeof currentListData !== 'undefined' && currentListData.defaultList) {
@@ -4789,6 +4780,21 @@ function updatePlaylist(list, startIndex = 0, scope = 'local_list', shouldAddToD
 }
 window.updatePlaylist = updatePlaylist;
 
+function updatePlayerFavoriteButton(song) {
+    const btnLike = document.getElementById('player-like-btn');
+    if (!btnLike) return;
+
+    const cleanedSong = song ? cleanSongData(song) : null;
+    const isCollected = !!cleanedSong && window.WebPlayerState.isSongCollected(getActiveListData(), cleanedSong.id);
+
+    btnLike.onclick = (event) => {
+        event.stopPropagation();
+        openPlaylistAddModal();
+    };
+    btnLike.classList.toggle('text-red-500', isCollected);
+    btnLike.classList.toggle('text-gray-300', !isCollected);
+}
+
 // 显示错误提示（现代化 Toast）
 // 移除旧版 showError，由后文统一的 showToast 驱动
 // 占位图片变色
@@ -4949,34 +4955,7 @@ function updatePlayerInfo(song, actualQuality) {
     }
 
 
-    // Update Like Button State (Collection Status)
-    const btnLike = document.getElementById('player-like-btn');
-
-    let isCollected = false;
-    const activeListData = isUserLoggedIn() ? (window.myPersonalListData || currentListData) : currentListData;
-    if (activeListData && song) {
-        // 使用与添加时一致的标准化 ID 进行检查
-        const cleanedSong = cleanSongData(song);
-        if (cleanedSong) {
-            const targetId = cleanedSong.id;
-            if (activeListData.loveList && activeListData.loveList.some(s => s.id === targetId)) isCollected = true;
-            if (!isCollected && activeListData.userList && activeListData.userList.some(ul => ul.list.some(s => s.id === targetId))) isCollected = true;
-        }
-    }
-
-    // Bind click to Open Modal
-    btnLike.onclick = (e) => {
-        e.stopPropagation();
-        openPlaylistAddModal();
-    };
-
-    if (isCollected) {
-        btnLike.classList.add('text-red-500');
-        btnLike.classList.remove('text-gray-300');
-    } else {
-        btnLike.classList.remove('text-red-500');
-        btnLike.classList.add('text-gray-300');
-    }
+    updatePlayerFavoriteButton(song);
 }
 
 async function togglePlay() {
@@ -8353,6 +8332,17 @@ window.removeLibraryAlbum = removeLibraryAlbum;
 const syncManager = window.SyncManager;
 let currentListData = null;
 
+function setActiveListData(listData) {
+    currentListData = listData || null;
+    window.currentListData = currentListData;
+    window.myPersonalListData = currentListData;
+    return currentListData;
+}
+
+function getActiveListData() {
+    return currentListData || window.currentListData || window.myPersonalListData || null;
+}
+
 //同步设置
 async function pushSettingsToServer(force = false) {
     if (!force && !settings.saveAccountSettingsToFile) return;
@@ -9463,7 +9453,7 @@ function formatSongToLxMusicStandard(item) {
 }
 
 function collectCurrentSongList() {
-    const activeListData = currentListData;
+    const activeListData = getActiveListData();
     if (!activeListData || typeof window.SongListManager === 'undefined') return;
     const detail = window.SongListManager.getCurrentDetail();
     if (!detail || !detail.id || !detail.list || detail.list.length === 0) {
@@ -9723,8 +9713,10 @@ async function pushDataChange(customListData) {
             });
             if (!res.ok) throw new Error(await res.text());
         }
+        return true;
     } catch (e) {
         console.error('Push Failed', e);
+        return false;
     }
 }
 
@@ -9732,10 +9724,7 @@ async function refreshUserListData() {
     if (!window.SyncManager) return;
     try {
         const listData = await window.SyncManager.sync();
-        window.currentListData = listData;
-        if (listData) {
-            window.myPersonalListData = listData;
-        }
+        setActiveListData(listData);
         if (typeof renderMyLists === 'function') {
             renderMyLists(listData);
         }
@@ -10665,6 +10654,8 @@ function closeCustomSourceModal() {
 
 // Helper to render the grid (can be called from anywhere)
 function renderPlaylistAddGrid() {
+    const activeListData = getActiveListData();
+    if (!activeListData) return;
     const isBatch = !!window.batchCollectSongs;
     const songs = isBatch ? window.batchCollectSongs : [currentPlayingSong];
     const firstSong = songs[0];
@@ -10705,8 +10696,6 @@ function renderPlaylistAddGrid() {
         return btn;
     };
 
-    const activeListData = currentListData;
-
     // 1. My Love
     const loveList = activeListData.loveList || [];
     const isLoved = !isBatch && targetId && loveList.some(s => s.id === targetId);
@@ -10733,7 +10722,7 @@ function renderPlaylistAddGrid() {
 }
 
 async function openPlaylistAddModal(batchSongs = null) {
-    if (!currentListData) {
+    if (!getActiveListData()) {
         showError('请先登录后使用收藏功能');
         return;
     }
@@ -10805,7 +10794,7 @@ function closePlaylistAddModal() {
         if (modal) modal.classList.add('hidden');
         // Update Player Info to refresh heart icon state
         if (currentPlayingSong) {
-            updatePlayerInfo(currentPlayingSong);
+            updatePlayerFavoriteButton(currentPlayingSong);
         }
     }, 300);
 }
@@ -10910,8 +10899,9 @@ function cleanSongData(song) {
 
 // Modified handler for Grid Buttons
 async function handleTogglePlaylist(listId, btnElement) {
-    if (!currentListData) return;
-    const activeListData = currentListData;
+    const activeListData = getActiveListData();
+    if (!activeListData) return;
+    setActiveListData(activeListData);
     const isBatch = !!window.batchCollectSongs;
     const songs = isBatch ? window.batchCollectSongs : [currentPlayingSong];
     if (songs.length === 0 || !songs[0]) return;
@@ -10948,7 +10938,8 @@ async function handleTogglePlaylist(listId, btnElement) {
         }
 
         // 3. Immediate UI Refresh
-        renderMyLists(currentListData);
+        setActiveListData(activeListData);
+        renderMyLists(activeListData);
         if (window.currentSearchScope === 'local_list' && window.currentViewingListId) {
             handleListClick(window.currentViewingListId, true);
         }
@@ -11004,22 +10995,43 @@ async function handleTogglePlaylist(listId, btnElement) {
     const isCurrentlyIncluded = targetListArray.some(s => s.id === targetId);
     const willAdd = !isCurrentlyIncluded;
 
+    const originalIndex = targetListArray.findIndex(s => s.id === targetId);
+    let removedSong = null;
+
     // Optimistic UI Update
     updateGridItemVisuals(btnElement, willAdd);
+    btnElement.disabled = true;
 
     try {
         if (willAdd) {
             targetListArray.unshift(cleanedSong);
         } else {
-            const idx = targetListArray.findIndex(s => s.id === targetId);
-            if (idx >= 0) targetListArray.splice(idx, 1);
+            if (originalIndex >= 0) [removedSong] = targetListArray.splice(originalIndex, 1);
         }
 
-        await pushDataChange(activeListData);
-        renderMyLists(currentListData);
+        setActiveListData(activeListData);
+        renderMyLists(activeListData);
+        updatePlayerFavoriteButton(currentPlayingSong);
+        closePlaylistAddModal();
+
+        const synced = await pushDataChange(activeListData);
+        if (synced === false) throw new Error('服务器未能保存歌单变更');
+        showSuccess(willAdd ? '已收藏到歌单' : '已从歌单移除');
     } catch (e) {
+        if (willAdd) {
+            const optimisticIndex = targetListArray.findIndex(s => s.id === targetId);
+            if (optimisticIndex >= 0) targetListArray.splice(optimisticIndex, 1);
+        } else if (removedSong) {
+            targetListArray.splice(Math.max(0, originalIndex), 0, removedSong);
+        }
+        setActiveListData(activeListData);
+        renderMyLists(activeListData);
+        updatePlayerFavoriteButton(currentPlayingSong);
+        await window.ListStore.set(activeListData).catch(error => console.error('[IDBStore] 回滚收藏缓存失败:', error));
         showError('同步失败: ' + e.message);
         updateGridItemVisuals(btnElement, !willAdd); // Revert UI
+    } finally {
+        btnElement.disabled = false;
     }
 }
 

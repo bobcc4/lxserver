@@ -346,7 +346,12 @@ window.LeaderboardManager = (function () {
 
         if (typeof window.updatePlaylist === 'function') {
             const listWithSource = displayList.map(s => ({ ...s, source: s.source || state.source }));
-            window.updatePlaylist(listWithSource, index, 'leaderboard', true);
+            const playback = window.WebPlayerState.buildSingleTrackPlayback(
+                listWithSource,
+                index,
+                settings.switchPlaylistOnSongListPlay !== false
+            );
+            window.updatePlaylist(playback.list, playback.index, 'leaderboard', true);
         }
     }
 

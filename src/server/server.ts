@@ -28,6 +28,7 @@ import {
 } from './playlistSharing'
 import { getDownloadQualityCandidates } from './downloadQuality'
 import { normalizeSongInfo } from './utils/songInfo'
+import { registerPlaybackResolver, resolveOriginalPlatformFirst } from './playbackResolverRegistry'
 import { normalizeUsername, tryNormalizeUsername, validateUsername } from '@/utils/username'
 import crypto from 'node:crypto'
 import needle from 'needle'
@@ -713,22 +714,20 @@ const resolveServerSong = async (
     return null
   }
 
-  const originalResult = await tryCandidates(requestedQuality, [originalSong])
-  if (originalResult) return originalResult
-
-  const matches = options.allowPlatformSwitch === false
-    ? []
-    : await findServerSourceMatches(originalSong, username)
-  const switchedResult = await tryCandidates(requestedQuality, matches)
-  if (switchedResult) return switchedResult
-
-  for (const quality of qualities.slice(1)) {
-    const fallbackResult = await tryCandidates(quality, [originalSong, ...matches])
-    if (fallbackResult) return fallbackResult
-  }
+  const result = await resolveOriginalPlatformFirst(
+    qualities,
+    originalSong,
+    async () => options.allowPlatformSwitch === false
+      ? []
+      : await findServerSourceMatches(originalSong, username),
+    tryCandidates,
+  )
+  if (result) return result
 
   throw new Error(`No downloadable source found (${errors.join('; ')})`)
 }
+
+registerPlaybackResolver(resolveServerSong)
 
 const getUserLibraryPath = (username: string, type: 'artists' | 'albums') => {
   const directory = path.join(global.lx.userPath, getUserDirname(username), 'library')

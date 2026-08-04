@@ -5,7 +5,6 @@ import { URL } from 'url'
 import * as tunnel from 'tunnel'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { getUserSpace, getUserDirname } from '@/user'
-import { callUserApiGetMusicUrl } from '@/server/userApi'
 import { getSingerPic, getSingerDetail, getSingerMid } from '@/server/utils/singer'
 import { fetchRecommendedAlbums } from '@/server/utils/recommendAlbums'
 import { fetchGenres, fetchRadios, fetchPlaylistsByGenre, fetchRadioSongs, fetchPlaylistSongs, fetchSongsByGenre } from '@/server/utils/discovery'
@@ -15,6 +14,8 @@ import path from 'path'
 import { tryNormalizeUsername } from '@/utils/username'
 import { APP_VERSION } from '@/version'
 import { resolveAlbumReleaseDate, sortAlbumsByReleaseDate } from '@/server/utils/albumReleaseDate'
+import { getAudioQualityFormat, getUpstreamAudioContentType, hasUsableQualityEntry } from '@/server/audioQuality'
+import { getPlaybackResolver } from '@/server/playbackResolverRegistry'
 // @ts-ignore
 import musicSdkRaw from '@/modules/utils/musicSdk/index.js'
 const musicSdk = musicSdkRaw as any
@@ -699,27 +700,19 @@ class SubsonicHandler {
             (music as any)._qualitys,
             meta._qualitys,
         ]
-        const qMap: Record<string, { bitRate?: number, suffix: string, contentType: string }> = {
-            'master': { suffix: 'flac', contentType: 'audio/flac' },
-            'atmos_plus': { suffix: 'm4a', contentType: 'audio/mp4' },
-            'atmos': { suffix: 'm4a', contentType: 'audio/mp4' },
-            'hires': { suffix: 'flac', contentType: 'audio/flac' },
-            'flac24bit': { suffix: 'flac', contentType: 'audio/flac' },
-            'flac': { suffix: 'flac', contentType: 'audio/flac' },
-            '320k': { bitRate: 320, suffix: 'mp3', contentType: 'audio/mpeg' },
-            '192k': { bitRate: 192, suffix: 'mp3', contentType: 'audio/mpeg' },
-            '128k': { bitRate: 128, suffix: 'mp3', contentType: 'audio/mpeg' },
-        }
-
         const getQualityInfo = (q: string): any | null => {
             const matches: any[] = []
             for (const source of qualitySources) {
                 if (Array.isArray(source)) {
                     const item = source.find((value: any) => value === q || value?.type === q || value?.name === q)
-                    if (item != null) matches.push(typeof item === 'object' ? item : {})
+                    if (hasUsableQualityEntry(item, value => this.parseByteSize(value))) {
+                        matches.push(typeof item === 'object' ? item : {})
+                    }
                 } else if (source && typeof source === 'object') {
                     const item = (source as any)[q]
-                    if (item != null && item !== false) matches.push(typeof item === 'object' ? item : {})
+                    if (hasUsableQualityEntry(item, value => this.parseByteSize(value))) {
+                        matches.push(typeof item === 'object' ? item : {})
+                    }
                 }
             }
             return matches.length > 0 ? Object.assign({}, ...matches) : null
@@ -729,6 +722,7 @@ class SubsonicHandler {
         for (const q of ['master', 'atmos_plus', 'atmos', 'hires', 'flac24bit', 'flac', '320k', '192k', '128k']) {
             const qualityInfo = getQualityInfo(q)
             if (qualityInfo == null) continue
+            const qualityFormat = getAudioQualityFormat(q)
 
             const size = this.parseByteSize(qualityInfo.size ?? qualityInfo.fileSize ?? qualityInfo.filesize)
             const duration = this.parseDuration(music.interval)
@@ -744,11 +738,11 @@ class SubsonicHandler {
                 (music as any).bitRate ?? (music as any).bitrate ?? meta.bitRate ?? meta.bitrate,
                 isLossless,
             )
-            const bitRate = explicitBitRate ?? calculatedBitRate ?? musicBitRate ?? qMap[q].bitRate
+            const bitRate = explicitBitRate ?? calculatedBitRate ?? musicBitRate ?? qualityFormat.bitRate
 
             return {
-                suffix: qMap[q].suffix,
-                contentType: qMap[q].contentType,
+                suffix: qualityFormat.suffix,
+                contentType: qualityFormat.contentType,
                 ...(bitRate ? { bitRate } : {}),
                 ...(size ? { size } : {}),
             }
@@ -2543,10 +2537,13 @@ class SubsonicHandler {
                     // console.log(`[Subsonic] Radio ${id} picked song: ${s.name || s.songname} (${songmid})`)
 
                     const musicInfo: any = { source: 'tx', songmid, id: `tx_${songmid}`, meta: { songId: songmid } }
-                    const result = await callUserApiGetMusicUrl('tx', musicInfo, quality, username)
+                    const result = await getPlaybackResolver()(musicInfo, quality, username, true, {
+                        allowPlatformSwitch: true,
+                        allowApiSwitch: true,
+                    })
 
                     if (result && result.url) {
-                        return this.proxyAudioStream(req, res, result.url, contentType)
+                        return this.proxyAudioStream(req, res, result.url, getAudioQualityFormat(result.quality).contentType)
                     } else {
                         console.error(`[Subsonic] Radio ${id} failed to resolve music URL`)
                     }
@@ -2584,7 +2581,7 @@ class SubsonicHandler {
             }
 
             const localQualities = quality === 'flac'
-                ? ['flac', 'flac24bit', 'hires', 'master']
+                ? ['flac', 'flac24bit', 'hires', 'master', '320k', '192k', '128k']
                 : [quality]
             let localFile: ReturnType<typeof checkCache> | undefined
             for (const localQuality of localQualities) {
@@ -2635,10 +2632,13 @@ class SubsonicHandler {
                 }
             }
 
-            const result = await callUserApiGetMusicUrl(source as any, musicInfo as any, quality, username)
+            const result = await getPlaybackResolver()(musicInfo, quality, username, true, {
+                allowPlatformSwitch: true,
+                allowApiSwitch: true,
+            })
 
             if (result && result.url) {
-                return this.proxyAudioStream(req, res, result.url, contentType)
+                return this.proxyAudioStream(req, res, result.url, getAudioQualityFormat(result.quality).contentType)
             } else {
                 return this.sendError(res, 0, 'Could not resolve music URL', format)
             }
@@ -2775,7 +2775,7 @@ class SubsonicHandler {
                     }
 
                     const responseHeaders: http.OutgoingHttpHeaders = {
-                        'Content-Type': contentType,
+                        'Content-Type': getUpstreamAudioContentType(upstream.headers['content-type'], contentType),
                         'Cache-Control': 'private, max-age=300, no-transform',
                         'Access-Control-Allow-Origin': '*',
                     }

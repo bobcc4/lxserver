@@ -594,10 +594,14 @@ window.SongListManager = (function () {
         toggleTagSelector,
         playSong: function (index) {
             const song = detailState.list[index];
-            if (typeof window.updatePlaylist === 'function') {
+            if (song && typeof window.updatePlaylist === 'function') {
                 const listWithSource = detailState.list.map(s => ({ ...s, source: detailState.source }));
-                // 单曲点击：加入默认列表 (shouldAddToDefault = true)
-                window.updatePlaylist(listWithSource, index, 'songlist', true);
+                const playback = window.WebPlayerState.buildSingleTrackPlayback(
+                    listWithSource,
+                    index,
+                    settings.switchPlaylistOnSongListPlay !== false
+                );
+                window.updatePlaylist(playback.list, playback.index, 'songlist', true);
             }
         },
         playAll: function () {

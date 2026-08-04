@@ -2645,12 +2645,12 @@
                                                 <div class="flex items-center justify-between">
                                                     <div>
                                                         <h4 class="text-sm font-bold t-text-main flex items-center">
-                                                            播放歌单/排行榜歌曲时切换歌单
+                                                            播放歌单/排行榜时使用完整列表
                                                             <span class="setting-tooltip-trigger">
                                                                 <i class="fas fa-question-circle"></i>
                                                                 <span class="setting-tooltip-content">
-                                                                    开启：播放歌单或排行榜中的单个歌曲后，播放列表切换为对应列表。<br>
-                                                                    关闭：播放歌单或排行榜中的单个歌曲后，保持当前播放队列不变。<br>
+                                                                    开启：播放歌单或排行榜中的单个歌曲后，播放队列使用对应完整列表。<br>
+                                                                    关闭：播放队列仅包含所选歌曲，不会自动跳转到默认列表。<br>
                                                                     <span class="text-emerald-500 font-medium">*
                                                                         提示：所有歌单/排行榜歌曲播放时会自动加入默认列表</span>
                                                                 </span>
@@ -4679,7 +4679,7 @@
                                 onpaste="LocalMusicManager.handleRichPaste(event, this)"
                                 oncopy="LocalMusicManager.handleRichCopy(event, this)"
                                 oncut="LocalMusicManager.handleRichCopy(event, this)"
-                                class="lm-rich-search-input w-full h-9 pl-8 pr-3 t-bg-main border t-border-main rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-red-500/30 overflow-x-auto whitespace-nowrap flex items-center"></div>
+                                class="lm-rich-search-input lm-remaster-search-input w-full h-9 pl-8 pr-3 t-bg-main border t-border-main rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-red-500/30 overflow-x-auto whitespace-nowrap"></div>
                         </div>
                     </div>
                     <div id="lm-remaster-song-list" class="h-52 overflow-y-auto custom-scrollbar">
@@ -4799,6 +4799,7 @@
     <script src="js/single_song_ops.js"></script>
     <script src="js/theme_manager.js"></script>
     <script src="js/list_search.js"></script>
+    <script src="js/web_player_state.js"></script>
     <script src="js/songlist_manager.js"></script>
     <script src="js/leaderboard_manager.js"></script>
     <script src="js/wave.js"></script>

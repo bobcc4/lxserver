@@ -1020,6 +1020,17 @@ aside {
     max-width: 100%;
 }
 
+.lm-remaster-search-input {
+    display: block;
+    line-height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.lm-remaster-search-input .lm-op-tag {
+    vertical-align: middle;
+}
+
 /* ── 搜索框语法错误红框高亮 ── */
 .lm-search-input-error {
     border-color: #ef4444 !important;
@@ -1030,4 +1041,3 @@ aside {
     border-color: #f87171 !important;
     box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.4) !important;
 }
-
