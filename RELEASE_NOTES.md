@@ -9,6 +9,11 @@
 - **Subsonic 在线歌曲播放**：Subsonic 使用服务端统一播放解析器，支持音质降级、音源切换和平台切换；响应媒体类型以最终解析结果及上游实际类型为准，避免把 MP3 错报为 FLAC 后被客户端跳过。
 - **Subsonic 音质元数据**：大小为空、无效或 `0` 的高音质不再视为可用；默认 FLAC 请求也会查找服务器上已有的 320k、192k 和 128k 本地文件。
 
+### 桌面服务端发行
+
+- 恢复内置服务端的 Electron 桌面发行包，提供 Windows x64、Windows ia32、Windows arm64、macOS x64、macOS arm64、Linux x64 和 Linux arm64 架构。
+- Windows 提供安装版和免安装版，macOS 提供 DMG，Linux 提供 AppImage 和 DEB；这些包会在本机运行完整音云服务端并打开 Web 播放器，与仅连接 NAS 的独立 Windows 客户端用途不同。
+
 ### 兼容性
 
 - 本版本与音云 Windows 客户端 `v1.0.5` 配套使用；数据目录结构与 `v1.3.5` 保持兼容，可直接升级。

@@ -16,7 +16,9 @@
     "dev2": "nodemon --exec \"cmd /c start /affinity 1 /b /wait tsx --inspect=127.0.0.1:9302 ./src/index.ts\"",
     "prd": "pm2 start ecosystem.config.js --env production",
     "publish": "node publish",
-    "docs:screenshots": "node scripts/capture-doc-screenshots.mjs"
+    "docs:screenshots": "node scripts/capture-doc-screenshots.mjs",
+    "electron:build": "npm run build",
+    "electron:dist": "npm run electron:build && electron-builder"
   },
   "engines": {
     "node": ">= 22.12.0",
@@ -55,6 +57,7 @@
     "webdav": "^5.9.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@tsconfig/node24": "^24.0.4",
     "@tsconfig/recommended": "^1.0.13",
     "@types/archiver": "^8.0.0",
@@ -66,6 +69,8 @@
     "@typescript-eslint/parser": "^7.18.0",
     "chalk": "^4.1.2",
     "changelog-parser": "^4.1.0",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.15.3",
     "eslint-config-love": "^47.0.0",
     "nodemon": "^3.1.14",
     "postcss": "^8.5.25",

@@ -1,0 +1,84 @@
+appId: com.lxserver.desktop
+productName: Yinyun
+copyright: "Copyright © 2026 bobcc4"
+
+# 覆盖 package.json 的 main 字段，让 Electron 使用 electron/main.js 而非 index.js
+extraMetadata:
+  main: electron/main.js
+  description: Yinyun private music server and player
+
+# [核心修复] 禁用打包时的原生模块自动重编，防止本地因缺少 C++ 编译环境而报错
+npmRebuild: false
+
+directories:
+  output: dist-electron
+
+# 打包进 asar 的文件（排除源码、Docker、开发工具等）
+files:
+  - server/**/*
+  - public/**/*
+  - index.js
+  - config.js
+  - package.json
+  - LICENSE
+  - NOTICE.md
+  - electron/main.js
+  - electron/icons/**/*
+  - "!src"
+  - "!scripts"
+  - "!docs"
+  - "!md"
+  - "!logs"
+  - "!data"
+  - "!cache"
+  - "!*.ts"
+  - "!tsconfig.json"
+  - "!ecosystem.config.js"
+  - "!Dockerfile*"
+  - "!docker-compose*"
+  - "!.github"
+  - "!electron-builder.yml"
+
+# 原生 .node 文件必须解压到 asar 外部才能被 Node.js 加载
+asarUnpack:
+  - node_modules/music-tag-native/**/*
+  - public/**/*
+
+# 应用图标（提供 512x512 PNG，electron-builder 自动生成 ico / icns）
+icon: electron/icons/icon.png
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+win:
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}.${ext}"
+  target:
+    - nsis
+    - portable
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}-Setup.${ext}"
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "音云"
+
+portable:
+  artifactName: "Yinyun-Server-${version}-Windows-${arch}-Portable.${ext}"
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+mac:
+  artifactName: "Yinyun-Server-${version}-macOS-${arch}.${ext}"
+  target:
+    - dmg
+  category: public.app-category.utilities
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+linux:
+  artifactName: "Yinyun-Server-${version}-Linux-${arch}.${ext}"
+  target:
+    - AppImage
+    - deb
+  category: Utility
