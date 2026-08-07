@@ -38,6 +38,24 @@ features:
 
 ---
 
+::: tip 项目地址与推荐使用方式
+
+**服务端：** [bobcc4/yinyun-lxserver](https://github.com/bobcc4/yinyun-lxserver)
+
+支持使用 Docker 搭建，也提供 Windows、macOS 等平台的安装包。
+
+**Windows 客户端：** [bobcc4/yinyun-windows](https://github.com/bobcc4/yinyun-windows)
+
+当前仅制作了 Windows 客户端；其他平台更推荐使用成熟的第三方客户端。
+
+建议在 NAS 或服务器上通过 Docker 部署音云服务端，再使用音流、箭头音乐等支持 Subsonic 的第三方客户端连接。客户端填写服务端 `IP:端口`，并使用音云用户名和密码登录即可。
+
+使用 Lucky 等工具进行反向代理时，请确保放行 `/rest/*` 路径。
+
+**交流群：** [点击加入音云 issue 反馈群](https://qm.qq.com/q/MW7cns1eMe)
+
+:::
+
 ## 使用顺序
 
 1. 按照[快速开始](/guide/getting-started)完成部署和目录持久化。

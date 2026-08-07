@@ -26,7 +26,20 @@
 
 ---
 
-**音云（Yinyun）** 是一个面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，支持独立 Windows 客户端账户快照和 Subsonic 客户端。
+**音云（Yinyun）** 是一个洛雪魔改的，面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，支持独立 Windows 客户端账户快照和 Subsonic 客户端。
+
+## 项目地址与推荐使用方式
+
+- **服务端：** [bobcc4/yinyun-lxserver](https://github.com/bobcc4/yinyun-lxserver)
+  支持使用 Docker 搭建，也提供 Windows、macOS 等平台的安装包。
+- **Windows 客户端：** [bobcc4/yinyun-windows](https://github.com/bobcc4/yinyun-windows)
+  当前仅制作了 Windows 客户端；其他平台更推荐使用成熟的第三方客户端。
+
+**推荐使用方式：** 在 NAS 或服务器上通过 Docker 部署音云服务端，再使用音流、箭头音乐等支持 Subsonic 的第三方客户端连接。客户端填写服务端 `IP:端口`，并使用音云用户名和密码登录即可。
+
+使用 Lucky 等工具进行反向代理时，请确保放行 `/rest/*` 路径。
+
+**交流群：** [点击加入音云 issue 反馈群](https://qm.qq.com/q/MW7cns1eMe)
 
 ## ✨ Web 播放器核心特性
 
