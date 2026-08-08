@@ -220,6 +220,25 @@ jobs:
             release-assets/*.zip
           )
 
+          EXPECTED_ASSETS=(
+            "Yinyun-Server-${VERSION#v}-Windows-x64-Setup.exe"
+            "Yinyun-Server-${VERSION#v}-Windows-x64-Portable.exe"
+            "Yinyun-Server-${VERSION#v}-Windows-ia32-Setup.exe"
+            "Yinyun-Server-${VERSION#v}-Windows-ia32-Portable.exe"
+            "Yinyun-Server-${VERSION#v}-Windows-arm64-Setup.exe"
+            "Yinyun-Server-${VERSION#v}-Windows-arm64-Portable.exe"
+            "Yinyun-Server-${VERSION#v}-macOS-x64.dmg"
+            "Yinyun-Server-${VERSION#v}-macOS-arm64.dmg"
+            "Yinyun-Server-${VERSION#v}-Linux-x86_64.AppImage"
+            "Yinyun-Server-${VERSION#v}-Linux-arm64.AppImage"
+            "Yinyun-Server-${VERSION#v}-Linux-amd64.deb"
+            "Yinyun-Server-${VERSION#v}-Linux-arm64.deb"
+            "Yinyun-Server-${VERSION#v}-Linux-x64.zip"
+          )
+          for ASSET in "${EXPECTED_ASSETS[@]}"; do
+            test -f "release-assets/$ASSET" || { echo "Missing release asset: $ASSET"; exit 1; }
+          done
+
           if gh release view "$VERSION" >/dev/null 2>&1; then
             gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
               gh release delete-asset "$VERSION" "$ASSET" --yes
@@ -248,3 +267,8 @@ jobs:
                   ;;
               esac
             done
+
+          RELEASE_ASSETS="$(gh release view "$VERSION" --json assets --jq '.assets[].name')"
+          for ASSET in "${EXPECTED_ASSETS[@]}"; do
+            grep -Fxq "$ASSET" <<< "$RELEASE_ASSETS" || { echo "Release asset was not published: $ASSET"; exit 1; }
+          done

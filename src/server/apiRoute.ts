@@ -11,6 +11,7 @@ export const mapVersionedBusinessPath = (pathname: string): string | null => {
 
   if (pathname.startsWith(adminPrefix)) {
     const suffix = pathname.slice(adminPrefix.length)
+    if (suffix === 'reload') return '/api/admin/reload'
     return `/api/${suffix}`
   }
 

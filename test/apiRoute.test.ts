@@ -6,7 +6,7 @@ test('maps versioned admin routes to the mature internal handlers', () => {
   assert.equal(mapVersionedBusinessPath('/api/v1/admin/login'), '/api/login')
   assert.equal(mapVersionedBusinessPath('/api/v1/admin/admin/reload'), '/api/admin/reload')
   assert.equal(mapVersionedBusinessPath('/api/v1/admin/elfinder/connector'), '/api/elfinder/connector')
-  assert.equal(mapVersionedBusinessPath('/api/v1/admin/reload'), '/api/reload')
+  assert.equal(mapVersionedBusinessPath('/api/v1/admin/reload'), '/api/admin/reload')
 })
 
 test('maps versioned player routes without changing their business grouping', () => {
