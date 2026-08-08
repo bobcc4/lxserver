@@ -534,7 +534,7 @@ export class ElFinderConnector {
         // 这里我们使用 connector 的 file 命令
         // 注意：这里无法直接获取 auth，所以前端最好配置 url 选项
         // 但如果前端请求 url 命令，我们返回一个带 path 的链接
-        return { url: `/api/elfinder/connector?cmd=file&target=${params.target}` }
+        return { url: `/api/v1/admin/elfinder/connector?cmd=file&target=${params.target}` }
     }
 
     // archive - 创建压缩包

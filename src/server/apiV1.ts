@@ -423,7 +423,7 @@ export const apiV1OpenApi = {
   openapi: '3.1.0',
   info: {
     title: '音云 API',
-    version: '1.2.0',
+    version: '1.4.0',
     description: '音云原生客户端使用的稳定接口。旧网页接口与 Subsonic 接口不属于本契约。',
   },
   servers: [{ url: '/' }],
@@ -478,7 +478,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       success(res, {
         product: 'yinyun',
         serverVersion: deps.serverVersion,
-        apiVersion: '1.2.0',
+        apiVersion: '1.4.0',
         playerPath: global.lx.config['player.path'] || '/music',
         features: {
           localLibrary: true,

@@ -59,7 +59,7 @@ class DownloadManager {
         if (!url) return url;
         try {
             const parsedUrl = new URL(url, window.location.origin);
-            if (parsedUrl.origin !== window.location.origin || parsedUrl.pathname !== '/api/music/download') return url;
+            if (parsedUrl.origin !== window.location.origin || parsedUrl.pathname !== '/api/v1/player/music/download') return url;
             const proxyParams = parsedUrl.searchParams;
             const extracted = proxyParams.get('url');
             if (!extracted) return url;
@@ -128,7 +128,7 @@ class DownloadManager {
     async syncServerConcurrency() {
         if (!this.canUseServerQueue()) return;
         try {
-            await this.requestServerQueue('/api/music/cache/queue/concurrency', { concurrency: this.maxConcurrent });
+            await this.requestServerQueue('/api/v1/player/music/cache/queue/concurrency', { concurrency: this.maxConcurrent });
         } catch (error) {
             console.warn('[DownloadManager] Failed to sync server concurrency:', error);
         }
@@ -181,7 +181,7 @@ class DownloadManager {
             if (headers['x-frontend-auth'] && window.settings?.serverCacheNamingPattern) {
                 payload.namingPattern = window.settings.serverCacheNamingPattern;
             }
-            await this.requestServerQueue('/api/music/cache/queue', payload);
+            await this.requestServerQueue('/api/v1/player/music/cache/queue', payload);
             tasks.forEach(task => {
                 task.serverManaged = true;
                 task.serverQueueRegistered = true;
@@ -208,7 +208,7 @@ class DownloadManager {
         if (this.serverQueueSyncInFlight) return;
         this.serverQueueSyncInFlight = true;
         try {
-            const items = await this.requestServerQueue('/api/music/cache/queue');
+            const items = await this.requestServerQueue('/api/v1/player/music/cache/queue');
             if (!Array.isArray(items)) return;
             const remoteIds = new Set();
             const updatedTasks = [];
@@ -423,7 +423,7 @@ class DownloadManager {
 
             const batchResults = await Promise.all(batches.map(async (batch) => {
                 try {
-                    const data = await this.requestServerQueue(`/api/music/cache/progress?ids=${encodeURIComponent(batch.join(','))}`);
+                    const data = await this.requestServerQueue(`/api/v1/player/music/cache/progress?ids=${encodeURIComponent(batch.join(','))}`);
                     return data || {};
                 } catch (e) {
                     console.warn('[DownloadManager] Batch progress poll failed:', e);
@@ -555,7 +555,7 @@ class DownloadManager {
             const source = song.source || meta.source || '';
             const songmid = song.songmid || song.songId || meta.songmid || meta.songId || song.id || '';
             const songId = song.id || song.songId || meta.songId || songmid;
-            const url = `/api/music/cache/lyric?source=${encodeURIComponent(source)}&songmid=${encodeURIComponent(songmid)}&songId=${encodeURIComponent(songId || '')}&name=${encodeURIComponent(song.name || meta.songName || '')}&singer=${encodeURIComponent(song.singer || meta.singerName || '')}`;
+            const url = `/api/v1/player/music/cache/lyric?source=${encodeURIComponent(source)}&songmid=${encodeURIComponent(songmid)}&songId=${encodeURIComponent(songId || '')}&name=${encodeURIComponent(song.name || meta.songName || '')}&singer=${encodeURIComponent(song.singer || meta.singerName || '')}`;
 
             // [修复] 补全认证请求头
             const headers = {
@@ -870,7 +870,7 @@ class DownloadManager {
                 payload.namingPattern = window.settings.serverCacheNamingPattern;
             }
 
-            const res = await fetch('/api/music/cache/download', {
+            const res = await fetch('/api/v1/player/music/cache/download', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload)
@@ -959,10 +959,10 @@ class DownloadManager {
             }
 
             // [优化] 如果是本地缓存文件，不需要经过下载代理（已经有标签了）
-            const isLocalCache = finalUrl.startsWith('/api/music/cache/file');
+            const isLocalCache = finalUrl.startsWith('/api/v1/player/music/cache/file');
             finalUrl = this.extractRawDownloadUrl(finalUrl);
 
-            if (shouldProxyDownload && !finalUrl.startsWith('/api/music/download') && !isLocalCache) {
+            if (shouldProxyDownload && !finalUrl.startsWith('/api/v1/player/music/download') && !isLocalCache) {
                 // Add metadata for tagging — 用 albumName 优先（playlist 字段），album 为兼容备选
                 const albumName = task.song.albumName || (task.song.album && typeof task.song.album === 'string' ? task.song.album : (task.song.album?.name || ''));
                 let coverUrl = this.getSongCover(task.song);
@@ -986,7 +986,7 @@ class DownloadManager {
                     (window.settings?.embedLyricToFile !== false) ? 'lyric=1' : ''
                 ].filter(Boolean).join('&');
 
-                finalUrl = `/api/music/download?url=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(filename)}&taskId=${task.id}&${metadataParams}`;
+                finalUrl = `/api/v1/player/music/download?url=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(filename)}&taskId=${task.id}&${metadataParams}`;
                 if (window.addUserTokenToUrl) finalUrl = window.addUserTokenToUrl(finalUrl);
                 console.log('[DownloadManager] Download with metadata proxy:', finalUrl);
             } else {
@@ -1135,7 +1135,7 @@ class DownloadManager {
                 const songKey = this.getTaskServerSongKey(task);
                 const headers = { 'Content-Type': 'application/json', ...(window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}) };
 
-                fetch('/api/music/cache/stop', {
+                fetch('/api/v1/player/music/cache/stop', {
                     method: 'POST',
                     headers,
                     body: JSON.stringify(task.serverManaged ? { queueId: task.serverQueueId || task.id } : { songKey })
@@ -1182,7 +1182,7 @@ class DownloadManager {
         if (task.serverManaged) {
             const request = task.serverQueueRegistered === false
                 ? this.enqueueServerTasks([task])
-                : this.requestServerQueue('/api/music/cache/queue/resume', { id: task.serverQueueId || task.id });
+                : this.requestServerQueue('/api/v1/player/music/cache/queue/resume', { id: task.serverQueueId || task.id });
             request.catch(error => {
                 task.status = 'error';
                 task.errorMsg = error.message || '继续任务失败';
@@ -1198,14 +1198,14 @@ class DownloadManager {
         const task = this.tasks.find(t => t.id === taskId);
         if (task) {
             if (task.serverManaged) {
-                this.requestServerQueue('/api/music/cache/queue/remove', { id: task.serverQueueId || task.id })
+                this.requestServerQueue('/api/v1/player/music/cache/queue/remove', { id: task.serverQueueId || task.id })
                     .catch(e => console.warn('[DownloadManager] Failed to remove server queue task:', e));
             } else if (task.isServer && (task.status === 'downloading' || task.status === 'waiting' || task.status === 'tagging')) {
                 // 云端任务：通知后端停止
                 const songKey = this.getTaskServerSongKey(task);
                 const headers = { 'Content-Type': 'application/json', ...(window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}) };
 
-                fetch('/api/music/cache/stop', {
+                fetch('/api/v1/player/music/cache/stop', {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({ songKey })
@@ -1224,7 +1224,7 @@ class DownloadManager {
         const headers = { 'Content-Type': 'application/json', ...(window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}) };
         const hasManagedServerTasks = this.tasks.some(t => t.serverManaged && ['waiting', 'downloading', 'tagging'].includes(t.status));
         if (hasManagedServerTasks) {
-            fetch('/api/music/cache/stop', {
+            fetch('/api/v1/player/music/cache/stop', {
                 method: 'POST', headers, body: JSON.stringify({ all: true })
             }).catch(e => console.warn('[DownloadManager] Failed to pause persistent server queue:', e));
         }
@@ -1234,7 +1234,7 @@ class DownloadManager {
 
             if (t.isServer && !t.serverManaged) {
                 const songKey = this.getTaskServerSongKey(t);
-                fetch('/api/music/cache/stop', {
+                fetch('/api/v1/player/music/cache/stop', {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({ songKey })
@@ -1256,7 +1256,7 @@ class DownloadManager {
     resumeAll() {
         const hasManagedServerTasks = this.tasks.some(t => t.serverManaged && (t.status === 'paused' || t.status === 'error'));
         if (hasManagedServerTasks) {
-            this.requestServerQueue('/api/music/cache/queue/resume', { all: true })
+            this.requestServerQueue('/api/v1/player/music/cache/queue/resume', { all: true })
                 .catch(e => console.warn('[DownloadManager] Failed to resume persistent server queue:', e));
         }
         this.tasks.forEach(t => {
@@ -1286,7 +1286,7 @@ class DownloadManager {
 
         failedTasks.forEach(t => {
             if (t.serverManaged) {
-                if (t.serverQueueRegistered !== false) this.requestServerQueue('/api/music/cache/queue/resume', { id: t.serverQueueId || t.id })
+                if (t.serverQueueRegistered !== false) this.requestServerQueue('/api/v1/player/music/cache/queue/resume', { id: t.serverQueueId || t.id })
                     .catch(e => console.warn('[DownloadManager] Failed to retry server queue task:', e));
             }
             t.retryCount = 0;
@@ -1316,7 +1316,7 @@ class DownloadManager {
 
     clearCompleted() {
         if (this.tasks.some(t => t.serverManaged && (t.status === 'finished' || t.status === 'exists'))) {
-            this.requestServerQueue('/api/music/cache/queue/remove', { completed: true })
+            this.requestServerQueue('/api/v1/player/music/cache/queue/remove', { completed: true })
                 .catch(e => console.warn('[DownloadManager] Failed to clear completed server queue tasks:', e));
         }
         this.tasks = this.tasks.filter(t => t.status !== 'finished' && t.status !== 'exists');
@@ -1344,7 +1344,7 @@ class DownloadManager {
 
                 // [NEW] 通知服务器中止所有该用户的缓存任务
                 const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
-                fetch('/api/music/cache/stop', {
+                fetch('/api/v1/player/music/cache/stop', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1353,7 +1353,7 @@ class DownloadManager {
                     },
                     body: JSON.stringify({ all: true })
                 }).catch(err => console.error('[DownloadManager] Failed to stop server tasks:', err));
-                this.requestServerQueue('/api/music/cache/queue/remove', { all: true })
+                this.requestServerQueue('/api/v1/player/music/cache/queue/remove', { all: true })
                     .catch(err => console.error('[DownloadManager] Failed to clear persistent server queue:', err));
 
                 this.tasks = [];
@@ -1366,7 +1366,7 @@ class DownloadManager {
             this.tasks.forEach(t => {
                 if (t.status === 'downloading' && t.controller) t.controller.abort();
             });
-            this.requestServerQueue('/api/music/cache/queue/remove', { all: true })
+            this.requestServerQueue('/api/v1/player/music/cache/queue/remove', { all: true })
                 .catch(err => console.error('[DownloadManager] Failed to clear persistent server queue:', err));
             this.tasks = [];
             this.activeCount = 0;
@@ -1380,7 +1380,7 @@ class DownloadManager {
         try {
             // Serialize only the data we need, not the AbortController
             // Server-managed tasks are persisted by the backend and restored through
-            // /api/music/cache/queue. Keep sessionStorage for browser downloads only.
+            // /api/v1/player/music/cache/queue. Keep sessionStorage for browser downloads only.
             const data = this.tasks.filter(t => !t.serverManaged).map(t => ({
                 id: t.id,
                 song: this.getSongInfoForStorage(t.song),

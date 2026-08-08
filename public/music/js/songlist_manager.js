@@ -4,7 +4,7 @@
  */
 
 window.SongListManager = (function () {
-    const API_BASE = '/api/music';
+    const API_BASE = '/api/v1/player/music';
     let currentState = {
         source: 'wy',
         tagId: '',

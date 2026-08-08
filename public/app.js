@@ -85,7 +85,7 @@ class App {
             try {
                 // 在重载前先保存配置
                 await this.saveConfig(true);
-                await this.request('/api/admin/reload', { method: 'POST' });
+                await this.request('/api/v1/admin/reload', { method: 'POST' });
                 this.loadUsers();
                 this.loadDashboard();
                 showSuccess('重载数据成功');
@@ -220,7 +220,7 @@ class App {
         }
 
         try {
-            const res = await this.request('/api/login', {
+            const res = await this.request('/api/v1/admin/login', {
                 method: 'POST',
                 body: JSON.stringify({ password })
             });
@@ -294,7 +294,7 @@ class App {
                 break;
             case 'webdav':
                 try {
-                    const status = await this.request('/api/status');
+                    const status = await this.request('/api/v1/admin/status');
                     this.checkWebDAVConfig(status.isWebDAVConfigured);
                     this.loadSyncLogs();
                 } catch (e) {
@@ -344,7 +344,7 @@ class App {
             // Render Markdown
             if (window.marked) {
                 // Replace {{version}} and {{buildHash}} placeholder
-                const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.6';
+                const version = (window.CONFIG && window.CONFIG.version) || 'v1.4.0';
                 const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
                 let content = text.replace(/{{version}}/g, version);
                 content = content.replace(/{{buildHash}}/g, buildHash);
@@ -389,7 +389,7 @@ class App {
     async loadDashboard() {
         this.updateGreeting();
         try {
-            const status = await this.request('/api/status');
+            const status = await this.request('/api/v1/admin/status');
 
             // 更新顶部概览卡片
             document.getElementById('stat-users').textContent = status.users;
@@ -400,7 +400,7 @@ class App {
             this.updateMonitorUI(status);
 
             // 加载用户列表
-            const users = await this.request('/api/users');
+            const users = await this.request('/api/v1/admin/users');
             this.allUsers = users;
             this.renderAllUserSelectors();
 
@@ -442,7 +442,7 @@ class App {
                 return;
             }
             try {
-                const status = await this.request('/api/status');
+                const status = await this.request('/api/v1/admin/status');
                 this.updateMonitorUI(status);
             } catch (e) {
                 console.error('Monitor refresh failed:', e);
@@ -689,7 +689,7 @@ class App {
 
     async loadUsers() {
         try {
-            const users = await this.request('/api/users');
+            const users = await this.request('/api/v1/admin/users');
             this.users = users;
             this.allUsers = this.users;
             this.renderUsers();
@@ -714,7 +714,7 @@ class App {
         if (deleteData === null) return; // 用户取消
 
         try {
-            await this.request('/api/users', {
+            await this.request('/api/v1/admin/users', {
                 method: 'DELETE',
                 body: JSON.stringify({ names, deleteData })
             });
@@ -912,7 +912,7 @@ class App {
             data.name = String(data.name || '').trim().toLowerCase();
 
             try {
-                await this.request('/api/users', {
+                await this.request('/api/v1/admin/users', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });
@@ -957,7 +957,7 @@ class App {
         }
 
         try {
-            await this.request('/api/users', {
+            await this.request('/api/v1/admin/users', {
                 method: 'PUT',
                 body: JSON.stringify({
                     name: this.editingUser,
@@ -983,7 +983,7 @@ class App {
         if (deleteData === null) return; // 用户取消
 
         try {
-            await this.request('/api/users', {
+            await this.request('/api/v1/admin/users', {
                 method: 'DELETE',
                 body: JSON.stringify({ name: username, deleteData })
             });
@@ -1059,7 +1059,7 @@ class App {
         }
 
         try {
-            await this.request('/api/users', {
+            await this.request('/api/v1/admin/users', {
                 method: 'PUT',
                 body: JSON.stringify({
                     name: this.editingUser,
@@ -1094,7 +1094,7 @@ class App {
         contentContainer.classList.add('content-loading');
 
         try {
-            const data = await this.request(`/api/data?user=${encodeURIComponent(username)}`);
+            const data = await this.request(`/api/v1/admin/data?user=${encodeURIComponent(username)}`);
             this.currentUserData = { username, data };
 
             // 统计数据
@@ -1304,7 +1304,7 @@ class App {
         if (!(await showSelect('删除歌单', `确定要删除歌单 "${playlist.name}" 吗？\n此操作将删除歌单及其中的所有歌曲！`, { danger: true }))) return;
 
         try {
-            await this.request('/api/data/delete-playlist', {
+            await this.request('/api/v1/admin/data/delete-playlist', {
                 method: 'POST',
                 body: JSON.stringify({
                     username: this.currentUserData.username,
@@ -1344,7 +1344,7 @@ class App {
         if (!(await showSelect('删除歌曲', `确定要从 "${playlist.name}" 中删除歌曲 "${song.name}" 吗？`, { danger: true }))) return;
 
         try {
-            await this.request('/api/data/delete-song', {
+            await this.request('/api/v1/admin/data/delete-song', {
                 method: 'POST',
                 body: JSON.stringify({
                     username: this.currentUserData.username,
@@ -1441,7 +1441,7 @@ class App {
         if (!newName || newName === playlist.name) return;
 
         try {
-            await this.request('/api/data/rename-playlist', {
+            await this.request('/api/v1/admin/data/rename-playlist', {
                 method: 'POST',
                 body: JSON.stringify({
                     username: this.currentUserData.username,
@@ -1526,7 +1526,7 @@ class App {
                 .map(cb => parseInt(cb.dataset.index))
                 .sort((a, b) => b - a);
 
-            await this.request('/api/data/batch-delete-songs', {
+            await this.request('/api/v1/admin/data/batch-delete-songs', {
                 method: 'POST',
                 body: JSON.stringify({
                     username: this.currentUserData.username,
@@ -1700,7 +1700,7 @@ class App {
 
     async loadConfig() {
         try {
-            const config = await this.request('/api/config');
+            const config = await this.request('/api/v1/admin/config');
             this.configLoaded = true;
             const form = document.getElementById('config-form');
 
@@ -1861,7 +1861,7 @@ class App {
         };
 
         try {
-            const res = await this.request('/api/config', {
+            const res = await this.request('/api/v1/admin/config', {
                 method: 'POST',
                 body: JSON.stringify(config)
             });
@@ -1893,7 +1893,7 @@ class App {
         const logType = document.getElementById('log-type-select')?.value || 'app';
 
         try {
-            const data = await this.request(`/api/logs?type=${logType}&lines=200`);
+            const data = await this.request(`/api/v1/admin/logs?type=${logType}&lines=200`);
             const container = document.getElementById('logs-content');
 
             if (data.logs && data.logs.length) {
@@ -1963,7 +1963,7 @@ class App {
 
     async testWebDAV() {
         try {
-            const result = await this.request('/api/webdav/test', { method: 'POST' });
+            const result = await this.request('/api/v1/admin/webdav/test', { method: 'POST' });
             if (result.success) {
                 showSuccess('✅ WebDAV连接成功！\n' + result.message);
             } else {
@@ -1983,7 +1983,7 @@ class App {
 
         showInfo('正在测试代理，请稍候...');
         try {
-            const result = await this.request('/api/config/test-proxy', {
+            const result = await this.request('/api/v1/admin/config/test-proxy', {
                 method: 'POST',
                 body: JSON.stringify({ address })
             });
@@ -2006,7 +2006,7 @@ class App {
         this.showProgress(true);
 
         try {
-            const result = await this.request('/api/webdav/backup', {
+            const result = await this.request('/api/v1/admin/webdav/backup', {
                 method: 'POST',
                 body: JSON.stringify({ force: true })
             });
@@ -2030,7 +2030,7 @@ class App {
         statusEl.innerHTML = '<p style="color: var(--accent-warning);">正在从云端恢复数据...</p>';
 
         try {
-            const result = await this.request('/api/webdav/restore', { method: 'POST' });
+            const result = await this.request('/api/v1/admin/webdav/restore', { method: 'POST' });
             if (result.success) {
                 statusEl.innerHTML = '<p style="color: var(--accent-success);">✅ 恢复成功！页面将刷新...</p>';
                 setTimeout(() => location.reload(), 2000);
@@ -2050,7 +2050,7 @@ class App {
         this.showProgress(true);
 
         try {
-            const result = await this.request('/api/webdav/sync', { method: 'POST' });
+            const result = await this.request('/api/v1/admin/webdav/sync', { method: 'POST' });
             if (result.success) {
                 statusEl.innerHTML = '<p style="color: var(--accent-success);">✅ 同步成功！</p>';
                 this.loadSyncLogs();
@@ -2156,7 +2156,7 @@ class App {
         const auth = this.password || localStorage.getItem('lx_auth');
         if (!auth) return;
 
-        this.sseSource = new EventSource(`/api/webdav/progress?auth=${encodeURIComponent(auth)}`);
+        this.sseSource = new EventSource(`/api/v1/admin/webdav/progress?auth=${encodeURIComponent(auth)}`);
 
         this.sseSource.onmessage = (event) => {
             try {
@@ -2215,7 +2215,7 @@ class App {
 
     async loadSyncLogs() {
         try {
-            const data = await this.request('/api/webdav/logs');
+            const data = await this.request('/api/v1/admin/webdav/logs');
             const container = document.getElementById('sync-logs-content');
 
             if (!data.logs || data.logs.length === 0) {
@@ -2274,7 +2274,7 @@ class App {
         this.currentPath = path;
 
         try {
-            const data = await this.request(`/api/files?path=${encodeURIComponent(path)}`);
+            const data = await this.request(`/api/v1/admin/files?path=${encodeURIComponent(path)}`);
             this.renderFileList(data.items || []);
             this.updateBreadcrumb(path);
         } catch (err) {
@@ -2351,7 +2351,7 @@ class App {
         const path = this.currentPath ? `${this.currentPath}/${filename}` : filename;
 
         try {
-            await this.request('/api/files', {
+            await this.request('/api/v1/admin/files', {
                 method: 'POST',
                 body: JSON.stringify({ path, content: '', isDirectory: false })
             });
@@ -2369,7 +2369,7 @@ class App {
         const path = this.currentPath ? `${this.currentPath}/${foldername}` : foldername;
 
         try {
-            await this.request('/api/files', {
+            await this.request('/api/v1/admin/files', {
                 method: 'POST',
                 body: JSON.stringify({ path, isDirectory: true })
             });
@@ -2386,7 +2386,7 @@ class App {
         if (newContent === null) return;
 
         try {
-            await this.request('/api/files', {
+            await this.request('/api/v1/admin/files', {
                 method: 'PUT',
                 body: JSON.stringify({ path: filePath, content: newContent })
             });
@@ -2401,7 +2401,7 @@ class App {
     }
 
     async downloadFile(filePath) {
-        const url = `/api/files/download?path=${encodeURIComponent(filePath)}`;
+        const url = `/api/v1/admin/files/download?path=${encodeURIComponent(filePath)}`;
         const a = document.createElement('a');
         a.href = url;
         a.download = filePath.split('/').pop();
@@ -2413,7 +2413,7 @@ class App {
         if (!(await showSelect('删除文件', `确定要删除${type} "${filePath}" 吗？\n\n${isDirectory ? '⚠️ 文件夹内的所有内容也会被删除！' : ''}`, { danger: true }))) return;
 
         try {
-            await this.request('/api/files', {
+            await this.request('/api/v1/admin/files', {
                 method: 'DELETE',
                 body: JSON.stringify({ path: filePath })
             });
@@ -2487,7 +2487,7 @@ class App {
 
         try {
             // 添加 user 参数
-            const list = await this.request(`/api/data/snapshots?user=${encodeURIComponent(username)}`);
+            const list = await this.request(`/api/v1/admin/data/snapshots?user=${encodeURIComponent(username)}`);
 
             if (!list.length) {
                 container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">暂无快照</div>';
@@ -2571,7 +2571,7 @@ class App {
             const time = file.lastModified;
             const filename = file.name;
 
-            const response = await fetch(`/api/data/upload-snapshot?user=${encodeURIComponent(username)}&time=${time}&filename=${encodeURIComponent(filename)}`, {
+            const response = await fetch(`/api/v1/admin/data/upload-snapshot?user=${encodeURIComponent(username)}&time=${time}&filename=${encodeURIComponent(filename)}`, {
                 method: 'POST',
                 headers: {
                     'X-Frontend-Auth': this.password
@@ -2600,7 +2600,7 @@ class App {
         if (!username) return;
 
         try {
-            const response = await fetch(`/api/data/delete-snapshot?user=${encodeURIComponent(username)}`, {
+            const response = await fetch(`/api/v1/admin/data/delete-snapshot?user=${encodeURIComponent(username)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2630,7 +2630,7 @@ class App {
 
         try {
             // 添加 user 参数
-            const data = await this.request(`/api/data/snapshot?id=${id}&user=${encodeURIComponent(username)}`);
+            const data = await this.request(`/api/v1/admin/data/snapshot?id=${id}&user=${encodeURIComponent(username)}`);
 
             // 转换为 LX Music 备份格式
             const defaultList = { id: 'default', name: 'list__name_default' };
@@ -2664,7 +2664,7 @@ class App {
 
         try {
             // 直接通过 URL 下载，后端会处理 ZIP 创建并流式传输
-            const url = `/api/backup/download?auth=${encodeURIComponent(this.password)}`;
+            const url = `/api/v1/admin/backup/download?auth=${encodeURIComponent(this.password)}`;
             const a = document.createElement('a');
             a.href = url;
             // 获取当前日期作为文件名建议
@@ -2703,7 +2703,7 @@ class App {
         document.body.appendChild(loadingOverlay);
 
         try {
-            const response = await fetch('/api/backup/upload', {
+            const response = await fetch('/api/v1/admin/backup/upload', {
                 method: 'POST',
                 headers: {
                     'X-Frontend-Auth': this.password
@@ -2741,7 +2741,7 @@ class App {
 
         try {
             // 添加 user 参数
-            await this.request(`/api/data/restore-snapshot?user=${encodeURIComponent(username)}`, {
+            await this.request(`/api/v1/admin/data/restore-snapshot?user=${encodeURIComponent(username)}`, {
                 method: 'POST',
                 body: JSON.stringify({ id })
             });
@@ -2757,7 +2757,7 @@ class App {
         }
 
         try {
-            const result = await this.request('/api/restart', { method: 'POST' })
+            const result = await this.request('/api/v1/admin/restart', { method: 'POST' })
             if (result.success) {
                 showSuccess('服务器正在重启，请稍候...\n\n页面将在 5 秒后自动刷新。');
                 // 5秒后刷新页面

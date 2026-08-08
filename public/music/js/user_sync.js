@@ -4,7 +4,7 @@ class LocalClient {
     constructor(username, password) {
         this.username = username;
         this.password = password;
-        this.baseUrl = '/api/user';
+        this.baseUrl = '/api/v1/player/user';
         this.isConnected = false;
     }
 

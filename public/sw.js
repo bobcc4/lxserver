@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yinyun-v2';
+const CACHE_NAME = 'yinyun-v1.4.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

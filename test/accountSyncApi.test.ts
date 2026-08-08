@@ -90,7 +90,7 @@ test('account sync API supports login, large restore, and conflict protection', 
     assert.equal(snapshot.empty, true)
 
     const capabilitiesResponse = await fetch(`${origin}/api/v1/capabilities`)
-    assert.equal((await capabilitiesResponse.json() as any).data.apiVersion, '1.2.0')
+    assert.equal((await capabilitiesResponse.json() as any).data.apiVersion, '1.4.0')
 
     const boardsResponse = await fetch(`${origin}/api/v1/leaderboards?source=tx`, { headers })
     assert.equal(boardsResponse.status, 200)

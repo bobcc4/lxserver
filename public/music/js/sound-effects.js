@@ -204,7 +204,7 @@ window.soundEffects = (function () {
         if (!user || !pass) return;
 
         try {
-            await fetch('/api/user/sound-effects', {
+            await fetch('/api/v1/player/user/sound-effects', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ window.soundEffects = (function () {
         if (!user || !pass) return;
 
         try {
-            const res = await fetch('/api/user/sound-effects', {
+            const res = await fetch('/api/v1/player/user/sound-effects', {
                 headers: getUserAuthHeaders()
             });
             if (res.ok) {

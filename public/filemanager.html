@@ -190,7 +190,7 @@
             // 3. 初始化 elFinder
             const elf = $('#elfinder').elfinder({
                 // [修改] 在 URL 中直接拼接认证参数，确保下载链接也能带上密码
-                url: '/api/elfinder/connector?auth=' + encodeURIComponent(authCode),
+                url: '/api/v1/admin/elfinder/connector?auth=' + encodeURIComponent(authCode),
 
                 // customHeaders 可以保留，作为双重保障，或者为了兼容旧逻辑
                 customHeaders: {

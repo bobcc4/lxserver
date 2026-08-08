@@ -18,6 +18,7 @@ import * as serverDownloadQueue from './serverDownloadQueue'
 import * as remasterQueue from './remasterQueue'
 import { createApiV1Handler } from './apiV1'
 import { APP_VERSION, APP_VERSION_TAG } from '@/version'
+import { isLegacyApiPath, mapVersionedBusinessPath } from './apiRoute'
 import {
   PlaylistSharingError,
   createPlaylistShare,
@@ -860,9 +861,27 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     accessLog.info(`${req.method} ${req.url} from ${ip}`)
     // console.log(req.url)
     const urlObj = new URL(req.url ?? '', `http://${req.headers.host}`)
-    const pathname = urlObj.pathname
+    const originalPathname = urlObj.pathname
+    let pathname = originalPathname
 
-    if (await handleApiV1(req, res, urlObj)) return
+    // Business APIs now have one public, versioned namespace. The existing
+    // handlers remain the implementation during this migration.
+    const mappedBusinessPath = mapVersionedBusinessPath(pathname)
+    if (mappedBusinessPath) {
+      pathname = mappedBusinessPath
+      urlObj.pathname = mappedBusinessPath
+    }
+
+    if (!mappedBusinessPath && isLegacyApiPath(originalPathname)) {
+      res.writeHead(410, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify({
+        error: 'legacy_api_removed',
+        message: '旧版 API 已移除，请使用 /api/v1/player 或 /api/v1/admin。',
+      }))
+      return
+    }
+
+    if (!mappedBusinessPath && await handleApiV1(req, res, urlObj)) return
 
     // 读取路径配置（每次请求都重新读取，保存后立刻生效）
     const normalizePath = (p: string) => (p || '').replace(/\/+$/, '')

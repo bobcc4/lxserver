@@ -4,7 +4,7 @@
  */
 
 window.LeaderboardManager = (function () {
-    const API_BASE = '/api/music/leaderboard';
+    const API_BASE = '/api/v1/player/music/leaderboard';
 
     let state = {
         source: 'wy',

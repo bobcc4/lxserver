@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lx-music-web-v26';
+const CACHE_NAME = 'yinyun-player-v1.4.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

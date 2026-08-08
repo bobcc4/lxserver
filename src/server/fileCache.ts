@@ -1562,7 +1562,7 @@ export const checkCache = (songInfo: any, username?: string, isLyricCheck: boole
                         foundIn: normalizedUsername,
                         quality: cached.quality,
                         folder: folder,
-                        url: `/api/music/cache/file/${encodeURIComponent(normalizedUsername)}/${encodeURIComponent(fileName)}?folder=${folder}`
+                        url: `/api/v1/player/music/cache/file/${encodeURIComponent(normalizedUsername)}/${encodeURIComponent(fileName)}?folder=${folder}`
                     }
                 } else {
                     // Stale index entry, cleanup
@@ -1615,7 +1615,7 @@ export const checkCache = (songInfo: any, username?: string, isLyricCheck: boole
                             foundIn: normalizedUsername,
                             quality: cachedAny.quality,
                             folder: folder,
-                            url: `/api/music/cache/file/${encodeURIComponent(normalizedUsername)}/${encodeURIComponent(fileName)}?folder=${folder}`
+                            url: `/api/v1/player/music/cache/file/${encodeURIComponent(normalizedUsername)}/${encodeURIComponent(fileName)}?folder=${folder}`
                         }
                     }
                 }

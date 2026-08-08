@@ -861,7 +861,7 @@ window.LocalMusicManager = {
         const el = document.getElementById('lm-location-select');
         const val = el.value;
         try {
-            const requestChange = () => fetch('/api/music/cache/config', {
+            const requestChange = () => fetch('/api/v1/player/music/cache/config', {
                 method: 'POST',
                 headers: window.getUserAuthHeaders ? window.getUserAuthHeaders() : {},
                 body: JSON.stringify({ location: val })
@@ -917,7 +917,7 @@ window.LocalMusicManager = {
         try {
             // First trigger sync on server
             if (typeof showInfo === 'function') showInfo('正在同步物理文件...');
-            const requestSync = () => fetch('/api/music/cache/sync', {
+            const requestSync = () => fetch('/api/v1/player/music/cache/sync', {
                 method: 'POST',
                 headers: window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}
             });
@@ -1056,7 +1056,7 @@ window.LocalMusicManager = {
         try {
             const requestList = () => {
                 const headers = window.getUserAuthHeaders ? window.getUserAuthHeaders() : {};
-                return fetch('/api/music/cache/list', { headers, cache: 'no-store' });
+                return fetch('/api/v1/player/music/cache/list', { headers, cache: 'no-store' });
             };
 
             let res = await requestList();
@@ -1411,7 +1411,7 @@ window.LocalMusicManager = {
                     item.coverCheckedSize || item.size || 0,
                     1
                 ].join('-');
-                const coverUrl = `/api/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}&v=${encodeURIComponent(coverVersion)}`;
+                const coverUrl = `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}&v=${encodeURIComponent(coverVersion)}`;
                 coverHtml = `<img data-src="${this.escapeAttr(coverUrl)}" data-lm-cover-index="${index}" src="/music/assets/logo.svg" loading="lazy" fetchpriority="low" class="lazy-image lm-cover-image is-placeholder w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover shadow-sm flex-shrink-0 border t-border-main mr-2.5 md:mr-4 ml-0.5 md:ml-3">`;
             }
 
@@ -1795,8 +1795,8 @@ window.LocalMusicManager = {
         const songInfo = {
             ...item.songInfo,
             // Reconstruct full URL locally
-            url: `/api/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
-            pic: `/api/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
+            url: `/api/v1/player/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
+            pic: `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
             isLocal: true,
             folder: item.folder
         };
@@ -1805,8 +1805,8 @@ window.LocalMusicManager = {
         // We might want to construct a playlist of local tracks.
         const playlist = this.displayData.map(d => ({
             ...d.songInfo,
-            url: `/api/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(d.filename)}?folder=${d.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
-            pic: `/api/music/cache/cover?filename=${encodeURIComponent(d.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
+            url: `/api/v1/player/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(d.filename)}?folder=${d.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
+            pic: `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(d.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`,
             isLocal: true
         }));
 
@@ -1857,7 +1857,7 @@ window.LocalMusicManager = {
                 'Content-Type': 'application/json',
                 ...(window.getUserAuthHeaders ? window.getUserAuthHeaders() : {})
             };
-            const res = await fetch('/api/music/cache/remove', {
+            const res = await fetch('/api/v1/player/music/cache/remove', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
@@ -1942,7 +1942,7 @@ window.LocalMusicManager = {
 
         try {
             if (typeof showInfo === 'function') showInfo('正在嵌入歌词，请稍候...');
-            const res = await fetch('/api/music/cache/embedLyric', {
+            const res = await fetch('/api/v1/player/music/cache/embedLyric', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1995,7 +1995,7 @@ window.LocalMusicManager = {
 
         try {
             if (typeof showInfo === 'function') showInfo('正在处理，请稍候...');
-            const res = await fetch('/api/music/cache/updateMetadata', {
+            const res = await fetch('/api/v1/player/music/cache/updateMetadata', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2056,7 +2056,7 @@ window.LocalMusicManager = {
 
         try {
             if (typeof showInfo === 'function') showInfo('正在移动文件，请稍候...');
-            const res = await fetch('/api/music/cache/move', {
+            const res = await fetch('/api/v1/player/music/cache/move', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2095,7 +2095,7 @@ window.LocalMusicManager = {
 
         try {
             if (typeof showInfo === 'function') showInfo('正在跨目录转移文件，请稍候...');
-            const res = await fetch('/api/music/cache/switch-base', {
+            const res = await fetch('/api/v1/player/music/cache/switch-base', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2124,7 +2124,7 @@ window.LocalMusicManager = {
         if (!item) return;
         const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
         const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null) || localStorage.getItem('lx_user_token') || '';
-        const url = `/api/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+        const url = `/api/v1/player/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
 
         const a = document.createElement('a');
         a.href = url;
@@ -2148,7 +2148,7 @@ window.LocalMusicManager = {
         // Use a slight delay to prevent browser from blocking multiple downloads
         targets.forEach((item, idx) => {
             setTimeout(() => {
-                const url = `/api/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+                const url = `/api/v1/player/music/cache/file/${encodeURIComponent(username)}/${encodeURIComponent(item.filename)}?folder=${item.folder}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = item.filename;
@@ -2284,7 +2284,7 @@ window.LocalMusicManager = {
             const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
             const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null) || localStorage.getItem('lx_user_token') || '';
 
-            const resp = await fetch('/api/music/identify', {
+            const resp = await fetch('/api/v1/player/music/identify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2361,7 +2361,7 @@ window.LocalMusicManager = {
         }
 
         try {
-            const url = `/api/music/search?name=${encodeURIComponent(keyword)}&source=${source}&page=${page}&limit=20`;
+            const url = `/api/v1/player/music/search?name=${encodeURIComponent(keyword)}&source=${source}&page=${page}&limit=20`;
             const res = await fetch(url, {
                 headers: window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}
             });
@@ -2478,7 +2478,7 @@ window.LocalMusicManager = {
 
         try {
             if (typeof showInfo === 'function') showInfo('正在关联并同步元数据...');
-            const res = await fetch('/api/music/cache/link', {
+            const res = await fetch('/api/v1/player/music/cache/link', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2528,7 +2528,7 @@ window.LocalMusicManager = {
             const match = await this.findBestMatch(item);
             if (match) {
                 try {
-                    const res = await fetch('/api/music/cache/link', {
+                    const res = await fetch('/api/v1/player/music/cache/link', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2572,7 +2572,7 @@ window.LocalMusicManager = {
             const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
             const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null) || localStorage.getItem('lx_user_token') || '';
 
-            const resp = await fetch('/api/music/identify', {
+            const resp = await fetch('/api/v1/player/music/identify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2636,7 +2636,7 @@ window.LocalMusicManager = {
 
     async searchSingleSource(text, source) {
         try {
-            const res = await fetch(`/api/music/search?name=${encodeURIComponent(text)}&source=${source}&page=1&limit=10`, {
+            const res = await fetch(`/api/v1/player/music/search?name=${encodeURIComponent(text)}&source=${source}&page=1&limit=10`, {
                 headers: window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}
             });
             const result = await res.json();
@@ -2682,7 +2682,7 @@ window.LocalMusicManager = {
         }, 10);
 
         try {
-            const res = await fetch(`/api/music/cache/subdirs?folder=music`, {
+            const res = await fetch(`/api/v1/player/music/cache/subdirs?folder=music`, {
                 headers: window.getUserAuthHeaders ? window.getUserAuthHeaders() : {}
             });
             const { data } = await res.json();
@@ -2774,7 +2774,7 @@ window.LocalMusicManager = {
 
         try {
             const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
-            const res = await fetch(`/api/music/cache/categorize?user=${encodeURIComponent(username)}`, {
+            const res = await fetch(`/api/v1/player/music/cache/categorize?user=${encodeURIComponent(username)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3078,7 +3078,7 @@ window.LocalMusicManager = {
             this.remasterResultFilter = 'all';
             this.remasterTaskId = '';
             this.renderRemasterResults();
-            await this.remasterRequest('/api/music/remaster/start', {
+            await this.remasterRequest('/api/v1/player/music/remaster/start', {
                 method: 'POST',
                 body: JSON.stringify({ targetQuality: quality, filenames, noSourceSwitch, noPlatformSwitch })
             });
@@ -3096,7 +3096,7 @@ window.LocalMusicManager = {
         });
         if (!confirmed) return;
         try {
-            await this.remasterRequest('/api/music/remaster/cancel', { method: 'POST' });
+            await this.remasterRequest('/api/v1/player/music/remaster/cancel', { method: 'POST' });
             await this.loadRemasterStatus(false);
         } catch (e) {
             if (typeof showError === 'function') showError(e.message || '停止洗版失败');
@@ -3114,7 +3114,7 @@ window.LocalMusicManager = {
             this.remasterPollTimer = null;
         }
 
-        const status = await this.remasterRequest(`/api/music/remaster/status?offset=${this.remasterResultOffset}&limit=200`);
+        const status = await this.remasterRequest(`/api/v1/player/music/remaster/status?offset=${this.remasterResultOffset}&limit=200`);
         if (status.id && this.remasterTaskId && status.id !== this.remasterTaskId) {
             this.remasterResultOffset = 0;
             this.remasterResults = [];
@@ -3272,7 +3272,7 @@ window.LocalMusicManager = {
         if (!subPath) return;
 
         try {
-            const res = await fetch('/api/music/cache/mkdir', {
+            const res = await fetch('/api/v1/player/music/cache/mkdir', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

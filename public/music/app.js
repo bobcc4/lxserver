@@ -22,7 +22,7 @@ function checkForUpdates() {
     }
 }
 
-const API_BASE = '/api/music';
+const API_BASE = '/api/v1/player/music';
 let currentPage = 1;
 window.currentPage = 1;
 let currentSearch = { name: '', source: 'kw' };
@@ -383,7 +383,7 @@ async function reloadUserFavorites() {
         if (syncUser) {
             headers['x-user-name'] = syncUser;
         }
-        const res = await fetch('/api/user/list', {
+        const res = await fetch('/api/v1/player/user/list', {
             headers,
             cache: 'no-store'
         });
@@ -430,7 +430,7 @@ async function ensureUserAuthToken(options = {}) {
             localStorage.removeItem('lx_user_token');
         }
         try {
-            const response = await fetch('/api/user/login', {
+            const response = await fetch('/api/v1/player/user/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -483,7 +483,7 @@ async function ensureLocalPlaybackAuth() {
 
     const headers = typeof getUserAuthHeaders === 'function' ? getUserAuthHeaders() : {};
     try {
-        const response = await fetch('/api/user/auth/verify', {
+        const response = await fetch('/api/v1/player/user/auth/verify', {
             headers,
             cache: 'no-store',
         });
@@ -592,7 +592,7 @@ window.handleHeaderLogout = handleHeaderLogout;
         // [新增] 有 Token 时验证其有效性
         if (userToken) {
             try {
-                const vRes = await fetch('/api/user/auth/verify', {
+                const vRes = await fetch('/api/v1/player/user/auth/verify', {
                     headers: { 'x-user-token': userToken }
                 });
                 const vData = await vRes.json();
@@ -1068,7 +1068,7 @@ async function loadAboutContent() {
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.3.6';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.4.0';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -3649,7 +3649,7 @@ async function applyAutoProxy(url, song) {
     if (!url) return url;
 
     // 已经过代理或为本地路径的无需处理
-    if (url.startsWith('/api/music/download')) {
+    if (url.startsWith('/api/v1/player/music/download')) {
         return addUserTokenToUrl(url);
     }
     if (url.startsWith('/') || url.includes(window.location.host)) {
@@ -3666,7 +3666,7 @@ async function applyAutoProxy(url, song) {
             return proxyUrl;
         }
         const filename = `${song.singer} - ${song.name}.mp3`;
-        return addUserTokenToUrl(`/api/music/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&inline=1`);
+        return addUserTokenToUrl(`/api/v1/player/music/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&inline=1`);
     }
 
     const isHttpsEnv = window.location.protocol === 'https:';
@@ -3710,7 +3710,7 @@ async function applyAutoProxy(url, song) {
 
         console.log(`[Proxy] Server proxy fallback: ${song.name}`);
         const filename = `${song.singer} - ${song.name}.mp3`;
-        return addUserTokenToUrl(`/api/music/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&inline=1`);
+        return addUserTokenToUrl(`/api/v1/player/music/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}&inline=1`);
     }
 
     return url;
@@ -3721,7 +3721,7 @@ async function fetchSongUrl(song, quality, isRetry = false, isSilent = false) {
     const cacheKey = `lx_url_${cleanedSong.id}_${quality}`;
 
     // 0. 本地文件/带有本地播放 URL 的歌曲：直接播放本地文件，无需走在线 API 解析
-    if ((song.isLocal || song.url?.startsWith('/api/music/cache/file/')) && song.url && !isRetry) {
+    if ((song.isLocal || song.url?.startsWith('/api/v1/player/music/cache/file/')) && song.url && !isRetry) {
         if (!(await ensureLocalPlaybackAuth())) {
             const authError = new Error('\u8bf7\u5148\u91cd\u65b0\u767b\u5f55\u540c\u6b65\u8d26\u6237');
             authError.code = 'AUTH_REQUIRED';
@@ -3767,7 +3767,7 @@ async function fetchSongUrl(song, quality, isRetry = false, isSilent = false) {
     const reqId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     let progressEs = null;
     try {
-        progressEs = new EventSource(`/api/music/progress?reqId=${reqId}`);
+        progressEs = new EventSource(`/api/v1/player/music/progress?reqId=${reqId}`);
         progressEs.onmessage = (e) => {
             if (isSilent) return;
             try {
@@ -3831,7 +3831,7 @@ async function fetchSongUrl(song, quality, isRetry = false, isSilent = false) {
                     updateStorageStatsUI();
                 } catch (e) { }
             }
-            if (settings.enableServerCache && isRetry !== 'download' && !finalUrl.includes('/api/music/cache/file/')) {
+            if (settings.enableServerCache && isRetry !== 'download' && !finalUrl.includes('/api/v1/player/music/cache/file/')) {
                 // [Fix] 传递原始 result.url 而非经过 applyAutoProxy 处理后的相对代理路径，
                 // 否则后端下载器会因无法识别相对路径而报 ERR_INVALID_URL 错误。
                 triggerServerCache(song, result.url, quality);
@@ -3965,7 +3965,7 @@ async function checkServerCache(song, quality, exactQuality = false) {
         });
         if (exactQuality) params.append('exactQuality', '1');
 
-        const requestCheck = () => fetch(`/api/music/cache/check?${params}`, {
+        const requestCheck = () => fetch(`/api/v1/player/music/cache/check?${params}`, {
             headers: getUserAuthHeaders()
         });
 
@@ -3993,7 +3993,7 @@ async function handleAdminAuth(message) {
     });
     if (pass) {
         try {
-            const response = await fetch('/api/admin/verify', {
+            const response = await fetch('/api/v1/player/admin/verify', {
                 method: 'POST',
                 headers: { 'x-frontend-auth': pass }
             });
@@ -4116,7 +4116,7 @@ async function triggerServerCache(song, url, quality) {
             }
         };
 
-        await fetch('/api/music/cache/download', {
+        await fetch('/api/v1/player/music/cache/download', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ 
@@ -4145,7 +4145,7 @@ async function updateServerCacheConfig(location, pattern) {
     if (adminPass) headers['x-frontend-auth'] = adminPass;
 
     try {
-        const response = await fetch('/api/music/cache/config', {
+        const response = await fetch('/api/v1/player/music/cache/config', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
@@ -4174,7 +4174,7 @@ async function updateServerCacheConfig(location, pattern) {
                 if (confirmed) {
                     showLoading('正在重命名服务器文件...');
                     try {
-                        const renameRes = await fetch('/api/music/cache/rename', {
+                        const renameRes = await fetch('/api/v1/player/music/cache/rename', {
                             method: 'POST',
                             headers: headers
                         });
@@ -4281,7 +4281,7 @@ async function runRecoveryFlow(error) {
 }
 
 async function playSong(song, index, forceQuality = null, noPlay = false, isRetry = false, shouldAddToDefault = null) {
-    const hasDirectLocalUrl = (song.isLocal || song.url?.startsWith('/api/music/cache/file/')) && !!song.url;
+    const hasDirectLocalUrl = (song.isLocal || song.url?.startsWith('/api/v1/player/music/cache/file/')) && !!song.url;
     if (!hasDirectLocalUrl && !isUserLoggedIn()) {
         showError('\u8bf7\u5148\u767b\u5f55\u540c\u6b65\u8d26\u6237');
         return;
@@ -6310,7 +6310,7 @@ async function clearCache(type) {
             const headers = {};
             Object.assign(headers, getUserAuthHeaders());
 
-            const res = await fetch('/api/music/cache/lyric/clear', { method: 'POST', headers });
+            const res = await fetch('/api/v1/player/music/cache/lyric/clear', { method: 'POST', headers });
             const data = await res.json();
             if (data.success) {
                 showSuccess(`已同时清除 ${data.data.deletedCount} 个本地LRC文件`);
@@ -6347,7 +6347,7 @@ async function updateServerCacheSize() {
         if (musicEl) musicEl.textContent = '计算中...';
 
         const headers = getUserAuthHeaders();
-        const response = await fetch('/api/music/cache/stats', { headers });
+        const response = await fetch('/api/v1/player/music/cache/stats', { headers });
         if (!response.ok) throw new Error('获取缓存统计失败');
 
         const data = await response.json();
@@ -6408,9 +6408,9 @@ async function refreshCacheList() {
         const headers = getUserAuthHeaders();
 
         // 刷新前先强制触发服务器端的磁盘同步/索引重建
-        await fetch('/api/music/cache/sync', { method: 'POST', headers });
+        await fetch('/api/v1/player/music/cache/sync', { method: 'POST', headers });
 
-        const res = await fetch('/api/music/cache/list', { headers });
+        const res = await fetch('/api/v1/player/music/cache/list', { headers });
         const data = await res.json();
 
         if (data.success) {
@@ -6476,7 +6476,7 @@ function renderCacheList() {
         const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null)
             || localStorage.getItem('lx_user_token') || '';
         const coverUrl = item.hasCover
-            ? `/api/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`
+            ? `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`
             : '/music/assets/logo.svg';
 
         return `
@@ -6679,7 +6679,7 @@ async function removeCacheItem(index) {
         const headers = { 'Content-Type': 'application/json' };
         Object.assign(headers, getUserAuthHeaders());
 
-        const res = await fetch('/api/music/cache/remove', {
+        const res = await fetch('/api/v1/player/music/cache/remove', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ items: [{ filename: item.filename, folder: item.folder }] })
@@ -6711,7 +6711,7 @@ async function batchDeleteCache() {
         const headers = { 'Content-Type': 'application/json' };
         Object.assign(headers, getUserAuthHeaders());
 
-        const res = await fetch('/api/music/cache/remove', {
+        const res = await fetch('/api/v1/player/music/cache/remove', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
@@ -6739,7 +6739,7 @@ async function clearServerCache() {
         const headers = {};
         Object.assign(headers, getUserAuthHeaders());
 
-        const res = await fetch('/api/music/cache/clear', { method: 'POST', headers });
+        const res = await fetch('/api/v1/player/music/cache/clear', { method: 'POST', headers });
         if (res.ok) {
             const data = await res.json();
             showSuccess(`清理完成，释放 ${(data.data.freedSize / (1024 * 1024)).toFixed(2)} MB`);
@@ -7714,8 +7714,8 @@ async function loadLibraryData() {
         const headers = getUserAuthHeaders();
 
         const [ar, al] = await Promise.all([
-            fetch('/api/user/library/artists', { headers }).then(r => r.ok ? r.json() : []),
-            fetch('/api/user/library/albums', { headers }).then(r => r.ok ? r.json() : [])
+            fetch('/api/v1/player/user/library/artists', { headers }).then(r => r.ok ? r.json() : []),
+            fetch('/api/v1/player/user/library/albums', { headers }).then(r => r.ok ? r.json() : [])
         ]);
         window.libraryData.artists = Array.isArray(ar) ? ar : [];
         window.libraryData.albums  = Array.isArray(al) ? al : [];
@@ -7751,7 +7751,7 @@ async function saveLibraryArtists(customList = null) {
     try {
         const listToSave = customList || window.libraryData.artists;
         const headers = { 'Content-Type': 'application/json', ...getUserAuthHeaders() };
-        const response = await fetch('/api/user/library/artists', { method: 'POST', headers, body: JSON.stringify(listToSave) });
+        const response = await fetch('/api/v1/player/user/library/artists', { method: 'POST', headers, body: JSON.stringify(listToSave) });
         if (!response.ok) throw new Error(await response.text());
         refreshLibrarySidebarCount();
         return true;
@@ -7771,7 +7771,7 @@ async function saveLibraryAlbums(customList = null) {
     try {
         const listToSave = customList || window.libraryData.albums;
         const headers = { 'Content-Type': 'application/json', ...getUserAuthHeaders() };
-        const response = await fetch('/api/user/library/albums', { method: 'POST', headers, body: JSON.stringify(listToSave) });
+        const response = await fetch('/api/v1/player/user/library/albums', { method: 'POST', headers, body: JSON.stringify(listToSave) });
         if (!response.ok) throw new Error(await response.text());
         refreshLibrarySidebarCount();
         return true;
@@ -8354,7 +8354,7 @@ async function pushSettingsToServer(force = false) {
         const adminPass = localStorage.getItem('lx_admin_password');
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const res = await fetch('/api/user/settings', {
+        const res = await fetch('/api/v1/player/user/settings', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(settings)
@@ -8421,7 +8421,7 @@ async function fetchSettingsFromServer() {
         const adminPass = localStorage.getItem('lx_admin_password');
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const res = await fetch('/api/user/settings', {
+        const res = await fetch('/api/v1/player/user/settings', {
             headers: headers
         });
 
@@ -8494,7 +8494,7 @@ async function handleSyncLogout(skipConfirm = false) {
         // 1. 服务端注销 Token
         if (userToken) {
             try {
-                await fetch('/api/user/logout', {
+                await fetch('/api/v1/player/user/logout', {
                     method: 'POST',
                     headers: { 'x-user-token': userToken }
                 });
@@ -8596,7 +8596,7 @@ async function handleLocalLogin() {
             let hasMatchingToken = false;
             if (userToken) {
                 try {
-                    const verifyRes = await fetch('/api/user/auth/verify', {
+                    const verifyRes = await fetch('/api/v1/player/user/auth/verify', {
                         headers: { 'x-user-token': userToken }
                     });
                     if (verifyRes.ok) {
@@ -8615,7 +8615,7 @@ async function handleLocalLogin() {
 
             if (!hasMatchingToken) {
                 try {
-                    const tokenRes = await fetch('/api/user/login', {
+                    const tokenRes = await fetch('/api/v1/player/user/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: user, password: pass })
@@ -9103,7 +9103,7 @@ async function readPlaylistShareResponse(response) {
 async function loadPlaylistSharingSetting() {
     if (!isUserLoggedIn()) return false;
     try {
-        const response = await fetch('/api/user/playlist-sharing/settings', {
+        const response = await fetch('/api/v1/player/user/playlist-sharing/settings', {
             headers: getUserAuthHeaders(),
             cache: 'no-store'
         });
@@ -9129,7 +9129,7 @@ async function togglePlaylistSharingSetting(enabled) {
 
     if (toggle) toggle.disabled = true;
     try {
-        const response = await fetch('/api/user/playlist-sharing/settings', {
+        const response = await fetch('/api/v1/player/user/playlist-sharing/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ enabled: !!enabled })
@@ -9172,7 +9172,7 @@ async function handleSharePlaylist(listId, event) {
     if (!toUsername) return;
 
     try {
-        const response = await fetch('/api/user/playlist-sharing/send', {
+        const response = await fetch('/api/v1/player/user/playlist-sharing/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ toUsername, playlistId: listId })
@@ -9186,7 +9186,7 @@ async function handleSharePlaylist(listId, event) {
 
 async function fetchPendingPlaylistShares() {
     if (!isUserLoggedIn()) return { enabled: false, shares: [] };
-    const response = await fetch('/api/user/playlist-sharing/pending', {
+    const response = await fetch('/api/v1/player/user/playlist-sharing/pending', {
         headers: getUserAuthHeaders(),
         cache: 'no-store'
     });
@@ -9206,7 +9206,7 @@ async function respondToPlaylistShare(shareId, action, row, modal) {
     const buttons = row.querySelectorAll('button');
     buttons.forEach(button => { button.disabled = true; });
     try {
-        const response = await fetch('/api/user/playlist-sharing/respond', {
+        const response = await fetch('/api/v1/player/user/playlist-sharing/respond', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ shareId, action })
@@ -9703,7 +9703,7 @@ async function pushDataChange(customListData) {
         } else {
             // 本地无同步模式：调用 REST API 推送给当前用户
             const headers = getUserAuthHeaders();
-            const res = await fetch('/api/user/list', {
+            const res = await fetch('/api/v1/player/user/list', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -9806,7 +9806,7 @@ async function handleFileUpload(input) {
         const headers = { 'Content-Type': 'application/json', ...getUserAuthHeaders() };
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        let validationRes = await fetch('/api/custom-source/validate', {
+        let validationRes = await fetch('/api/v1/player/custom-source/validate', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
@@ -9910,7 +9910,7 @@ async function handleUrlImport() {
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
         // 从服务器代理下载
-        const response = await fetch(`/api/custom-source/import`, {
+        const response = await fetch(`/api/v1/player/custom-source/import`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
@@ -9945,7 +9945,7 @@ async function handleUrlImport() {
             if (confirmed) {
                 const retryHeaders = { 'Content-Type': 'application/json', ...getUserAuthHeaders() };
                 if (adminPass) retryHeaders['x-frontend-auth'] = adminPass;
-                const retryResp = await fetch(`/api/custom-source/import`, {
+                const retryResp = await fetch(`/api/v1/player/custom-source/import`, {
                     method: 'POST',
                     headers: retryHeaders,
                     body: JSON.stringify({
@@ -9989,7 +9989,7 @@ async function uploadCustomSource(filename, content, type, allowUnsafeVM = false
     const adminPass = localStorage.getItem('lx_admin_password');
     if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-    const response = await fetch('/api/custom-source/upload', {
+    const response = await fetch('/api/v1/player/custom-source/upload', {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
@@ -10042,7 +10042,7 @@ async function fetchCustomSources() {
         const adminPass = localStorage.getItem('lx_admin_password');
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const res = await fetch(`/api/custom-source/list?username=${username}`, {
+        const res = await fetch(`/api/v1/player/custom-source/list?username=${username}`, {
             headers: headers
         });
 
@@ -10062,7 +10062,7 @@ async function fetchCustomSourceUsers() {
     const username = localStorage.getItem('lx_sync_user') || '';
     if (!isUserLoggedIn() || !username) throw new Error('Please sign in to a sync account first');
 
-    const res = await fetch('/api/custom-source/users', {
+    const res = await fetch('/api/v1/player/custom-source/users', {
         headers: getUserAuthHeaders(),
         cache: 'no-store'
     });
@@ -10156,7 +10156,7 @@ async function saveCustomSourceShare() {
     const saveButton = document.getElementById('custom-source-share-save');
     saveButton.disabled = true;
     try {
-        const response = await fetch('/api/custom-source/share', {
+        const response = await fetch('/api/v1/player/custom-source/share', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ sourceId: customSourceShareState.sourceId, targetUsers })
@@ -10177,7 +10177,7 @@ async function saveCustomSourceShare() {
 async function unshareCustomSource() {
     if (!customSourceShareState) return;
     try {
-        const response = await fetch('/api/custom-source/unshare', {
+        const response = await fetch('/api/v1/player/custom-source/unshare', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ sourceId: customSourceShareState.sourceId })
@@ -10197,7 +10197,7 @@ window.saveCustomSourceShare = saveCustomSourceShare;
 window.unshareCustomSource = unshareCustomSource;
 
 async function saveCustomSourcePlatforms(source, enabledSources) {
-    const response = await fetch('/api/custom-source/platforms', {
+    const response = await fetch('/api/v1/player/custom-source/platforms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
         body: JSON.stringify({
@@ -10468,7 +10468,7 @@ async function renderCustomSources() {
                         const adminPass = localStorage.getItem('lx_admin_password');
                         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-                        const response = await fetch('/api/custom-source/reorder', {
+                        const response = await fetch('/api/v1/player/custom-source/reorder', {
                             method: 'POST',
                             headers: headers,
                             body: JSON.stringify({ username, sourceIds: finalOrderIds })
@@ -10507,7 +10507,7 @@ async function reloadSource(sourceId) {
         const headers = { 'Content-Type': 'application/json', ...getUserAuthHeaders() };
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const response = await fetch('/api/custom-source/toggle', {
+        const response = await fetch('/api/v1/player/custom-source/toggle', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ username, sourceId, enabled: true }) // Force enable triggers reload
@@ -10536,7 +10536,7 @@ async function toggleSource(sourceId, currentEnabled, allowUnsafeVM = false) {
         const adminPass = localStorage.getItem('lx_admin_password');
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const response = await fetch('/api/custom-source/toggle', {
+        const response = await fetch('/api/v1/player/custom-source/toggle', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ username, sourceId, enabled: !currentEnabled, allowUnsafeVM }) // Send new state
@@ -10589,7 +10589,7 @@ async function deleteSource(sourceId) {
         const adminPass = localStorage.getItem('lx_admin_password');
         if (adminPass) headers['x-frontend-auth'] = adminPass;
 
-        const response = await fetch('/api/custom-source/delete', {
+        const response = await fetch('/api/v1/player/custom-source/delete', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ username, sourceId })
@@ -10950,7 +10950,7 @@ async function handleTogglePlaylist(listId, btnElement) {
         // 5. Background Backend Sync
         try {
             const headers = getUserAuthHeaders();
-            const res = await fetch('/api/music/user/list/add', {
+            const res = await fetch('/api/v1/player/music/user/list/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({
@@ -11218,7 +11218,7 @@ async function fetchComments() {
     console.log(`[Comment] Fetching ${currentCommentType} for ${song.name} (${song.source}), page ${currentCommentPage}`);
 
     try {
-        const response = await fetch('/api/music/comment', {
+        const response = await fetch('/api/v1/player/music/comment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -12542,7 +12542,7 @@ async function fetchSearchTips(query) {
 
     const source = (document.getElementById('search-source')) ? document.getElementById('search-source').value : 'kw';
     try {
-        const resp = await fetch(`/api/music/tipSearch?name=${encodeURIComponent(query)}&source=${source}`, { signal });
+        const resp = await fetch(`/api/v1/player/music/tipSearch?name=${encodeURIComponent(query)}&source=${source}`, { signal });
         if (!resp.ok) return;
         const tips = await resp.json();
         renderSearchTips(tips);
@@ -12626,7 +12626,7 @@ async function loadTokenConfig() {
     if (!section) return;
 
     try {
-        const res = await fetch('/api/user/token/config', {
+        const res = await fetch('/api/v1/player/user/token/config', {
             headers: getUserAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load token config');
@@ -12727,7 +12727,7 @@ function renderTokenList(tokens) {
  */
 async function handleToggleTokenStatus(tokenMasked, disabled) {
     try {
-        const res = await fetch('/api/user/token/toggle', {
+        const res = await fetch('/api/v1/player/user/token/toggle', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ tokenMasked, disabled })
@@ -12750,7 +12750,7 @@ async function handleToggleTokenStatus(tokenMasked, disabled) {
  */
 async function toggleTokenAuthSetting(enabled, silent = false) {
     try {
-        const res = await fetch('/api/user/token/config', {
+        const res = await fetch('/api/v1/player/user/token/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ enabled })
@@ -12896,7 +12896,7 @@ async function handleUpdateToken() {
     if (!name) return showError('请填写 Token 名称');
 
     try {
-        const res = await fetch('/api/user/token/update', {
+        const res = await fetch('/api/v1/player/user/token/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ tokenMasked, name, expiresAt })
@@ -12937,7 +12937,7 @@ async function handleAddToken() {
     }
 
     try {
-        const res = await fetch('/api/user/token/add', {
+        const res = await fetch('/api/v1/player/user/token/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ name, expiresAt })
@@ -12963,7 +12963,7 @@ async function handleAddToken() {
 async function handleRemoveToken(token) {
     if (!await showSelect('确定删除', `确定要永久删除此 Token 吗？\n所有使用此凭证的外部工具将立即无法连接。`, { danger: true })) return;
     try {
-        const res = await fetch('/api/user/token/remove', {
+        const res = await fetch('/api/v1/player/user/token/remove', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getUserAuthHeaders() },
             body: JSON.stringify({ token: token })
@@ -12997,7 +12997,7 @@ async function handleRefreshTokenLogs() {
     }
 
     try {
-        const res = await fetch(`/api/user/token/logs?tokenMasked=${encodeURIComponent(currentViewingTokenMasked)}`, {
+        const res = await fetch(`/api/v1/player/user/token/logs?tokenMasked=${encodeURIComponent(currentViewingTokenMasked)}`, {
             headers: getUserAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to fetch logs');

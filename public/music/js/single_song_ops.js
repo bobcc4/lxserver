@@ -101,7 +101,7 @@ async function fetchRemoteQualitySize(song, quality) {
             return null;
         }
         const requestBody = JSON.stringify({ songInfo: song, quality });
-        const requestQualitySize = () => fetch('/api/music/quality/size', {
+        const requestQualitySize = () => fetch('/api/v1/player/music/quality/size', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ async function deleteSingleSong(songId) {
         }
 
         try {
-            const res = await fetch('/api/music/user/list/remove', {
+            const res = await fetch('/api/v1/player/music/user/list/remove', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ async function requestServerLyricCache(song, quality = null, force = false) {
         }
 
         // 1. 先尝试获取歌词数据
-        const lyricUrl = `/api/music/lyric?source=${source}&songmid=${songmid}&name=${name}&singer=${singer}&hash=${hash}&interval=${interval}`;
+        const lyricUrl = `/api/v1/player/music/lyric?source=${source}&songmid=${songmid}&name=${name}&singer=${singer}&hash=${hash}&interval=${interval}`;
         const lRes = await fetch(lyricUrl);
         if (!lRes.ok) return false;
         const lyricInfo = await lRes.json();
@@ -294,7 +294,7 @@ async function requestServerLyricCache(song, quality = null, force = false) {
         if (!lyricInfo || (!lyricInfo.lyric && !lyricInfo.lrc)) return false;
 
         // 2. 将歌词推送到服务器缓存接口
-        const cacheUrl = `/api/music/cache/lyric`;
+        const cacheUrl = `/api/v1/player/music/cache/lyric`;
         const headers = {
             'Content-Type': 'application/json',
             ...getUserAuthHeaders()
