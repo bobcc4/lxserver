@@ -240,8 +240,21 @@ jobs:
           done
 
           if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release view "$VERSION" --json assets --jq '.assets[].name' | while read -r ASSET; do
-              gh release delete-asset "$VERSION" "$ASSET" --yes
+            mapfile -t EXISTING_ASSET_IDS < <(
+              gh api "repos/$GH_REPO/releases/tags/$VERSION" --jq '.assets[].id'
+            )
+            for ASSET_ID in "${EXISTING_ASSET_IDS[@]}"; do
+              gh api --method DELETE "repos/$GH_REPO/releases/assets/$ASSET_ID"
+            done
+
+            for ATTEMPT in {1..12}; do
+              REMAINING_ASSETS="$(gh api "repos/$GH_REPO/releases/tags/$VERSION" --jq '.assets | length')"
+              [[ "$REMAINING_ASSETS" == "0" ]] && break
+              [[ "$ATTEMPT" == "12" ]] && {
+                echo "Release assets were not fully deleted before upload"
+                exit 1
+              }
+              sleep 5
             done
 
             gh release upload "$VERSION" "${ASSETS[@]}" --clobber
