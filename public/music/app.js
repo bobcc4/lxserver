@@ -3993,7 +3993,7 @@ async function handleAdminAuth(message) {
     });
     if (pass) {
         try {
-            const response = await fetch('/api/v1/player/admin/verify', {
+            const response = await fetch('/api/v1/admin/verify', {
                 method: 'POST',
                 headers: { 'x-frontend-auth': pass }
             });

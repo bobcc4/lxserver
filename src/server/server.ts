@@ -18,7 +18,7 @@ import * as serverDownloadQueue from './serverDownloadQueue'
 import * as remasterQueue from './remasterQueue'
 import { createApiV1Handler } from './apiV1'
 import { APP_VERSION, APP_VERSION_TAG } from '@/version'
-import { isLegacyApiPath, mapVersionedBusinessPath } from './apiRoute'
+import { classifyApiNamespace } from './apiNamespace'
 import {
   PlaylistSharingError,
   createPlaylistShare,
@@ -861,18 +861,10 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     accessLog.info(`${req.method} ${req.url} from ${ip}`)
     // console.log(req.url)
     const urlObj = new URL(req.url ?? '', `http://${req.headers.host}`)
-    const originalPathname = urlObj.pathname
-    let pathname = originalPathname
+    const pathname = urlObj.pathname
+    const apiNamespace = classifyApiNamespace(pathname)
 
-    // Business APIs now have one public, versioned namespace. The existing
-    // handlers remain the implementation during this migration.
-    const mappedBusinessPath = mapVersionedBusinessPath(pathname)
-    if (mappedBusinessPath) {
-      pathname = mappedBusinessPath
-      urlObj.pathname = mappedBusinessPath
-    }
-
-    if (!mappedBusinessPath && isLegacyApiPath(originalPathname)) {
+    if (apiNamespace === 'legacy') {
       res.writeHead(410, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
       res.end(JSON.stringify({
         error: 'legacy_api_removed',
@@ -881,7 +873,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       return
     }
 
-    if (!mappedBusinessPath && await handleApiV1(req, res, urlObj)) return
+    if (apiNamespace === 'native' && await handleApiV1(req, res, urlObj)) return
 
     // 读取路径配置（每次请求都重新读取，保存后立刻生效）
     const normalizePath = (p: string) => (p || '').replace(/\/+$/, '')
@@ -890,7 +882,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
     // 映射播放器逻辑 (无论是自定义路径还是前端硬编码的 /music/)
     const isPlayerRequest = (playerPath === '/' || playerPath === '')
-      ? (pathname === '/' || (!pathname.startsWith('/api/') && !pathname.startsWith('/rest/') && (adminPath === '' || (pathname !== adminPath && !pathname.startsWith(adminPath + '/')))))
+      ? (pathname === '/' || (apiNamespace === 'none' && !pathname.startsWith('/rest/') && (adminPath === '' || (pathname !== adminPath && !pathname.startsWith(adminPath + '/')))))
       : (pathname.startsWith(playerPath + '/') || pathname === playerPath)
 
     // [新增] 映射管理后台逻辑
@@ -1011,7 +1003,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     }
 
     // 注意：如果设置了 adminPath，则不允许通过 / 直接访问后台资源文件，除非它是公共资源
-    if (!pathname.startsWith('/api/')) {
+    if (apiNamespace === 'none') {
       const generalFilePath = path.join(global.lx.staticPath, pathname)
       // 禁止绕过 adminPath 直接访问后台 index.html
       if (pathname === '/' || pathname === '/index.html') {
@@ -1037,10 +1029,10 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     }
 
 
-    if (pathname.startsWith('/api/')) {
+    if (apiNamespace === 'admin' || apiNamespace === 'player') {
 
 
-      if (pathname === '/api/login' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/login' && req.method === 'POST') {
         void readBody(req).then(body => {
           try {
             const { password } = JSON.parse(body)
@@ -1064,7 +1056,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
 
       // [新增] 获取服务器状态
-      if (pathname === '/api/status' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/status' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -1132,7 +1124,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/users') {
+      if (pathname === '/api/v1/admin/users') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -1376,7 +1368,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         }
       }
 
-      if (pathname === '/api/data' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/data' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1408,7 +1400,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // 获取快照列表
-      if (pathname === '/api/data/snapshots' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/data/snapshots' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1442,7 +1434,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 下载快照数据
-      if (pathname === '/api/data/snapshot' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/data/snapshot' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1487,7 +1479,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 恢复快照
-      if (pathname === '/api/data/restore-snapshot' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/restore-snapshot' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1523,7 +1515,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Batch Remove Songs from List (User Auth)
-      if (pathname === '/api/music/user/list/remove' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/user/list/remove' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1574,7 +1566,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Batch Add Songs to List (User Auth)
-      if (pathname === '/api/music/user/list/add' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/user/list/add' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1617,7 +1609,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
 
       // [新增] 删除快照 API
-      if (pathname === '/api/data/delete-snapshot' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/delete-snapshot' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1653,7 +1645,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // [新增] 上传快照 API
-      if (pathname === '/api/data/upload-snapshot' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/upload-snapshot' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         const isAdminAuth = auth === global.lx.config['frontend.password']
         const userParam = urlObj.searchParams.get('user')
@@ -1733,7 +1725,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] User Login Verification
-      if (pathname === '/api/user/verify' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/verify' && req.method === 'POST') {
         void readBody(req).then(body => {
           try {
             const { username, password } = JSON.parse(body)
@@ -1762,7 +1754,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 用户登录 - 颁发 Token（替代明文密码传输）
-      if (pathname === '/api/user/login' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/login' && req.method === 'POST') {
         void readBody(req).then(body => {
           try {
             const { username, password } = JSON.parse(body)
@@ -1793,7 +1785,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 用户登出 - 注销 Token
-      if (pathname === '/api/user/logout' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/logout' && req.method === 'POST') {
         const token = req.headers['x-user-token'] as string
         if (token) userSessions.delete(token)
         res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -1802,7 +1794,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Token 有效性检查
-      if (pathname === '/api/user/auth/verify' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/auth/verify' && req.method === 'GET') {
         const username = verifyUserAuth(req)
         const valid = !!username
         res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -1812,7 +1804,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
       // [新增] Get User List (User Auth)
       // [新增] Get User List (User Auth)
-      if (pathname === '/api/user/list' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/list' && req.method === 'GET') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1835,7 +1827,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Update User List (User Auth) - Full Restore/Overwrite
-      if (pathname === '/api/user/list' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/list' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1865,8 +1857,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       // [新增] 用户 Library API — 收藏歌手 & 收藏专辑
       const getLibUsername = (request: IncomingMessage): string | null => verifyUserAuth(request)
 
-      // GET /api/user/library/artists  — 读取收藏歌手列表
-      if (pathname === '/api/user/library/artists' && req.method === 'GET') {
+      // GET /api/v1/player/user/library/artists  — 读取收藏歌手列表
+      if (pathname === '/api/v1/player/user/library/artists' && req.method === 'GET') {
         const username = getLibUsername(req)
         if (!username) { res.writeHead(401); res.end('Unauthorized'); return }
         const userDirname = getUserDirname(username)
@@ -1883,8 +1875,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      // POST /api/user/library/artists  — 完整覆盖写入收藏歌手列表
-      if (pathname === '/api/user/library/artists' && req.method === 'POST') {
+      // POST /api/v1/player/user/library/artists  — 完整覆盖写入收藏歌手列表
+      if (pathname === '/api/v1/player/user/library/artists' && req.method === 'POST') {
         const username = getLibUsername(req)
         if (!username) { res.writeHead(401); res.end('Unauthorized'); return }
         void readBody(req).then(body => {
@@ -1901,8 +1893,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      // GET /api/user/library/albums  — 读取收藏专辑列表
-      if (pathname === '/api/user/library/albums' && req.method === 'GET') {
+      // GET /api/v1/player/user/library/albums  — 读取收藏专辑列表
+      if (pathname === '/api/v1/player/user/library/albums' && req.method === 'GET') {
         const username = getLibUsername(req)
         if (!username) { res.writeHead(401); res.end('Unauthorized'); return }
         const userDirname = getUserDirname(username)
@@ -1919,8 +1911,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      // POST /api/user/library/albums  — 完整覆盖写入收藏专辑列表
-      if (pathname === '/api/user/library/albums' && req.method === 'POST') {
+      // POST /api/v1/player/user/library/albums  — 完整覆盖写入收藏专辑列表
+      if (pathname === '/api/v1/player/user/library/albums' && req.method === 'POST') {
         const username = getLibUsername(req)
         if (!username) { res.writeHead(401); res.end('Unauthorized'); return }
         void readBody(req).then(body => {
@@ -1938,7 +1930,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Get User Settings (User Auth)
-      if (pathname === '/api/user/settings' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/settings' && req.method === 'GET') {
         const resolvedUsername = verifyUserAuth(req)
         if (!resolvedUsername) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1962,7 +1954,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Update User Settings (User Auth)
-      if (pathname === '/api/user/settings' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/settings' && req.method === 'POST') {
         const resolvedUsername = verifyUserAuth(req)
         if (!resolvedUsername) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -1992,7 +1984,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/user/playlist-sharing/settings') {
+      if (pathname === '/api/v1/player/user/playlist-sharing/settings') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2026,7 +2018,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         }
       }
 
-      if (pathname === '/api/user/playlist-sharing/send' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/playlist-sharing/send' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2053,7 +2045,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/user/playlist-sharing/pending' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/playlist-sharing/pending' && req.method === 'GET') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2073,7 +2065,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/user/playlist-sharing/respond' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/playlist-sharing/respond' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2102,7 +2094,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
       // [核心路由记录] Token 管理相关 API
       // 1. 获取/更新 Token 配置 (开启状态及列表)
-      if (pathname === '/api/user/token/config') {
+      if (pathname === '/api/v1/player/user/token/config') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2146,7 +2138,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 3. 生成新 Token
-      if (pathname === '/api/user/token/add' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/token/add' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2180,7 +2172,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 3. 删除 Token
-      if (pathname === '/api/user/token/remove' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/token/remove' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2230,7 +2222,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 4. 更新 Token 信息 (名称/有效期)
-      if (pathname === '/api/user/token/update' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/token/update' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2271,7 +2263,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 5. 切换 Token 启用/禁用状态
-      if (pathname === '/api/user/token/toggle' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/token/toggle' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2307,7 +2299,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 5. 获取特定 Token 的审计日志
-      if (pathname === '/api/user/token/logs' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/token/logs' && req.method === 'GET') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2345,7 +2337,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Get User Sound Effects (User Auth)
-      if (pathname === '/api/user/sound-effects' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/user/sound-effects' && req.method === 'GET') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2369,7 +2361,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Update User Sound Effects (User Auth)
-      if (pathname === '/api/user/sound-effects' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/user/sound-effects' && req.method === 'POST') {
         const username = verifyUserAuth(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2397,14 +2389,14 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Local music remaster APIs use the same account access rules as other cache operations.
-      if (pathname.startsWith('/api/music/remaster/')) {
+      if (pathname.startsWith('/api/v1/player/music/remaster/')) {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ success: false, message: 'Unauthorized' }))
           return
         }
-        if (pathname === '/api/music/remaster/start' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/music/remaster/start' && req.method === 'POST') {
           try {
             const body = JSON.parse(await readBody(req))
             const data = await remasterQueue.start(
@@ -2425,7 +2417,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           return
         }
 
-        if (pathname === '/api/music/remaster/status' && req.method === 'GET') {
+        if (pathname === '/api/v1/player/music/remaster/status' && req.method === 'GET') {
           const offset = Number(urlObj.searchParams.get('offset') || 0)
           const limit = Number(urlObj.searchParams.get('limit') || 200)
           const data = remasterQueue.getStatus(username, offset, limit)
@@ -2434,7 +2426,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           return
         }
 
-        if (pathname === '/api/music/remaster/cancel' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/music/remaster/cancel' && req.method === 'POST') {
           const cancelled = remasterQueue.cancel(username)
           res.writeHead(200, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ success: true, data: { cancelled } }))
@@ -2448,7 +2440,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
       // [新增] File Cache APIs
       // 1. Config Cache Location
-      if (pathname === '/api/music/cache/config' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/config' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2490,7 +2482,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 1.1 Sync Cache Index
-      if (pathname === '/api/music/cache/sync' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/sync' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2510,7 +2502,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 1.1-B Get Subdirectories
-      if (pathname === '/api/music/cache/subdirs' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/subdirs' && req.method === 'GET') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2525,7 +2517,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 1.1-C Create Subdirectory
-      if (pathname === '/api/music/cache/mkdir' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/mkdir' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2552,7 +2544,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 1.1-D Categorize Files
-      if (pathname === '/api/music/cache/categorize' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/categorize' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2579,7 +2571,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 1.2 Batch Rename Cache Files
-      if (pathname === '/api/music/cache/rename' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/rename' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2599,7 +2591,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 2. Check Cache
-      if (pathname === '/api/music/cache/check' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/check' && req.method === 'GET') {
         const name = urlObj.searchParams.get('name')
         const singer = urlObj.searchParams.get('singer')
         const source = urlObj.searchParams.get('source')
@@ -2634,7 +2626,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Persistent server download queue. These tasks continue after the browser closes.
-      if (pathname === '/api/music/cache/queue' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/queue' && req.method === 'GET') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2646,7 +2638,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/queue' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/queue' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2675,7 +2667,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/queue/concurrency' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/queue/concurrency' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2696,7 +2688,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/queue/resume' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/queue/resume' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2718,7 +2710,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/queue/remove' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/queue/remove' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2741,7 +2733,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 3. Trigger Download
-      if (pathname === '/api/music/cache/download' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/download' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2816,7 +2808,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [New] Stop Cache Task
-      if (pathname === '/api/music/cache/stop' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/stop' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2848,8 +2840,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 4. Serve Cached File
-      if (pathname.startsWith('/api/music/cache/file/')) {
-        const parts = pathname.replace('/api/music/cache/file/', '').split('/')
+      if (pathname.startsWith('/api/v1/player/music/cache/file/')) {
+        const parts = pathname.replace('/api/v1/player/music/cache/file/', '').split('/')
         const reqUsername = parts.length > 1 ? getConfiguredUsername(decodeURIComponent(parts.shift() || '')) : null
         const filename = parts.join('/')
 
@@ -2886,7 +2878,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 5. Get Cache Statistics
-      if (pathname === '/api/music/cache/stats' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/stats' && req.method === 'GET') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2904,7 +2896,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/clear' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/clear' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2922,7 +2914,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/lyric/clear' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/lyric/clear' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -2941,7 +2933,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 7. Get Cache Progress
-      if (pathname === '/api/music/cache/progress' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/progress' && req.method === 'GET') {
         if (!getCacheRequestUsername(req)) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ success: false, message: 'Unauthorized' }))
@@ -2960,7 +2952,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 7. Get Detailed Cache List
-      if (pathname === '/api/music/cache/list' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/list' && req.method === 'GET') {
         const requestedValue = urlObj.searchParams.get('user')
         const requestedUsername = requestedValue == null ? null : getConfiguredUsername(requestedValue)
         const username = getCacheRequestUsername(req)
@@ -2985,7 +2977,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // 8. Get Cache Cover
-      if (pathname === '/api/music/cache/cover' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/cover' && req.method === 'GET') {
         const requestedValue = (req.headers['x-user-name'] as string) || urlObj.searchParams.get('user')
         const requestedUsername = requestedValue == null ? null : getConfiguredUsername(requestedValue)
         const urlToken = urlObj.searchParams.get('token')
@@ -3021,7 +3013,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // 9. Remove Cache File (Single or Batch)
-      if (pathname === '/api/music/cache/remove' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/remove' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3082,7 +3074,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [New] Batch Move Files between folders
-      if (pathname === '/api/music/cache/move' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/move' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401)
@@ -3109,7 +3101,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [New] WebDAV/Base Location switch
-      if (pathname === '/api/music/cache/switch-base' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/switch-base' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401)
@@ -3138,7 +3130,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
 
       // 10. Update Metadata (Batch)
-      if (pathname === '/api/music/cache/updateMetadata' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/updateMetadata' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3164,7 +3156,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Embed Lyric into Audio File Tags (USLT)
-      if (pathname === '/api/music/cache/embedLyric' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/embedLyric' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3303,7 +3295,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 11. Link Unindexed Local File
-      if (pathname === '/api/music/cache/link' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/link' && req.method === 'POST') {
         const verified = verifyUserAuth(req)
         if (!verified) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3332,7 +3324,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 12. Identify Local File (AcoustID)
-      if (pathname === '/api/music/identify' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/identify' && req.method === 'POST') {
         const verified = verifyUserAuth(req)
         if (!verified) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3374,7 +3366,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
 
       // [New] Fetch Lyrics
-      if (pathname === '/api/music/lyric' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/lyric' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source')
         // [Optimization] Accept multiple ID param names for better client compatibility
         let songmid = urlObj.searchParams.get('songmid') || urlObj.searchParams.get('songId') || urlObj.searchParams.get('id')
@@ -3464,7 +3456,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] File Cache Lyric APIs
-      if (pathname === '/api/music/cache/lyric' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/cache/lyric' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source')
         const songmid = urlObj.searchParams.get('songmid') || urlObj.searchParams.get('songId') || urlObj.searchParams.get('id')
         const songId = urlObj.searchParams.get('songId') || urlObj.searchParams.get('id')
@@ -3495,7 +3487,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/music/cache/lyric' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/cache/lyric' && req.method === 'POST') {
         const username = getCacheRequestUsername(req)
         if (!username) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -3523,7 +3515,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] Download Proxy API
-      if (pathname === '/api/music/download' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/download' && req.method === 'GET') {
         const urlToken = urlObj.searchParams.get('token')
         if (urlToken && !req.headers['x-user-token']) {
           (req.headers as any)['x-user-token'] = urlToken
@@ -3789,7 +3781,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname === '/api/data/delete-playlist' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/delete-playlist' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -3829,7 +3821,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 删除歌曲
-      if (pathname === '/api/data/delete-song' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/delete-song' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -3884,7 +3876,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // 重命名歌单
-      if (pathname === '/api/data/rename-playlist' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/rename-playlist' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -3939,7 +3931,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 批量删除歌曲
-      if (pathname === '/api/data/batch-delete-songs' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/data/batch-delete-songs' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -4003,7 +3995,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // 保留公共配置接口，兼容容器更新后仍缓存旧版脚本的浏览器。
-      if (pathname === '/api/music/config' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/config' && req.method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
@@ -4016,7 +4008,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 音乐搜索 API
-      if (pathname === '/api/music/search' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/search' && req.method === 'GET') {
         const name = urlObj.searchParams.get('name') || ''
         const singer = urlObj.searchParams.get('singer') || ''
         const source = urlObj.searchParams.get('source') || 'kw'
@@ -4085,7 +4077,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 搜索提示 (TipSearch) API
-      if (pathname === '/api/music/tipSearch' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/tipSearch' && req.method === 'GET') {
         const name = urlObj.searchParams.get('name') || ''
         const source = urlObj.searchParams.get('source') || 'kw'
         if (!name) {
@@ -4106,7 +4098,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 获取歌手详情 API
-      if (pathname === '/api/music/artistDetail' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/artistDetail' && req.method === 'GET') {
         const id = urlObj.searchParams.get('id')
         const source = urlObj.searchParams.get('source') || 'wy'
         if (!id) {
@@ -4123,7 +4115,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 获取歌手专辑列表 API
-      if (pathname === '/api/music/artistAlbums' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/artistAlbums' && req.method === 'GET') {
         const id = urlObj.searchParams.get('id')
         const source = urlObj.searchParams.get('source') || 'wy'
         const page = parseInt(urlObj.searchParams.get('page') || '1')
@@ -4141,7 +4133,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 获取歌手歌曲 API（循环拉取全部，前端分页）
-      if (pathname === '/api/music/artistSongs' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/artistSongs' && req.method === 'GET') {
         const id = urlObj.searchParams.get('id')
         const source = urlObj.searchParams.get('source') || 'wy'
         const order = urlObj.searchParams.get('order') || 'hot'
@@ -4171,7 +4163,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 获取专辑歌曲 API
-      if (pathname === '/api/music/albumSongs' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/albumSongs' && req.method === 'GET') {
         const id = urlObj.searchParams.get('id')
         const source = urlObj.searchParams.get('source') || 'wy'
         if (!id) {
@@ -4188,7 +4180,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 音乐解析进度 SSE 端点 (无需登录, 用 requestId 区分)
-      if (pathname === '/api/music/progress' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/progress' && req.method === 'GET') {
         const reqId = urlObj.searchParams.get('reqId')
         if (!reqId) {
           res.writeHead(400)
@@ -4211,7 +4203,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 音乐 URL API
-      if (pathname === '/api/music/url' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/url' && req.method === 'POST') {
         const clientUsername = req.headers['x-user-name'] as string | undefined
 
         const verifiedUsername = verifyUserAuth(req)
@@ -4316,7 +4308,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 音质真实大小 API
-      if (pathname === '/api/music/quality/size' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/quality/size' && req.method === 'POST') {
         const clientUsername = req.headers['x-user-name'] as string | undefined
 
         const verifiedUsername = verifyUserAuth(req)
@@ -4363,7 +4355,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 歌词 API
-      if (pathname === '/api/music/lyric' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/lyric' && req.method === 'POST') {
         void readBody(req).then(async body => {
           try {
             let { songInfo } = JSON.parse(body)
@@ -4388,7 +4380,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 热搜 API
-      if (pathname === '/api/music/hotSearch' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/hotSearch' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'mg'
 
         try {
@@ -4417,7 +4409,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 歌单分类标签 API
-      if (pathname === '/api/music/songList/tags' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/songList/tags' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'wy'
         try {
           if (!musicSdk[source] || !musicSdk[source].songList) {
@@ -4435,7 +4427,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // [新增] 歌单列表 API
-      if (pathname === '/api/music/songList/list' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/songList/list' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'wy'
         const tagId = urlObj.searchParams.get('tagId') || ''
         const sortId = urlObj.searchParams.get('sortId') || 'hot'
@@ -4455,7 +4447,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // [新增] 歌单详情 API
-      if (pathname === '/api/music/songList/detail' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/songList/detail' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'wy'
         const id = urlObj.searchParams.get('id')
         const page = parseInt(urlObj.searchParams.get('page') || '1')
@@ -4482,7 +4474,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // [新增] 歌单搜索 API
-      if (pathname === '/api/music/songList/search' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/songList/search' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'wy'
         const text = urlObj.searchParams.get('text')
         const page = parseInt(urlObj.searchParams.get('page') || '1')
@@ -4507,7 +4499,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 获取用户歌单 API
-      if (pathname === '/api/music/songList/userPlaylist' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/songList/userPlaylist' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'tx'
         const uid = urlObj.searchParams.get('uid')
         const page = parseInt(urlObj.searchParams.get('page') || '1')
@@ -4532,7 +4524,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 排行榜 - 获取榜单列表 API
-      if (pathname === '/api/music/leaderboard/boards' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/leaderboard/boards' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'kg'
         try {
           if (!musicSdk[source] || !musicSdk[source].leaderboard) {
@@ -4553,7 +4545,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 排行榜 - 获取榜单内歌曲 API
-      if (pathname === '/api/music/leaderboard/list' && req.method === 'GET') {
+      if (pathname === '/api/v1/player/music/leaderboard/list' && req.method === 'GET') {
         const source = urlObj.searchParams.get('source') || 'kg'
         const bangid = urlObj.searchParams.get('bangid')
         const page = parseInt(urlObj.searchParams.get('page') || '1')
@@ -4579,7 +4571,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 评论 API
-      if (pathname === '/api/music/comment' && req.method === 'POST') {
+      if (pathname === '/api/v1/player/music/comment' && req.method === 'POST') {
         void readBody(req).then(async body => {
           try {
             let { songInfo, type, page, limit } = JSON.parse(body)
@@ -4623,7 +4615,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       // 所有操作都绑定到当前通过 Token 验证的同步用户。
 
       // [新增] 管理员身份验证接口
-      if (pathname === '/api/admin/verify' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/verify' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth === global.lx.config['frontend.password']) {
           res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -4635,7 +4627,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      if (pathname.startsWith('/api/custom-source/')) {
+      if (pathname.startsWith('/api/v1/player/custom-source/')) {
         const username = verifyUserAuth(req)
         if (!username || !isConfiguredUsername(username)) {
           res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -4643,43 +4635,43 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           return
         }
 
-        if (pathname === '/api/custom-source/validate' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/validate' && req.method === 'POST') {
           return customSourceHandlers.handleValidate(req, res, username)
         }
-        if (pathname === '/api/custom-source/import' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/import' && req.method === 'POST') {
           return customSourceHandlers.handleImport(req, res, username)
         }
-        if (pathname === '/api/custom-source/upload' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/upload' && req.method === 'POST') {
           return customSourceHandlers.handleUpload(req, res, username)
         }
-        if (pathname === '/api/custom-source/list' && req.method === 'GET') {
+        if (pathname === '/api/v1/player/custom-source/list' && req.method === 'GET') {
           return customSourceHandlers.handleList(req, res, username)
         }
-        if (pathname === '/api/custom-source/toggle' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/toggle' && req.method === 'POST') {
           return customSourceHandlers.handleToggle(req, res, username)
         }
-        if (pathname === '/api/custom-source/platforms' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/platforms' && req.method === 'POST') {
           return customSourceHandlers.handlePlatforms(req, res, username)
         }
-        if (pathname === '/api/custom-source/delete' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/delete' && req.method === 'POST') {
           return customSourceHandlers.handleDelete(req, res, username)
         }
-        if (pathname === '/api/custom-source/reorder' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/reorder' && req.method === 'POST') {
           return customSourceHandlers.handleReorder(req, res, username)
         }
-        if (pathname === '/api/custom-source/share' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/share' && req.method === 'POST') {
           return customSourceHandlers.handleShare(req, res, username)
         }
-        if (pathname === '/api/custom-source/unshare' && req.method === 'POST') {
+        if (pathname === '/api/v1/player/custom-source/unshare' && req.method === 'POST') {
           return customSourceHandlers.handleUnshare(req, res, username)
         }
-        if (pathname === '/api/custom-source/users' && req.method === 'GET') {
+        if (pathname === '/api/v1/player/custom-source/users' && req.method === 'GET') {
           return customSourceHandlers.handleSharedUsers(req, res, username)
         }
       }
 
       // elFinder 文件管理器连接器
-      if (pathname === '/api/elfinder/connector') {
+      if (pathname === '/api/v1/admin/elfinder/connector') {
         // [修改] 优先从 Header 获取，如果没有则尝试从 URL 参数获取 (用于支持下载和预览)
         const auth = req.headers['x-frontend-auth'] || urlObj.searchParams.get('auth')
 
@@ -4839,7 +4831,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
 
       // Configuration API
-      if (pathname === '/api/config') {
+      if (pathname === '/api/v1/admin/config') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5049,7 +5041,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Test Proxy API
-      if (pathname === '/api/config/test-proxy' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/config/test-proxy' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5102,7 +5094,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Logs API
-      if (pathname === '/api/logs' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/logs' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5131,7 +5123,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Stats API
-      if (pathname === '/api/stats' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/stats' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5154,7 +5146,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // WebDAV Test Connection API
-      if (pathname === '/api/webdav/test' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/webdav/test' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5177,7 +5169,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // WebDAV Sync File API
-      if (pathname === '/api/webdav/sync-file' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/webdav/sync-file' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5214,7 +5206,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // WebDAV Backup API
-      if (pathname === '/api/webdav/backup' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/webdav/backup' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5239,7 +5231,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // WebDAV Sync All Files API
-      if (pathname === '/api/webdav/sync' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/webdav/sync' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5262,7 +5254,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // WebDAV Restore API
-      if (pathname === '/api/webdav/restore' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/webdav/restore' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5292,7 +5284,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // WebDAV Logs API
-      if (pathname === '/api/webdav/logs' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/webdav/logs' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5316,7 +5308,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // WebDAV Progress SSE API
-      if (pathname === '/api/webdav/progress' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/webdav/progress' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth'] || urlObj.searchParams.get('auth')
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5340,7 +5332,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // [新增] 本地备份下载 API
-      if (pathname === '/api/backup/download' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/backup/download' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth'] || urlObj.searchParams.get('auth')
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401); res.end('Unauthorized'); return
@@ -5375,7 +5367,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 本地备份还原 API
-      if (pathname === '/api/backup/upload' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/backup/upload' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401); res.end('Unauthorized'); return
@@ -5417,7 +5409,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // [新增] 管理重载 API
-      if (pathname === '/api/admin/reload' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/reload' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401); res.end('Unauthorized'); return
@@ -5434,7 +5426,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // Restart Server API
-      if (pathname === '/api/restart' && req.method === 'POST') {
+      if (pathname === '/api/v1/admin/restart' && req.method === 'POST') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5466,7 +5458,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
       // File Management - List Files
-      if (pathname === '/api/files' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/files' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5509,7 +5501,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // File Management - Download File
-      if (pathname === '/api/files/download' && req.method === 'GET') {
+      if (pathname === '/api/v1/admin/files/download' && req.method === 'GET') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5541,7 +5533,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // File Management - Create/Update File
-      if (pathname === '/api/files' && (req.method === 'POST' || req.method === 'PUT')) {
+      if (pathname === '/api/v1/admin/files' && (req.method === 'POST' || req.method === 'PUT')) {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)
@@ -5581,7 +5573,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       }
 
       // File Management - Delete File
-      if (pathname === '/api/files' && req.method === 'DELETE') {
+      if (pathname === '/api/v1/admin/files' && req.method === 'DELETE') {
         const auth = req.headers['x-frontend-auth']
         if (auth !== global.lx.config['frontend.password']) {
           res.writeHead(401)

@@ -64,7 +64,7 @@ export const cacheProgress: Map<string, { progress: number; status: string; tota
 export const activeTasks: Map<string, Array<{ songKey: string, controller: AbortController }>> = new Map()
 
 // [新增] 歌词获取钩子：由 server.ts 在启动时注入，避免 fileCache 直接依赖 musicSdk
-// 调用时会通过 /api/music/lyric 接口逻辑（先查本地 .lrc 缓存，再去源站）获取歌词文本
+// 调用时会通过 /api/v1/player/music/lyric 接口逻辑（先查本地 .lrc 缓存，再去源站）获取歌词文本
 type LyricFetcher = (songInfo: any) => Promise<string | null>
 let _lyricFetcher: LyricFetcher | null = null
 export const setLyricFetcher = (fn: LyricFetcher) => { _lyricFetcher = fn }

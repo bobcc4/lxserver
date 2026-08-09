@@ -530,7 +530,7 @@ export class ElFinderConnector {
     private async cmdUrl(params: any): Promise<any> {
         const target = this.decode(params.target)
         const relative = path.relative(this.root, target)
-        // 构造一个指向 /api/files/download 的 URL，或者直接指向静态资源
+        // 构造一个指向 /api/v1/admin/files/download 的 URL，或者直接指向静态资源
         // 这里我们使用 connector 的 file 命令
         // 注意：这里无法直接获取 auth，所以前端最好配置 url 选项
         // 但如果前端请求 url 命令，我们返回一个带 path 的链接
