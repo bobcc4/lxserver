@@ -15,7 +15,7 @@ if (typeof (global as any).navigator === 'undefined') {
   (global as any).navigator = { userAgent: 'node.js' }
 }
 
-import { initLogger } from '@/utils/log4js'
+import { initLogger, sanitizeLogText } from '@/utils/log4js'
 import defaultConfig from './defaultConfig'
 import { ENV_PARAMS, File } from './constants'
 import { checkAndCreateDirSync } from './utils'
@@ -25,6 +25,10 @@ import { normalizeUsername, validateUsername } from './utils/username'
 type ENV_PARAMS_Type = typeof ENV_PARAMS
 type ENV_PARAMS_Value_Type = ENV_PARAMS_Type[number]
 
+const formatEnvLogValue = (key: string, value: unknown) => {
+  if (/PASSWORD|TOKEN|SECRET/i.test(key) || key.startsWith('LX_USER_')) return 'REDACTED'
+  return sanitizeLogText(String(value))
+}
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err)
@@ -58,7 +62,7 @@ const envParamKeys = Object.values(ENV_PARAMS).filter(v => v != 'LX_USER_')
         }
         return false
       }),
-  ].map(([e, v]) => `${e}: ${v as string}`)
+  ].map(([e, v]) => `${e}: ${formatEnvLogValue(e, v)}`)
   if (envLog.length) console.log(`Load env: \n  ${envLog.join('\n  ')}`)
 }
 
@@ -102,7 +106,7 @@ const mergeConfigFileEnv = (config: Partial<Record<ENV_PARAMS_Value_Type, string
     let value = String(v)
     if (envParamKeys.includes(envKey)) {
       if (envParams[envKey] == null) {
-        envLog.push(`${envKey}: ${value}`)
+        envLog.push(`${envKey}: ${formatEnvLogValue(envKey, value)}`)
         envParams[envKey] = value
       }
     } else if (envKey.startsWith('LX_USER_') && value) {
@@ -112,7 +116,7 @@ const mergeConfigFileEnv = (config: Partial<Record<ENV_PARAMS_Value_Type, string
           name,
           password: value,
         })
-        envLog.push(`${envKey}: ${value}`)
+        envLog.push(`${envKey}: ${formatEnvLogValue(envKey, value)}`)
       }
     }
   }
@@ -316,6 +320,7 @@ const checkUserConfig = (users: LX.Config['users']): ReturnType<typeof validateU
 checkAndCreateDir(global.lx.logPath)
 checkAndCreateDir(global.lx.dataPath)
 checkAndCreateDir(global.lx.userPath)
+initLogger()
 
 // Load users from users.json if exists
 const usersJsonPath = path.join(global.lx.dataPath, 'users.json')
@@ -334,9 +339,7 @@ if (fs.existsSync(usersJsonPath)) {
 const preparedUsers = checkUserConfig(global.lx.config.users)
 global.lx.config.users = preparedUsers.users
 
-console.log(`Users:
-${global.lx.config.users.map(user => `  ${user.name}: ${user.password}`).join('\n') || '  No User'}
-`)
+console.log(`Configured users (${global.lx.config.users.length}): ${global.lx.config.users.map(user => user.name).join(', ') || 'none'}`)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { getUserDirname, migrateUserData } = require('@/user')
 for (const rename of preparedUsers.renames) {
@@ -358,9 +361,6 @@ try {
 } catch (err) {
   console.error('Failed to save users.json', err)
 }
-
-initLogger()
-
 
 /**
  * Normalize a port into a number, string, or false.

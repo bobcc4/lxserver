@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { getAddress, getIP } from '@/utils/tools'
-import { accessLog, startupLog, loginLog, tokenLog } from '@/utils/log4js'
+import { accessLog, startupLog, loginLog, tokenLog, sanitizeAccessUrl } from '@/utils/log4js'
 import { File } from '@/constants'
 import { getUserSpace, getServerId, getUserDirname, getUserSourcePath, migrateUserData, renameUserSpace, finishRenameUserSpace } from '@/user'
 import { ElFinderConnector, getSystemRoot } from './elfinderConnector'
@@ -851,15 +851,37 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
     res.setHeader('Access-Control-Allow-Headers', '*')
     res.setHeader('Access-Control-Allow-Private-Network', 'true')
 
+    const ip = getIP(req)
+    const startedAt = process.hrtime.bigint()
+    const requestUrl = sanitizeAccessUrl(req.url)
+    const requestUserAgent = String(req.headers['user-agent'] ?? '-')
+      .replace(/[\r\n]+/g, ' ')
+      .slice(0, 200)
+    let accessLogged = false
+    const writeAccessLog = (closedEarly = false) => {
+      if (accessLogged) return
+      accessLogged = true
+
+      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000
+      const requestBytes = req.headers['content-length'] ?? '-'
+      const responseBytes = res.getHeader('content-length') ?? '-'
+      const message = `${req.method ?? 'UNKNOWN'} ${requestUrl} status=${res.statusCode} duration=${durationMs.toFixed(1)}ms requestBytes=${requestBytes} responseBytes=${responseBytes} ip=${ip} ua=${JSON.stringify(requestUserAgent)}${closedEarly ? ' closedEarly=true' : ''}`
+
+      if (res.statusCode >= 500) accessLog.error(message)
+      else if (res.statusCode >= 400) accessLog.warn(message)
+      else accessLog.info(message)
+    }
+    res.once('finish', () => writeAccessLog())
+    res.once('close', () => {
+      if (!res.writableFinished) writeAccessLog(true)
+    })
+
     if (req.method === 'OPTIONS') {
       res.writeHead(204)
       res.end()
       return
     }
 
-    const ip = getIP(req)
-    accessLog.info(`${req.method} ${req.url} from ${ip}`)
-    // console.log(req.url)
     const urlObj = new URL(req.url ?? '', `http://${req.headers.host}`)
     const pathname = urlObj.pathname
     const apiNamespace = classifyApiNamespace(pathname)
@@ -990,11 +1012,11 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           try {
             const { password } = JSON.parse(body)
             if (password === global.lx.config['frontend.password']) {
-              loginLog.info(`Admin login success from ${ip}`)
+              loginLog.info(`Admin login success ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true }))
             } else {
-              loginLog.warn(`Admin login failed from ${ip}`)
+              loginLog.warn(`Admin login failed ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(401, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: false }))
             }
@@ -1690,11 +1712,11 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             const normalizedUsername = tryNormalizeUsername(username)
             const user = global.lx.config.users.find(u => u.name === normalizedUsername && u.password === password)
             if (user) {
-              loginLog.info(`User login success: ${user.name} from ${ip}`)
+              loginLog.info(`User login success user=${user.name} ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true, username: user.name }))
             } else {
-              loginLog.warn(`User login failed: ${username} from ${ip}`)
+              loginLog.warn(`User login failed user=${username} ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(401, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: false, message: 'Invalid credentials' }))
             }
@@ -1721,11 +1743,11 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             if (user) {
               const token = generateSessionId()
               userSessions.set(token, { username: user.name, createdAt: Date.now() })
-              loginLog.info(`User token issued: ${user.name} from ${ip}`)
+              loginLog.info(`User token issued user=${user.name} ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true, token, username: user.name }))
             } else {
-              loginLog.warn(`User login failed: ${username} from ${ip}`)
+              loginLog.warn(`User login failed user=${username} ip=${ip} ua=${JSON.stringify(requestUserAgent)}`)
               res.writeHead(401, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: false, message: 'Invalid credentials' }))
             }
@@ -2076,7 +2098,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
               if (config.enabled !== newEnabled) {
                 config.enabled = newEnabled
                 saveUserTokenConfig(username, config) // 这里内部会自动更新内存缓存逻辑
-                tokenLog.info(`User ${username} ${newEnabled ? 'enabled' : 'disabled'} persistent token auth`)
+                tokenLog.info(`User ${username} ${newEnabled ? 'enabled' : 'disabled'} persistent token auth from ${ip}`)
               }
 
               res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -2113,7 +2135,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             }
             config.tokens.push(newToken)
             saveUserTokenConfig(username, config)
-            tokenLog.info(`User ${username} generated a new token: ${name}`)
+            tokenLog.info(`User ${username} generated a new token: ${name} from ${ip}`)
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success: true, token: newTokenValue }))
           } catch (e: any) {
@@ -2158,7 +2180,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
             if (config.tokens.length !== initialCount) {
               saveUserTokenConfig(username, config)
-              tokenLog.info(`User ${username} removed a token identifier: ${target.length > 20 ? target.slice(0, 10) + '...' : target}`)
+              tokenLog.info(`User ${username} removed a token identifier: ${target.length > 20 ? target.slice(0, 10) + '...' : target} from ${ip}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true }))
             } else {
@@ -2200,7 +2222,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 tokenItem.expiresAt = expireDays ? Date.now() + (expireDays * 24 * 60 * 60 * 1000) : null
               }
               saveUserTokenConfig(username, config)
-              tokenLog.info(`User ${username} updated token config: ${tokenMasked}`)
+              tokenLog.info(`User ${username} updated token config: ${tokenMasked} from ${ip}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true }))
             } else {
@@ -2236,7 +2258,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             if (tokenItem) {
               tokenItem.disabled = !!disabled
               saveUserTokenConfig(username, config)
-              tokenLog.info(`User ${username} ${disabled ? 'disabled' : 'enabled'} token: ${tokenMasked}`)
+              tokenLog.info(`User ${username} ${disabled ? 'disabled' : 'enabled'} token: ${tokenMasked} from ${ip}`)
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true }))
             } else {
@@ -5008,8 +5030,15 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           return
         }
 
+        const allowedLogTypes = new Set(['app', 'access', 'login', 'token', 'errors'])
         const logType = urlObj.searchParams.get('type') || 'app'
-        const lines = parseInt(urlObj.searchParams.get('lines') || '100')
+        if (!allowedLogTypes.has(logType)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Invalid log type' }))
+          return
+        }
+        const requestedLines = parseInt(urlObj.searchParams.get('lines') || '100')
+        const lines = Number.isFinite(requestedLines) ? Math.min(Math.max(requestedLines, 1), 2000) : 100
         const logFile = path.join(global.lx.logPath, `${logType}.log`)
 
         fs.readFile(logFile, 'utf-8', (err, content) => {

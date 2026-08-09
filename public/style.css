@@ -1010,9 +1010,13 @@ body {
 
 /* =============== 日志查看 =============== */
 .logs-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 1.5rem;
     max-height: 600px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .log-line {
@@ -1021,6 +1025,9 @@ body {
     padding: 0.375rem 0;
     color: var(--text-secondary);
     line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .log-line:hover {
