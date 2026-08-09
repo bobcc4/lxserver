@@ -126,12 +126,12 @@
         }
     </style>
     <script>
-        // 动态确定管理后台基础路径，适配自定义 admin.path
+        // 文件管理器固定挂载在 /admin 下。
         (function () {
             var pathname = window.location.pathname.replace(/\/+$/, '');
             var suffix = '/filemanager.html';
             var adminPath = pathname.endsWith(suffix) ? pathname.slice(0, -suffix.length) : pathname;
-            window.FILE_MANAGER_ADMIN_HOME = adminPath || '/';
+            window.FILE_MANAGER_ADMIN_HOME = adminPath || '/admin';
 
             var baseHref = (adminPath || '') + '/';
             var baseTag = document.createElement('base');

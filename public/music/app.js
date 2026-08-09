@@ -1061,14 +1061,14 @@ async function loadAboutContent() {
     if (!aboutContainer) return;
 
     try {
-        const response = await fetch('/music/about.md');
+        const response = await fetch('/_player/about.md');
         if (!response.ok) throw new Error('Failed to load about.md');
         const text = await response.text();
 
         // Render Markdown
         if (window.marked) {
             // Replace {{version}} and {{buildHash}} placeholder
-            const version = (window.CONFIG && window.CONFIG.version) || 'v1.4.0';
+            const version = (window.CONFIG && window.CONFIG.version) || 'v1.5.0';
             const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
             let content = text.replace(/{{version}}/g, version);
             content = content.replace(/{{buildHash}}/g, buildHash);
@@ -1212,7 +1212,7 @@ function renderQueue() {
                 
                 <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative">
                     <img src="${getImgUrl(song)}" 
-                         onerror="this.src='/music/assets/logo.svg'" 
+                         onerror="this.src='/_player/assets/logo.svg'"
                          loading="lazy" fetchpriority="low"
                          class="w-full h-full object-cover">
                     ${isActive ? '<div class="absolute inset-0 bg-emerald-500/20 flex items-center justify-center"><div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div></div>' : ''}
@@ -1858,8 +1858,8 @@ function renderSingerResults(list) {
         div.innerHTML = `
             <div class="relative mb-2 md:mb-3">
                 <div class="w-16 h-16 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-sm">
-                    <img src="${singer.picUrl || '/music/assets/logo.svg'}"
-                         onerror="this.src='/music/assets/logo.svg'"
+                    <img src="${singer.picUrl || '/_player/assets/logo.svg'}"
+                         onerror="this.src='/_player/assets/logo.svg'"
                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                 </div>
                 <button id="singer-fav-${singer.id}" class="absolute -top-1 -right-1 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center transition-all shadow-md z-10 ${isArtistFavorited(singer.id, singer.source || 'wy') ? 'bg-rose-500 text-white opacity-100' : 'bg-black/30 text-white opacity-0 group-hover:opacity-100'}"
@@ -1900,8 +1900,8 @@ function renderAlbumResults(list) {
         const publishDate = item.publishTime ? new Date(item.publishTime).toLocaleDateString() : '';
         div.innerHTML = `
             <div class="aspect-square rounded-xl overflow-hidden shadow-md mb-3 relative">
-                <img src="${item.picUrl || '/music/assets/logo.svg'}"
-                     onerror="this.src='/music/assets/logo.svg'"
+                <img src="${item.picUrl || '/_player/assets/logo.svg'}"
+                     onerror="this.src='/_player/assets/logo.svg'"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                 <button id="album-fav-${item.id}" class="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm ${isAlbumFavorited(item.id, item.source || 'wy') ? 'bg-rose-500 text-white opacity-100' : 'bg-black/30 text-white opacity-0 group-hover:opacity-100'}"
                         title="${isAlbumFavorited(item.id, item.source || 'wy') ? '取消收藏' : '收藏专辑'}"
@@ -2053,8 +2053,8 @@ function renderArtistHeader(info, activeTab, order) {
 
             <div id="artist-main-layout" class="flex flex-col md:flex-row gap-6 md:gap-8 ${isArtistFolded && isMobile ? 'items-start text-left' : 'items-center md:items-start text-center md:text-left'} transition-all duration-500">
                 <div id="artist-avatar-container" class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden shadow-2xl ring-4 ring-emerald-500/20 flex-shrink-0 transition-all duration-500 origin-center" style="${isArtistFolded ? 'transform: scale(0); opacity: 0; width: 0; height: 0; margin: 0;' : ''}">
-                    <img src="${info.avatar || '/music/assets/logo.svg'}" 
-                         onerror="this.src='/music/assets/logo.svg'"
+                    <img src="${info.avatar || '/_player/assets/logo.svg'}"
+                         onerror="this.src='/_player/assets/logo.svg'"
                          class="w-full h-full object-cover">
                 </div>
                 <div class="flex-1 min-w-0">
@@ -2330,8 +2330,8 @@ function renderArtistSongsUI(list, page) {
                     <!-- Title -->
                     <div class="col-span-9 sm:col-span-7 md:col-span-6 lg:col-span-4 flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm relative">
-                            <img src="${item.img || '/music/assets/logo.svg'}" 
-                                 onerror="this.src='/music/assets/logo.svg'" 
+                            <img src="${item.img || '/_player/assets/logo.svg'}"
+                                 onerror="this.src='/_player/assets/logo.svg'"
                                  class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                 <i class="fas fa-play text-white text-xs"></i>
@@ -2530,7 +2530,7 @@ function renderArtistAlbumsUI(list) {
                 <div class="artist-album-card group flex flex-col p-3 rounded-2xl transition-all hover:t-bg-panel hover:shadow-lg cursor-pointer border border-transparent hover:border-emerald-500/20" data-album-index="${index}">
                     <div class="aspect-square rounded-xl overflow-hidden shadow-md mb-3 relative bg-gray-100 dark:bg-gray-800">
                         <img src="${escapeHtmlText(getImgUrl(album))}"
-                             onerror="this.src='/music/assets/logo.svg'" 
+                             onerror="this.src='/_player/assets/logo.svg'"
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                              <div class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
@@ -2745,7 +2745,7 @@ window.enterArtist = enterArtist;
 
 // Helper for loose image paths
 function getImgUrl(item) {
-    if (!item) return '/music/assets/logo.svg';
+    if (!item) return '/_player/assets/logo.svg';
     const s = item;
     // 优先从标准 meta 获取
     if (s.meta && s.meta.picUrl) return s.meta.picUrl;
@@ -2754,7 +2754,7 @@ function getImgUrl(item) {
         (s.album && (s.album.picUrl || s.album.img || s.album.pic)) ||
         (s.al && (s.al.picUrl || s.al.img)) ||
         (s.meta && (s.meta.img || s.meta.pic)) ||
-        '/music/assets/logo.svg';
+        '/_player/assets/logo.svg';
 }
 
 // List search logic is now handled by ListSearch service in list_search.js
@@ -2886,11 +2886,11 @@ function renderResults(list) {
             <!-- Title (Image + Text) -->
             <div class="col-span-9 sm:col-span-7 md:col-span-6 ${titleLgSpan} flex items-center overflow-hidden pr-2">
                 <div class="relative w-10 h-10 md:w-12 md:h-12 mr-3 md:mr-4 flex-shrink-0 group cursor-pointer">
-                     <img data-src="${imgUrl}" src="/music/assets/logo.svg" 
+                     <img data-src="${imgUrl}" src="/_player/assets/logo.svg"
                           loading="lazy" fetchpriority="low"
                           class="lazy-image w-full h-full rounded-lg object-cover shadow-sm group-hover:shadow-md transition-all group-hover:scale-105 duration-300 dynamic-logo is-placeholder" 
                           alt="${item.name}"
-                          onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');">
+                          onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');">
                      <div class="absolute inset-0 bg-black/20 rounded-lg hidden group-hover:flex items-center justify-center transition-all">
                         <i class="fas fa-play text-white text-xs md:text-sm"></i>
                      </div>
@@ -3049,7 +3049,7 @@ function lazyLoadImages(root = document) {
             img.removeAttribute('data-src');
         };
         img.onerror = () => {
-            img.src = '/music/assets/logo.svg';
+            img.src = '/_player/assets/logo.svg';
             img.classList.add('is-placeholder');
             img.removeAttribute('data-src');
         };
@@ -4821,7 +4821,7 @@ window.setImg = (id, src) => {
 
         if (src) el.src = src;
         el.onerror = () => {
-            el.src = '/music/assets/logo.svg';
+            el.src = '/_player/assets/logo.svg';
             el.classList.add('is-placeholder');
         };
     }
@@ -6477,7 +6477,7 @@ function renderCacheList() {
             || localStorage.getItem('lx_user_token') || '';
         const coverUrl = item.hasCover
             ? `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`
-            : '/music/assets/logo.svg';
+            : '/_player/assets/logo.svg';
 
         return `
             <div class="group flex items-center p-2.5 rounded-2xl hover:t-bg-panel-light transition-all duration-300 gap-3 border border-transparent 
@@ -6496,7 +6496,7 @@ function renderCacheList() {
                 <div class="relative w-12 h-12 flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
                     <img class="w-full h-full object-cover rounded-xl shadow-md bg-gray-100" 
                          src="${coverUrl}" 
-                         onerror="this.src='/music/assets/logo.svg'">
+                         onerror="this.src='/_player/assets/logo.svg'">
                     <div class="absolute inset-0 bg-black/5 rounded-xl"></div>
                 </div>
 
@@ -7999,8 +7999,8 @@ function renderLibraryArtists(list) {
         div.innerHTML = `
             <div class="relative mb-2 md:mb-3">
                 <div class="w-16 h-16 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-sm">
-                    <img src="${singer.picUrl || '/music/assets/logo.svg'}"
-                         onerror="this.src='/music/assets/logo.svg'"
+                    <img src="${singer.picUrl || '/_player/assets/logo.svg'}"
+                         onerror="this.src='/_player/assets/logo.svg'"
                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="lib-batch-check absolute inset-0 bg-black/40 hidden items-center justify-center rounded-full">
@@ -8082,8 +8082,8 @@ function renderLibraryAlbums(list) {
         };
         div.innerHTML = `
             <div class="aspect-square rounded-xl overflow-hidden shadow-md mb-3 relative">
-                <img src="${item.picUrl || '/music/assets/logo.svg'}"
-                     onerror="this.src='/music/assets/logo.svg'"
+                <img src="${item.picUrl || '/_player/assets/logo.svg'}"
+                     onerror="this.src='/_player/assets/logo.svg'"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                 <div class="lib-batch-check absolute inset-0 bg-black/40 hidden items-center justify-center rounded-xl">
                     <i class="fas fa-check-circle text-white text-3xl"></i>
@@ -11303,7 +11303,7 @@ function createCommentItemHTML(comment, isReply = false) {
     const location = comment.location ? ` • ${comment.location}` : '';
 
     // 头像处理
-    const defaultAvatar = '/music/assets/logo.svg';
+    const defaultAvatar = '/_player/assets/logo.svg';
     const avatar = comment.avatar || defaultAvatar;
     const isDefault = avatar.includes('logo.svg') || !comment.avatar;
     const avatarClass = `w-8 h-8 md:w-10 md:h-10 rounded-full shadow-sm hover:scale-110 transition-transform t-bg-main flex-shrink-0 object-cover ${isDefault ? 'dynamic-logo is-placeholder p-1.5' : ''}`;
@@ -11322,7 +11322,7 @@ function createCommentItemHTML(comment, isReply = false) {
             <img src="${avatar}" 
                  loading="lazy" fetchpriority="low"
                  class="${avatarClass}" 
-                 onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='/music/assets/logo.svg';this.classList.add('dynamic-logo','is-placeholder','p-1.5','bg-emerald-50');this.style.filter='var(--logo-filter, none)';}">
+                 onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src='/_player/assets/logo.svg';this.classList.add('dynamic-logo','is-placeholder','p-1.5','bg-emerald-50');this.style.filter='var(--logo-filter, none)';}">
             <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-1">
                     <span class="text-xs md:text-sm font-black t-text-main truncate">${comment.userName}</span>

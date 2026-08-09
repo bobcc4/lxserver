@@ -1,6 +1,6 @@
 # Web Player Usage Guide
 
-Yinyun provides a modern Web music player at `/music` for remote playback, search, downloads, and multi-device synchronization.
+Yinyun provides a modern Web music player at `/` for remote playback, search, downloads, and multi-device synchronization. The management console is available at `/admin`; the former `/music` Web route was removed in v1.5.0.
 
 ## Core Feature List
 
@@ -21,7 +21,7 @@ Functions currently supported by the Web player:
 ## Access the Player
 
 Default access address:
-**Example**: `http://IP:9527/music`
+**Example**: `http://IP:9527/`
 
 Sign in with a sync account to load and isolate playlists, custom sources, downloads, and personal settings. The management dashboard uses a separate administrator password. For public access, enable HTTPS and additional access control at the reverse proxy.
 

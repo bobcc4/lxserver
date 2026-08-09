@@ -875,78 +875,61 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
     if (apiNamespace === 'native' && await handleApiV1(req, res, urlObj)) return
 
-    // 读取路径配置（每次请求都重新读取，保存后立刻生效）
+    // Fixed Web entry points and static asset namespaces.
     const normalizePath = (p: string) => (p || '').replace(/\/+$/, '')
-    const playerPath = global.lx.config['player.path'] ?? '/music'
-    const adminPath = global.lx.config['admin.path'] ?? ''
-
-    // 映射播放器逻辑 (无论是自定义路径还是前端硬编码的 /music/)
-    const isPlayerRequest = (playerPath === '/' || playerPath === '')
-      ? (pathname === '/' || (apiNamespace === 'none' && !pathname.startsWith('/rest/') && (adminPath === '' || (pathname !== adminPath && !pathname.startsWith(adminPath + '/')))))
-      : (pathname.startsWith(playerPath + '/') || pathname === playerPath)
-
-    // [新增] 映射管理后台逻辑
-    const isAdminRequest = adminPath && (pathname.startsWith(adminPath + '/') || pathname === adminPath)
-
-    if (isAdminRequest) {
-      if (pathname === adminPath) {
-        res.writeHead(301, { 'Location': pathname + '/' })
-        res.end()
-        return
-      }
-      const subPath = pathname.slice(adminPath.length)
-      let targetPath = ''
-      if (subPath === '/' || subPath === '') {
-        targetPath = 'index.html'
-      } else {
-        targetPath = subPath.startsWith('/') ? subPath.slice(1) : subPath
-      }
-      const filePath = path.join(global.lx.staticPath, targetPath)
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        serveStatic(req, res, filePath)
-        return
-      }
+    const staticRoot = path.resolve(global.lx.staticPath)
+    const servePublicFile = (relativePath: string) => {
+      const filePath = path.resolve(staticRoot, relativePath)
+      if (filePath !== staticRoot && !filePath.startsWith(`${staticRoot}${path.sep}`)) return false
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return false
+      serveStatic(req, res, filePath)
+      return true
     }
 
-    const isLegacyPlayerAsset = playerPath !== '/music' && (
-      pathname.startsWith('/music/assets/') ||
-      pathname.startsWith('/music/css/') ||
-      pathname.startsWith('/music/js/') ||
-      pathname.startsWith('/music/fonts/') ||
-      pathname.startsWith('/music/img/') ||
-      pathname === '/music/manifest.json' ||
-      pathname === '/music/sw.js'
-    )
+    // v1.5.0 uses fixed entry points. The former /music web route is intentionally removed.
+    if (pathname === '/music' || pathname.startsWith('/music/')) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end('Not Found')
+      return
+    }
 
-    if (isPlayerRequest || isLegacyPlayerAsset) {
-      const activePrefix = isPlayerRequest ? playerPath : '/music'
-      const normalizedPrefix = (activePrefix === '/' || activePrefix === '') ? '' : activePrefix.replace(/\/+$/, '')
-      // 规范化物理路径
-      let targetPath = pathname
-      // 将请求路径中的前缀映射到真实的 /music 物理目录
-      if (pathname === activePrefix && activePrefix !== '/') {
-        res.writeHead(301, { 'Location': pathname + '/' })
-        res.end()
+    if (pathname === '/admin') {
+      res.writeHead(308, { Location: '/admin/' })
+      res.end()
+      return
+    }
+
+    if (pathname === '/admin/' || pathname.startsWith('/admin/')) {
+      const subPath = pathname === '/admin/' ? 'index.html' : pathname.slice('/admin/'.length)
+      if (subPath === 'music' || subPath.startsWith('music/')) {
+        res.writeHead(404)
+        res.end('Not Found')
         return
       }
+      if (servePublicFile(subPath)) return
+      res.writeHead(404)
+      res.end('Not Found')
+      return
+    }
 
-      const subPath = pathname.slice(normalizedPrefix.length)
-      if (subPath === '/' || subPath === '') {
-        targetPath = 'music/index.html'
-      } else {
-        // [优化] 如果根路径是播放器，且请求已经包含 /music/ 前缀，则不再重复叠加
-        if ((activePrefix === '/' || activePrefix === '') && subPath.startsWith('/music/')) {
-          targetPath = subPath.slice(1)
-        } else {
-          targetPath = path.posix.join('music', subPath.startsWith('/') ? subPath.slice(1) : subPath)
-        }
-      }
+    if (pathname === '/' || pathname === '/index.html') {
+      if (servePublicFile('music/index.html')) return
+    }
 
-      const filePath = path.join(global.lx.staticPath, targetPath)
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        serveStatic(req, res, filePath)
-        return
-      }
+    if (pathname === '/manifest.json') {
+      if (servePublicFile('music/manifest.json')) return
+    }
+
+    if (pathname === '/sw.js') {
+      if (servePublicFile('music/sw.js')) return
+    }
+
+    if (pathname.startsWith('/_player/')) {
+      const subPath = pathname.slice('/_player/'.length)
+      if (subPath && servePublicFile(path.posix.join('music', subPath))) return
+      res.writeHead(404)
+      res.end('Not Found')
+      return
     }
 
     // [动态配置注入] 优先拦截 /js/config.js 请求，确保后端配置能注入到前端 window.CONFIG
@@ -977,8 +960,8 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         'list.addMusicLocationType': global.lx.config['list.addMusicLocationType'],
         port: global.lx.config.port,
         bindIP: global.lx.config.bindIP,
-        'admin.path': global.lx.config['admin.path'] ?? '',
-        'player.path': global.lx.config['player.path'] ?? '/music',
+        'admin.path': '/admin',
+        'player.path': '/',
       }
 
       const configJs = `window.CONFIG = ${JSON.stringify(frontendConfig, null, 2)};`
@@ -988,36 +971,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
       })
       res.end(configJs)
       return
-    }
-
-    // [管理界面]
-    const effectiveAdminPath = adminPath || '/'
-    const isAdminPath = (pathname === effectiveAdminPath || pathname === effectiveAdminPath + '/' || pathname === effectiveAdminPath + '/index.html')
-
-    if (isAdminPath) {
-      const rootHtmlPath = path.join(global.lx.staticPath, 'index.html')
-      if (fs.existsSync(rootHtmlPath)) {
-        serveStatic(req, res, rootHtmlPath)
-        return
-      }
-    }
-
-    // 注意：如果设置了 adminPath，则不允许通过 / 直接访问后台资源文件，除非它是公共资源
-    if (apiNamespace === 'none') {
-      const generalFilePath = path.join(global.lx.staticPath, pathname)
-      // 禁止绕过 adminPath 直接访问后台 index.html
-      if (pathname === '/' || pathname === '/index.html') {
-        if (adminPath !== '' && playerPath !== '/') {
-          res.writeHead(404)
-          res.end('Not Found')
-          return
-        }
-      }
-
-      if (fs.existsSync(generalFilePath) && fs.statSync(generalFilePath).isFile()) {
-        serveStatic(req, res, generalFilePath)
-        return
-      }
     }
 
     // [Subsonic API]
@@ -3994,19 +3947,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         return
       }
 
-      // 保留公共配置接口，兼容容器更新后仍缓存旧版脚本的浏览器。
-      if (pathname === '/api/v1/player/music/config' && req.method === 'GET') {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        })
-        res.end(JSON.stringify({
-          'user.enableLoginCacheRestriction': global.lx.config['user.enableLoginCacheRestriction'] || false,
-          'player.path': global.lx.config['player.path'] ?? '/music',
-        }))
-        return
-      }
-
       // [新增] 音乐搜索 API
       if (pathname === '/api/v1/player/music/search' && req.method === 'GET') {
         const name = urlObj.searchParams.get('name') || ''
@@ -4860,8 +4800,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             'sync.backupInterval': global.lx.config['sync.backupInterval'] || 24,
             'proxy.all.enabled': global.lx.config['proxy.all.enabled'] || false,
             'proxy.all.address': global.lx.config['proxy.all.address'] || '',
-            'admin.path': global.lx.config['admin.path'] ?? '',
-            'player.path': global.lx.config['player.path'] ?? '/music',
             'subsonic.enable': global.lx.config['subsonic.enable'] ?? true,
             'subsonic.path': global.lx.config['subsonic.path'] ?? '/rest',
             'subsonic.enableDebug': global.lx.config['subsonic.enableDebug'] ?? true,
@@ -4909,36 +4847,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
               if (newConfig['sync.backupInterval'] !== undefined) global.lx.config['sync.backupInterval'] = parseInt(newConfig['sync.backupInterval']) || 24
               if (newConfig['proxy.all.enabled'] !== undefined) global.lx.config['proxy.all.enabled'] = newConfig['proxy.all.enabled']
               if (newConfig['proxy.all.address'] !== undefined) global.lx.config['proxy.all.address'] = newConfig['proxy.all.address']
-
-              if (newConfig['admin.path'] !== undefined || newConfig['player.path'] !== undefined) {
-                const adminPath = (newConfig['admin.path'] !== undefined ? newConfig['admin.path'] : (global.lx.config['admin.path'] ?? ''))
-                const playerPath = (newConfig['player.path'] !== undefined ? newConfig['player.path'] : (global.lx.config['player.path'] ?? '/music'))
-                const normalizedAdmin = adminPath.replace(/\/+$/, '')
-                const normalizedPlayer = playerPath.replace(/\/+$/, '')
-
-                if (!playerPath || !playerPath.startsWith('/')) {
-                  res.writeHead(422, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ success: false, error: '播放器路径不能为空且必须以 / 开头' }))
-                  return
-                }
-                if (normalizedAdmin !== '' && !normalizedAdmin.startsWith('/')) {
-                  res.writeHead(422, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ success: false, error: '后台路径必须以 / 开头或为空' }))
-                  return
-                }
-                if ((normalizedAdmin || '/') === (normalizedPlayer || '/')) {
-                  res.writeHead(422, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ success: false, error: '后台管理路径与播放器路径不能相同' }))
-                  return
-                }
-                if (normalizedAdmin.startsWith('/api') || normalizedPlayer.startsWith('/api')) {
-                  res.writeHead(422, { 'Content-Type': 'application/json' })
-                  res.end(JSON.stringify({ success: false, error: '路径不能以 /api 开头' }))
-                  return
-                }
-                global.lx.config['admin.path'] = normalizedAdmin
-                global.lx.config['player.path'] = normalizedPlayer
-              }
 
               // 新增：Subsonic 配置保存逻辑
               if (newConfig['subsonic.enable'] !== undefined) global.lx.config['subsonic.enable'] = newConfig['subsonic.enable']
@@ -4999,8 +4907,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 'sync.backupInterval': global.lx.config['sync.backupInterval'],
                 'proxy.all.enabled': global.lx.config['proxy.all.enabled'],
                 'proxy.all.address': global.lx.config['proxy.all.address'],
-                'admin.path': global.lx.config['admin.path'] ?? '',
-                'player.path': global.lx.config['player.path'] ?? '/music',
                 'subsonic.enable': global.lx.config['subsonic.enable'],
                 'subsonic.path': global.lx.config['subsonic.path'],
                 'subsonic.enableDebug': global.lx.config['subsonic.enableDebug'],
@@ -5611,24 +5517,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
     }
 
-    // Serve the admin UI and other static assets.
-    if (global.lx.config['admin.path'] && (pathname === '/' || pathname === '/index.html')) {
-      res.writeHead(404)
-      res.end('Not Found')
-      return
-    }
-
-    const publicRoot = path.join(process.cwd(), 'public')
-    const filePath = path.join(publicRoot, pathname === '/' ? 'index.html' : pathname)
-    if (!filePath.startsWith(publicRoot)) {
-      res.writeHead(403)
-      res.end('Forbidden')
-      return
-    }
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      serveStatic(req, res, filePath)
-      return
-    }
+    if (pathname === '/icon.svg' && servePublicFile('icon.svg')) return
+    if (pathname === '/about.md' && servePublicFile('about.md')) return
+    if (pathname === '/js/notification-engine.js' && servePublicFile('js/notification-engine.js')) return
     res.writeHead(404)
     res.end('Not Found')
   })

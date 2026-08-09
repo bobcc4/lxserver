@@ -84,8 +84,8 @@ let playerWindow = null  // 播放器窗口（常驻，关闭只隐藏）
 let adminWindow = null   // 管理后台窗口（可正常关闭）
 
 // 获取当前路径工具函数
-const getPlayerPath = () => (global.lx && global.lx.config && global.lx.config['player.path']) || '/music'
-const getAdminPath = () => (global.lx && global.lx.config && global.lx.config['admin.path']) || ''
+const getPlayerPath = () => '/'
+const getAdminPath = () => '/admin'
 
 const appRoot = app.getAppPath()
 const staticPath = app.isPackaged

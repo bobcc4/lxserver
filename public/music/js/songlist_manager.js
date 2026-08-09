@@ -212,8 +212,8 @@ window.SongListManager = (function () {
             detailState.list = [];
             document.getElementById('sl-detail-name').innerText = '正在加载...';
             document.getElementById('sl-detail-title').innerText = '加载中...';
-            if (window.setImg) window.setImg('sl-detail-cover', '/music/assets/logo.svg');
-            else document.getElementById('sl-detail-cover').src = '/music/assets/logo.svg';
+            if (window.setImg) window.setImg('sl-detail-cover', '/_player/assets/logo.svg');
+            else document.getElementById('sl-detail-cover').src = '/_player/assets/logo.svg';
             document.getElementById('sl-detail-author').innerText = '';
             document.getElementById('sl-detail-subtitle').innerText = '正在加载歌单详情...';
             const descEl = document.getElementById('sl-detail-desc');
@@ -330,9 +330,9 @@ window.SongListManager = (function () {
         container.innerHTML = currentState.list.map(item => `
             <div class="group cursor-pointer" onclick="window.SongListManager.openDetail('${item.id}', '${currentState.source}')">
                 <div class="relative aspect-square overflow-hidden rounded-2xl shadow-md transition-all group-hover:shadow-xl group-hover:-translate-y-1">
-                    <img data-src="${item.img || '/music/assets/logo.svg'}" src="/music/assets/logo.svg" 
+                    <img data-src="${item.img || '/_player/assets/logo.svg'}" src="/_player/assets/logo.svg"
                          class="lazy-image w-full h-full object-cover dynamic-logo is-placeholder" 
-                         onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');">
+                         onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div class="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg transform scale-50 group-hover:scale-100 transition-transform duration-300">
                             <i class="fas fa-play ml-1"></i>
@@ -395,8 +395,8 @@ window.SongListManager = (function () {
             titleEl.innerHTML = window.createMarqueeHtml ? window.createMarqueeHtml(info.name) : info.name;
         }
 
-        if (window.setImg) window.setImg('sl-detail-cover', info.img || info.cover || '/music/assets/logo.svg');
-        else document.getElementById('sl-detail-cover').src = info.img || info.cover || '/music/assets/logo.svg';
+        if (window.setImg) window.setImg('sl-detail-cover', info.img || info.cover || '/_player/assets/logo.svg');
+        else document.getElementById('sl-detail-cover').src = info.img || info.cover || '/_player/assets/logo.svg';
 
         const authorEl = document.getElementById('sl-detail-author');
         if (authorEl) {
@@ -480,9 +480,9 @@ window.SongListManager = (function () {
                 <!-- Title & Info -->
                 <div class="col-span-9 sm:col-span-9 md:col-span-5 lg:col-span-4 flex items-center gap-3 min-w-0">
                     <div class="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 relative rounded-lg overflow-hidden shadow-sm border t-border-main group-hover:shadow-md transition-all group-hover:scale-105 duration-300">
-                        <img data-src="${window.getImgUrl ? window.getImgUrl(song) : (song.img || song.albumImg || '/music/assets/logo.svg')}" src="/music/assets/logo.svg"
+                        <img data-src="${window.getImgUrl ? window.getImgUrl(song) : (song.img || song.albumImg || '/_player/assets/logo.svg')}" src="/_player/assets/logo.svg"
                              class="lazy-image w-full h-full object-cover dynamic-logo is-placeholder" 
-                             onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');">
+                             onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');">
                         <div class="absolute inset-0 bg-black/20 hidden group-hover:flex items-center justify-center transition-all">
                             <i class="fas fa-play text-white text-xs"></i>
                         </div>
@@ -732,7 +732,7 @@ window.SongListManager = (function () {
                     <div class="flex items-center gap-4 p-3 rounded-xl hover:t-bg-main transition-all cursor-pointer group" 
                          onclick="window.SongListManager.selectUserPlaylist('${item.id}')">
                         <div class="relative flex-shrink-0">
-                            <img src="${item.img || '/music/assets/logo.svg'}" class="w-12 h-12 rounded-lg object-cover shadow-sm group-hover:scale-105 transition-transform">
+                            <img src="${item.img || '/_player/assets/logo.svg'}" class="w-12 h-12 rounded-lg object-cover shadow-sm group-hover:scale-105 transition-transform">
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="text-sm font-bold t-text-main truncate">${item.name}</h4>

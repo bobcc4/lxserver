@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.4.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.5.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -27,6 +27,9 @@
 ---
 
 **音云（Yinyun）** 是一个洛雪魔改的，面向私有部署的音乐服务器，内置 Web 播放器、下载与本地曲库管理，支持独立 Windows 客户端账户快照和 Subsonic 客户端。
+
+> [!IMPORTANT]
+> v1.5.0 调整了固定访问入口：根地址 `/` 为 Web 播放器，管理后台为 `/admin`，旧 `/music` 网页入口已删除。`/api/v1`、Subsonic `/rest` 以及 `/server/music` 音频持久化目录不受影响。
 
 ## 项目地址与推荐使用方式
 
@@ -207,8 +210,9 @@ npm start
 
 ### 3. 访问说明
 
-- **Web 播放器**: `http://your-ip:9527/music` (默认路径，可通过 `PLAYER_PATH` 修改)
-- **同步管理后台**: `http://your-ip:9527` (默认路径，可通过 `ADMIN_PATH` 修改，默认密码: `123456`)
+- **Web 播放器**: `http://your-ip:9527/`
+- **管理后台**: `http://your-ip:9527/admin`（默认管理密码：`123456`）
+- **Subsonic**: `http://your-ip:9527/rest`
 
 ---
 
@@ -217,8 +221,8 @@ npm start
 本项目基于 Node.js 采用前后端分离架构：
 
 - **Backend (Node.js HTTP)**: 用户 API、媒体处理、Subsonic 与 WebDAV 备份。
-- **Console (Vanilla JS)**: 位于根目录，负责用户与数据管理。
-- **WebPlayer (Vanilla JS)**: 负责音乐播放业务，默认访问路径为 `/music`。
+- **Console (Vanilla JS)**: 固定访问路径为 `/admin`，负责用户与数据管理。
+- **WebPlayer (Vanilla JS)**: 固定访问路径为 `/`，负责音乐播放业务。
 
 ---
 
@@ -230,8 +234,6 @@ npm start
 | --------------------------------------- | ------------------------------------ | ------------------------------------------------------------------ | ------------------ |
 | `PORT`                                | `port`                             | 服务端口                                                           | `9527`           |
 | `BIND_IP`                             | `bindIP`                           | 绑定 IP                                                            | `0.0.0.0`        |
-| `ADMIN_PATH`                          | `admin.path`                       | 后台管理界面访问路径 (默认为空，即根路径 `/`)                    | (空)               |
-| `PLAYER_PATH`                         | `player.path`                      | Web 播放器访问路径 (默认为 `/music`)                             | `/music`         |
 | `SUBSONIC_ENABLE`                     | `subsonic.enable`                  | 是否启用 Subsonic 协议支持 (服务默认开启)                          | `true`           |
 | `SUBSONIC_PATH`                       | `subsonic.path`                    | Subsonic 访问路径 (默认为 `/rest`)                               | `/rest`          |
 | `FRONTEND_PASSWORD`                   | `frontend.password`                | Web 管理界面访问密码                                               | `123456`         |

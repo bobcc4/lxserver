@@ -651,16 +651,16 @@ class DownloadManager {
 
     // Helper to get song cover
     getSongCover(song) {
-        if (!song) return '/music/assets/logo.svg';
+        if (!song) return '/_player/assets/logo.svg';
         return song.img || song.pic ||
             (song.meta && (song.meta.picUrl || song.meta.img)) ||
             (song.album && (song.album.picUrl || song.album.img)) ||
-            '/music/assets/logo.svg';
+            '/_player/assets/logo.svg';
     }
 
     getSongInfoForServer(song) {
         const cover = this.getSongCover(song);
-        const normalizedCover = cover && cover !== '/music/assets/logo.svg' ? cover : '';
+        const normalizedCover = cover && cover !== '/_player/assets/logo.svg' ? cover : '';
         return {
             ...song,
             img: song.img || normalizedCover,

@@ -28,8 +28,6 @@ module.exports = {
   "sync.backupInterval": 24,
   "proxy.all.enabled": false,
   "proxy.all.address": "",
-  "admin.path": "",
-  "player.path": "/music",
   "subsonic.enable": true,
   "subsonic.path": "/rest",
   "subsonic.enableDebug": true,

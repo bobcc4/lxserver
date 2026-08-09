@@ -200,7 +200,7 @@ window.LeaderboardManager = (function () {
             const rank = index + 1;
             const rankClass = rank <= 3 ? 'text-emerald-600 dark:text-emerald-500 font-black text-base' : 'text-gray-400 font-mono text-xs';
 
-            const imgUrl = window.getImgUrl ? window.getImgUrl(song) : (song.img || song.albumImg || '/music/assets/logo.svg');
+            const imgUrl = window.getImgUrl ? window.getImgUrl(song) : (song.img || song.albumImg || '/_player/assets/logo.svg');
 
             return `
             <div id="lb-row-${index}" class="${rowClass}" data-song-id="${String(song.id)}"
@@ -218,9 +218,9 @@ window.LeaderboardManager = (function () {
                 <!-- 封面 + 歌名 -->
                 <div class="col-span-9 sm:col-span-7 md:col-span-5 lg:col-span-4 flex items-center gap-3 min-w-0">
                     <div class="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 relative rounded-lg overflow-hidden shadow-sm border t-border-main group-hover:shadow-md transition-all group-hover:scale-105 duration-300">
-                        <img data-src="${imgUrl}" src="/music/assets/logo.svg"
+                        <img data-src="${imgUrl}" src="/_player/assets/logo.svg"
                              class="lazy-image w-full h-full object-cover dynamic-logo is-placeholder"
-                             onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');">
+                             onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');">
                         <div class="absolute inset-0 bg-black/20 hidden group-hover:flex items-center justify-center transition-all">
                             <i class="fas fa-play text-white text-xs"></i>
                         </div>

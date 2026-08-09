@@ -128,8 +128,8 @@ window.soundEffects = (function () {
         if (pitchShifterNode) return;
 
         try {
-            console.log('[SoundEffects] Loading Pitch Shifter Module from /music/js/pitch-shifter/phase-vocoder.js');
-            await audioContext.audioWorklet.addModule('/music/js/pitch-shifter/phase-vocoder.js');
+            console.log('[SoundEffects] Loading Pitch Shifter Module from /_player/js/pitch-shifter/phase-vocoder.js');
+            await audioContext.audioWorklet.addModule('/_player/js/pitch-shifter/phase-vocoder.js');
 
             pitchShifterNode = new AudioWorkletNode(audioContext, 'phase-vocoder-processor', {
                 numberOfInputs: 1,
@@ -272,7 +272,7 @@ window.soundEffects = (function () {
             if (dryGainNode) dryGainNode.gain.value = 1.0;
             if (wetGainNode) wetGainNode.gain.value = 0;
         } else {
-            fetch(`/music/assets/medias/filters/${rev.source}`)
+            fetch(`/_player/assets/medias/filters/${rev.source}`)
                 .then(r => r.arrayBuffer())
                 .then(data => audioContext.decodeAudioData(data))
                 .then(buffer => {

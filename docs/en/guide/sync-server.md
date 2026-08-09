@@ -1,10 +1,10 @@
 # Sync Management Console Guide
 
-Yinyun includes a Web management console at `/` for viewing service status, managing users and data, and configuring server functions.
+Yinyun includes a Web management console at `/admin` for viewing service status, managing users and data, and configuring server functions. The service root `/` opens the Web player.
 
 ## Login and Authentication
 
-Accessing the management console (default `http://IP:9527`) requires entering the administrator password.
+Accessing the management console (default `http://IP:9527/admin`) requires entering the administrator password.
 
 - **Default Password**: `123456`
 - **Modify Password**: You can override the default password by setting the environment variable `FRONTEND_PASSWORD`, or go to the settings page to modify it after the first login. The password will be saved in the `config.json` file on the server.

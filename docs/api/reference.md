@@ -163,7 +163,6 @@
 专为 Web 播放器前端逻辑设计的接口。涉及用户数据的请求使用同步账户 Token 鉴权。
 
 ### 8.1 运行配置
-- `GET /api/v1/player/music/config`: 获取播放器路径和用户缓存限制等公开运行配置，用于兼容旧版浏览器缓存。
 
 ### 8.2 增强元数据详情
 - `GET /api/v1/player/music/artistDetail`: 获取歌手精美详情。

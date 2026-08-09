@@ -42,7 +42,7 @@
         }
     </script>
     <script src="vendor/js/marked.min.js"></script>
-    <script src="music/assets/tailwindcss.js"></script>
+    <script src="/_player/assets/tailwindcss.js"></script>
     <script>
         tailwind.config = {
             corePlugins: {
@@ -50,7 +50,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="music/assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/_player/assets/fontawesome/css/all.min.css">
     <script src="js/ui-utils.js"></script>
     <script src="js/notification-engine.js"></script>
     <link href="vendor/fonts/inter.css" rel="stylesheet">
@@ -721,41 +721,6 @@
                                     <input type="number" name="sync.backupInterval" class="form-input config-input" value="24"
                                         min="1" />
                                     <small class="config-hint">用于定时自动创建 ZIP 全量备份包并上传至云端</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- URL路径配置卡片 -->
-                        <div class="config-card glass">
-                            <div class="config-card-header">
-                                <div class="config-card-icon"
-                                    style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="config-card-title">访问路径配置</h3>
-                                    <p class="config-card-desc">自定义管理界面与播放器的 URL 路径，保存后立刻生效</p>
-                                </div>
-                            </div>
-                            <div class="config-card-body">
-                                <div class="config-field">
-                                    <label class="config-label">后台管理路径</label>
-                                    <input type="text" name="admin.path" id="admin-path-input"
-                                        class="form-input config-input" placeholder="留空表示根路径 /" />
-                                    <small class="config-hint">以 / 开头，留空表示根路径。不能和播放器路径相同，不能以 /api 开头。</small>
-                                </div>
-                                <div class="config-field">
-                                    <label class="config-label">播放器路径</label>
-                                    <input type="text" name="player.path" id="player-path-input"
-                                        class="form-input config-input" placeholder="/music" />
-                                    <small class="config-hint">以 / 开头，留空或输入 / 表示根路径。不能和后台路径相同，不能以 /api 开头。</small>
-                                </div>
-                                <div id="path-conflict-error"
-                                    style="display:none; color: #ef4444; font-size: 0.85rem; margin-top: 4px; padding: 6px 10px; background: rgba(239,68,68,0.08); border-radius: 6px;">
-                                    ⚠️ 路径配置有误，请检查后重试
                                 </div>
                             </div>
                         </div>

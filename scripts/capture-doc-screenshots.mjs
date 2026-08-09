@@ -210,7 +210,7 @@ async function main() {
     await cdp.evaluate(sanitizePage)
     await cdp.screenshot('admin-config.png')
 
-    await cdp.navigate(`${baseUrl}/music`)
+    await cdp.navigate(`${baseUrl}/`)
     await cdp.evaluate(`(() => {
       localStorage.setItem('lx_agreement_accepted', 'true');
       localStorage.setItem('lx_sync_user', ${JSON.stringify(syncUsername)});
@@ -247,7 +247,7 @@ async function main() {
     await cdp.evaluate(sanitizePage)
     await cdp.screenshot('web-download-quality.png')
 
-    await cdp.navigate(`${baseUrl}/music`)
+    await cdp.navigate(`${baseUrl}/`)
     await cdp.waitFor("typeof switchTab === 'function' && document.querySelector('#view-localmusic')")
     await delay(1200)
     await cdp.evaluate(`switchTab('localmusic')`)

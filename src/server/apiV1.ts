@@ -479,7 +479,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
         product: 'yinyun',
         serverVersion: deps.serverVersion,
         apiVersion: '1.4.0',
-        playerPath: global.lx.config['player.path'] || '/music',
+        playerPath: '/',
         features: {
           localLibrary: true,
           onlineSearch: true,

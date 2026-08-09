@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yinyun-v1.4.0';
+const CACHE_NAME = 'yinyun-admin-v1.5.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -10,8 +10,8 @@ const ASSETS_TO_CACHE = [
     './manifest.json',
     './vendor/js/marked.min.js',
     './vendor/fonts/inter.css',
-    './music/assets/tailwindcss.js',
-    './music/assets/fontawesome/css/all.min.css'
+    '/_player/assets/tailwindcss.js',
+    '/_player/assets/fontawesome/css/all.min.css'
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,8 +30,8 @@ self.addEventListener('fetch', (event) => {
 
     // [Fix] Do not cache API requests
     if (event.request.url.includes('/api/')) return;
-    // [Fix] Do not cache Music Player files (dev mode)
-    if (event.request.url.includes('/music/')) return;
+    // Player assets use a separate root-scoped service worker.
+    if (event.request.url.includes('/_player/')) return;
 
     // [Fix] Do not cache external resources (CDN, placeholders, etc.)
     const url = new URL(event.request.url);

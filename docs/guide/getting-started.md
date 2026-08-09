@@ -67,8 +67,8 @@ npm start
 
 | 功能 | 默认地址 | 默认凭据 |
 | --- | --- | --- |
-| 管理后台 | `http://服务器IP:9527/` | 管理密码 `123456` |
-| Web 播放器 | `http://服务器IP:9527/music` | 同步账户 `admin` / `password` |
+| Web 播放器 | `http://服务器IP:9527/` | 同步账户 `admin` / `password` |
+| 管理后台 | `http://服务器IP:9527/admin` | 管理密码 `123456` |
 | Subsonic | `http://服务器IP:9527/rest` | 同步账户用户名与密码 |
 
 首次登录后立即完成以下操作：
@@ -81,14 +81,17 @@ npm start
 
 ## 访问路径说明
 
-- `ADMIN_PATH` 修改管理后台路径。
-- `PLAYER_PATH` 修改播放器路径，默认 `/music`。
+- Web 播放器固定使用根路径 `/`。
+- 管理后台固定使用 `/admin`。
+- v1.5.0 起旧 `/music` 网页入口已删除，不提供重定向。
 - `SUBSONIC_PATH` 修改 Subsonic 路径，默认 `/rest`。
 - Windows 客户端填写服务根地址，并使用同步账户用户名和密码登录。
 
+这里的网页入口与 NAS 音频目录不同：`/server/music` 仍是下载曲库的容器持久化目录，不会因网页路径调整而变化。
+
 ## 反向代理要点
 
-反向代理必须支持 Range 请求、较长的流媒体连接，并放行 `/api/v1`。建议保留以下请求头：
+反向代理应转发完整站点根路径，并支持 Range 请求、较长的流媒体连接，同时放行 `/api/v1` 与 `/rest`。不要只把上游配置成旧 `/music` 子路径。建议保留以下请求头：
 
 ```nginx
 proxy_set_header Host $host;

@@ -68,8 +68,7 @@
  * 跳转至管理后台
  */
 function goToAdmin() {
-    var adminPath = (window.CONFIG && window.CONFIG['admin.path']) || '';
-    location.href = adminPath || '/';
+    location.href = '/admin/';
 }
 
 /**

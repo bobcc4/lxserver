@@ -1412,7 +1412,7 @@ window.LocalMusicManager = {
                     1
                 ].join('-');
                 const coverUrl = `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}&v=${encodeURIComponent(coverVersion)}`;
-                coverHtml = `<img data-src="${this.escapeAttr(coverUrl)}" data-lm-cover-index="${index}" src="/music/assets/logo.svg" loading="lazy" fetchpriority="low" class="lazy-image lm-cover-image is-placeholder w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover shadow-sm flex-shrink-0 border t-border-main mr-2.5 md:mr-4 ml-0.5 md:ml-3">`;
+                coverHtml = `<img data-src="${this.escapeAttr(coverUrl)}" data-lm-cover-index="${index}" src="/_player/assets/logo.svg" loading="lazy" fetchpriority="low" class="lazy-image lm-cover-image is-placeholder w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover shadow-sm flex-shrink-0 border t-border-main mr-2.5 md:mr-4 ml-0.5 md:ml-3">`;
             }
 
             const formatSize = (bytes) => {
@@ -2439,7 +2439,7 @@ window.LocalMusicManager = {
             html += `
                 <div class="flex items-center p-3 md:p-4 t-bg-main border t-border-main rounded-2xl md:rounded-3xl hover:border-emerald-400 group transition-all shadow-sm">
                     <div class="w-12 h-12 rounded-xl overflow-hidden mr-4 flex-shrink-0 bg-gray-100 border t-border-main">
-                        <img src="${item.img || '/music/assets/logo.svg'}" onerror="this.src='/music/assets/logo.svg'" loading="lazy" class="w-full h-full object-cover">
+                        <img src="${item.img || '/_player/assets/logo.svg'}" onerror="this.src='/_player/assets/logo.svg'" loading="lazy" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0 mr-4">
                         <div class="font-bold t-text-main text-sm md:text-base truncate group-hover:text-emerald-500 transition-colors">${item.name}</div>

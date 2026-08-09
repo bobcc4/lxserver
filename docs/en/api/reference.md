@@ -141,7 +141,6 @@ Used by the management dashboard for real-time adjustments of server behavior. R
 Interfaces designed specifically for Web Player frontend logic. Requests involving user data use sync-account token authentication.
 
 ### 8.1 Runtime Config
-- `GET /api/v1/player/music/config`: Get public runtime settings such as the player path and user cache restrictions. Retained for compatibility with older browser caches.
 
 ### 8.2 Enhanced Metadata Details
 - `GET /api/v1/player/music/artistDetail`: Get rich artist information.

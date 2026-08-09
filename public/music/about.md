@@ -1,14 +1,14 @@
 # 音云 Yinyun
 
 <div align="center">
-  <img src="/music/assets/logo.svg" width="120" height="120" alt="Yinyun Logo">
+  <img src="/_player/assets/logo.svg" width="120" height="120" alt="Yinyun Logo">
   <br>
   <h1>音云 Yinyun</h1>
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
     <img src="https://img.shields.io/badge/hash-{{buildHash}}-%2310b981?style=flat-square" alt="Build Hash">
     <img src="https://img.shields.io/badge/version-{{version}}-blue?style=flat-square" alt="Version">
-    <a href="/music/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>
+    <a href="https://github.com/bobcc4/yinyun-lxserver/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-orange?style=flat-square" alt="License"></a>
   </p>
 </div>
 

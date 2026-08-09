@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.5.0-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -23,6 +23,9 @@
 
 ---
 **Yinyun** is a self-hosted music server with a Web player, downloads, local-library management, encrypted Windows account snapshots, and Subsonic client support.
+
+> [!IMPORTANT]
+> v1.5.0 uses fixed entry points: `/` for the Web player and `/admin` for the management console. The former `/music` Web route has been removed. `/api/v1`, Subsonic `/rest`, and the `/server/music` persistent audio directory are unchanged.
 
 ## ✨ Web Player Key Features
 
@@ -192,8 +195,9 @@ npm start
 
 ### 3. Access Info
 
-- **Web Player**: `http://your-ip:9527/music` (Default path, configurable via `PLAYER_PATH`)
-- **Sync Dashboard**: `http://your-ip:9527` (Default path, configurable via `ADMIN_PATH`, default password: `123456`)
+- **Web Player**: `http://your-ip:9527/`
+- **Management Console**: `http://your-ip:9527/admin` (default password: `123456`)
+- **Subsonic**: `http://your-ip:9527/rest`
 
 ---
 
@@ -202,8 +206,8 @@ npm start
 Separated frontend and backend architecture based on Node.js:
 
 - **Backend (Node.js HTTP)**: Account APIs, media processing, Subsonic, and WebDAV backup.
-- **Console (Vanilla JS)**: Located in the root directory, handles user and data management.
-- **WebPlayer (Vanilla JS)**: Handles music playback, default access path is `/music`.
+- **Console (Vanilla JS)**: Fixed at `/admin`, handles user and data management.
+- **WebPlayer (Vanilla JS)**: Fixed at `/`, handles music playback.
 
 ---
 
@@ -215,8 +219,6 @@ Edit `config.js` directly. Environment variables take precedence:
 | --- | --- | --- | --- |
 | `PORT` | `port` | Service port | `9527` |
 | `BIND_IP` | `bindIP` | Binding IP | `0.0.0.0` |
-| `ADMIN_PATH` | `admin.path` | Backend management interface path | (empty) |
-| `PLAYER_PATH` | `player.path` | Web player access path | `/music` |
 | `SUBSONIC_ENABLE` | `subsonic.enable` | Enable Subsonic protocol support | `true` |
 | `SUBSONIC_PATH` | `subsonic.path` | Subsonic access path | `/rest` |
 | `FRONTEND_PASSWORD` | `frontend.password` | Web dashboard password | `123456` |

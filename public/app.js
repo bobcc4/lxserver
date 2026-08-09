@@ -312,7 +312,7 @@ class App {
                 window.location.href = 'filemanager.html';
                 return;
             case 'music':
-                window.location.href = (window.CONFIG && window.CONFIG['player.path']) || '/music';
+                window.location.href = '/';
                 return;
         }
     }
@@ -344,7 +344,7 @@ class App {
             // Render Markdown
             if (window.marked) {
                 // Replace {{version}} and {{buildHash}} placeholder
-                const version = (window.CONFIG && window.CONFIG.version) || 'v1.4.0';
+                const version = (window.CONFIG && window.CONFIG.version) || 'v1.5.0';
                 const buildHash = (window.CONFIG && window.CONFIG.buildHash) || 'unknown';
                 let content = text.replace(/{{version}}/g, version);
                 content = content.replace(/{{buildHash}}/g, buildHash);
@@ -381,9 +381,7 @@ class App {
         }
         // 初始化播放器链接
         const navPlayerLink = document.getElementById('nav-player-link');
-        if (navPlayerLink && window.CONFIG && window.CONFIG['player.path']) {
-            navPlayerLink.href = window.CONFIG['player.path'];
-        }
+        if (navPlayerLink) navPlayerLink.href = '/';
     }
 
     async loadDashboard() {
@@ -1758,18 +1756,9 @@ class App {
                 form.elements['sync.backupInterval'].value = config['sync.backupInterval'] || 24;
             }
 
-            // URL路径配置
-            if (form.elements['admin.path']) {
-                form.elements['admin.path'].value = config['admin.path'] ?? '';
-            }
-            if (form.elements['player.path']) {
-                const pPath = config['player.path'] ?? '/music';
-                form.elements['player.path'].value = pPath === '' ? '/' : pPath;
-            }
-
-            // [新增] 同时更新侧边栏链接
+            // 同时更新侧边栏链接
             const navPlayerLink = document.getElementById('nav-player-link');
-            if (navPlayerLink) navPlayerLink.href = (config['player.path'] === '' ? '/' : (config['player.path'] ?? '/music'));
+            if (navPlayerLink) navPlayerLink.href = '/';
 
             // Subsonic 配置
             if (form.elements['subsonic.enable']) {
@@ -1803,30 +1792,6 @@ class App {
         const form = document.getElementById('config-form');
         const formData = new FormData(form);
 
-        // 路径校验
-        const adminPath = (formData.get('admin.path') || '').trim();
-        const playerPath = (formData.get('player.path') || '').trim();
-        const errEl = document.getElementById('path-conflict-error');
-        let pathError = '';
-
-        if (!playerPath) {
-            pathError = '⚠️ 播放器路径不能为空';
-        } else if (!playerPath.startsWith('/')) {
-            pathError = '⚠️ 播放器路径必须以 / 开头';
-        } else if (adminPath !== '' && !adminPath.startsWith('/')) {
-            pathError = '⚠️ 后台路径必须以 / 开头（或留空表示根路径）';
-        } else if ((adminPath || '/') === (playerPath === '/' ? '/' : playerPath.replace(/\/+$/, ''))) {
-            pathError = '⚠️ 后台管理路径与播放器路径不能相同';
-        } else if (adminPath.startsWith('/api') || playerPath.startsWith('/api')) {
-            pathError = '⚠️ 路径不能以 /api 开头（与 API 路由冲突）';
-        }
-
-        if (errEl) {
-            errEl.textContent = pathError;
-            errEl.style.display = pathError ? 'block' : 'none';
-        }
-        if (pathError) return;
-
         const config = {
             serverName: formData.get('serverName'),
             maxSnapshotNum: parseInt(formData.get('maxSnapshotNum')),
@@ -1847,8 +1812,6 @@ class App {
             'webdav.backupPath': (formData.get('webdav.backupPath') || '').trim() || '/lx-sync-backups',
             'sync.interval': parseInt(formData.get('sync.interval')) || 60,
             'sync.backupInterval': parseInt(formData.get('sync.backupInterval')) || 24,
-            'admin.path': adminPath,
-            'player.path': playerPath,
             'subsonic.enable': formData.get('subsonic.enable') === 'on',
             'subsonic.path': (formData.get('subsonic.path') || '').trim() || '/rest',
             'subsonic.enableDebug': formData.get('subsonic.enableDebug') === 'on',
@@ -1874,7 +1837,7 @@ class App {
 
             // 更新侧边栏播放器链接
             const navPlayerLink = document.getElementById('nav-player-link');
-            if (navPlayerLink) navPlayerLink.href = playerPath === '' ? '/' : (playerPath ?? '/music');
+            if (navPlayerLink) navPlayerLink.href = '/';
 
             if (!silent) {
                 if (res.warning) {

@@ -28,13 +28,13 @@ This module manages the Node.js listening process and the basic settings of the 
 | :-------------------- | :------------ | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PORT` | `9527` | Integer | **Service listening port**. It is recommended to avoid using other high-frequency ports in the host (such as 80, 443, 3306). |
 | `BIND_IP` | `0.0.0.0` | String | **Scope of service binding IP interfaces**. Set to `127.0.0.1` to accept only local Lookback calls; set to `0.0.0.0` means listening to all internal and external available network adapters of the host simultaneously. |
-| `ADMIN_PATH` | `''` | String | **Backend management interface path**. Default is empty, i.e., root `/`. |
-| `PLAYER_PATH` | `'/music'` | String | **Web player access path**. Default is `/music`. |
 | `SERVER_NAME` | `My Sync Server` | String | **Sync service name**. Showed in client connections. |
 | `PROXY_HEADER` | `x-real-ip` | String | **Reverse proxy remote IP penetration identifier**. When the system runs behind reverse proxies or load balancers such as Nginx, it is used to extract the true client source IP address to ensure accurate traceability of equipment audit logs. |
 | `PROXY_ALL_ENABLED` | `false` | Boolean | **Enable global outgoing request proxy**. If enabled, network requests from the server (e.g. search, resolving) will go through the proxy. |
 | `PROXY_ALL_ADDRESS` | `''` | String | **Proxy address**. Supports `http://` or `socks5://`, e.g. `socks5://127.0.0.1:10808`. |
 | `DISABLE_TELEMETRY` | `false` | Boolean | **System telemetry feedback circuit breaker**. Set to `true` will completely block anonymous state probe packets between the system and external nodes, and disable all system-level new version updates or announcement distributions. |
+
+Starting with v1.5.0, the Web player is fixed at `/` and the management console is fixed at `/admin`. `ADMIN_PATH` and `PLAYER_PATH` are no longer supported. The former `/music` Web route returns 404; the `/server/music` filesystem mount remains unchanged.
 
 ### II. Persistence and Account Sandbox Management Strategy
 

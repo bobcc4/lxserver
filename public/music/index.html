@@ -6,16 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音云 Yinyun</title>
     <!-- Config MUST be loaded before PostHog -->
-    <script>
-        (function () {
-            var pathname = window.location.pathname;
-            var baseHref = pathname.endsWith('/') ? pathname : pathname + '/';
-            var baseTag = document.createElement('base');
-            baseTag.href = baseHref;
-            document.head.prepend(baseTag);
-            console.log('[PWA] Base href set to:', baseHref);
-        })();
-    </script>
+    <base href="/_player/">
     <script src="/js/config.js"></script>
     <!-- PostHog Analytics -->
     <script>
@@ -24,8 +15,8 @@
             posthog.init('phc_vvaqX7sm3RqmiqRbMCjETTc67XKjgqeMgmYHvsZr30f', { api_host: 'https://us.i.posthog.com' })
         }
     </script>
-    <link rel="icon" href="/music/assets/logo.svg" type="image/svg+xml">
-    <link rel="manifest" href="/music/manifest.json">
+    <link rel="icon" href="/_player/assets/logo.svg" type="image/svg+xml">
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="css/theme_variables.css">
     <script src="assets/tailwindcss.js"></script>
     <script src="js/tailwind_setup.js"></script>
@@ -51,7 +42,7 @@
         <aside id="main-sidebar"
             class="w-64 t-bg-panel shadow-lg flex flex-col z-[60] fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 md:z-30 h-full pb-28 transition-all duration-300">
             <div class="h-16 flex items-center justify-center border-b t-border-main relative">
-                <img src="/music/assets/logo.svg" class="w-8 h-8 mr-2 rounded-lg shadow-sm" alt="Yinyun">
+                <img src="/_player/assets/logo.svg" class="w-8 h-8 mr-2 rounded-lg shadow-sm" alt="Yinyun">
                 <h1 class="text-xl font-bold text-emerald-600 tracking-wider">音云 YINYUN</h1>
                 <!-- Close button for mobile -->
                 <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-gray-500 hover:text-red-500">
@@ -134,8 +125,8 @@
             <!-- Mini Player Info (Optional, cover art here) -->
             <div class="hidden md:block [@media(max-height:535px)]:!hidden sidebar-song-info-wrapper mt-auto">
                 <div id="sidebar-song-info" class="p-4 border-t t-border-main hidden">
-                    <img id="sidebar-cover" src="/music/assets/logo.svg" loading="lazy" fetchpriority="low"
-                        onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');" alt="Cover"
+                    <img id="sidebar-cover" src="/_player/assets/logo.svg" loading="lazy" fetchpriority="low"
+                        onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');" alt="Cover"
                         class="w-full rounded-lg shadow-md mb-3 dynamic-logo is-placeholder">
                     <div class="text-center flex flex-col items-center">
                         <div id="sidebar-song-name" class="font-bold text-sm truncate max-w-full block">Song Name
@@ -578,7 +569,7 @@
                                 class="p-4 md:p-6 flex gap-4 md:gap-6 border-b t-border-main t-bg-panel/30 overflow-hidden transition-all duration-300 ease-in-out max-h-[1000px]">
                                 <img id="sl-detail-cover" loading="lazy" fetchpriority="low"
                                     class="w-24 h-24 md:w-48 md:h-48 rounded-2xl shadow-xl flex-shrink-0 object-cover dynamic-logo is-placeholder"
-                                    src="/music/assets/logo.svg">
+                                    src="/_player/assets/logo.svg">
                                 <div class="flex flex-col justify-center gap-1 md:gap-3 flex-1 min-w-0">
                                     <h2 id="sl-detail-name"
                                         class="text-lg md:text-3xl font-extrabold t-text-main line-clamp-2">
@@ -3149,8 +3140,8 @@
             <!-- Left: Image -->
             <div id="mobile-player-cover-container" ondblclick="toggleDetailCover()"
                 class="w-auto h-auto max-w-[48vw] max-h-[32vh] [@media(max-height:500px)]:max-h-[40vh] aspect-square md:w-[60vh] md:h-[60vh] md:max-w-[35rem] md:max-h-[35rem] md:min-w-[20rem] md:min-h-[20rem] flex-shrink-0 shadow-2xl rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] border-4 border-white/20 origin-top t-bg-track cursor-pointer">
-                <img id="detail-cover" src="/music/assets/logo.svg" loading="lazy" fetchpriority="low"
-                    onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');"
+                <img id="detail-cover" src="/_player/assets/logo.svg" loading="lazy" fetchpriority="low"
+                    onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');"
                     class="w-full h-full object-cover dynamic-logo is-placeholder">
             </div>
 
@@ -3214,8 +3205,8 @@
             class="w-full md:w-1/4 flex items-start md:items-center gap-2 md:gap-4 mb-2 md:mb-0 pr-8 md:pr-0 transition-all duration-300">
             <div
                 class="w-12 h-12 md:w-14 md:h-14 bg-gray-200 rounded-md overflow-hidden shadow-sm relative group flex-shrink-0">
-                <img id="player-cover" src="/music/assets/logo.svg" loading="lazy" fetchpriority="low"
-                    onerror="this.src='/music/assets/logo.svg'; this.classList.add('is-placeholder');"
+                <img id="player-cover" src="/_player/assets/logo.svg" loading="lazy" fetchpriority="low"
+                    onerror="this.src='/_player/assets/logo.svg'; this.classList.add('is-placeholder');"
                     class="w-full h-full object-cover dynamic-logo is-placeholder" alt="专辑封面">
                 <div class="absolute inset-0 bg-black/30 hidden group-hover:flex items-center justify-center cursor-pointer"
                     onclick="toggleLyrics()">
