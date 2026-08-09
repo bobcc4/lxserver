@@ -51,6 +51,8 @@ function getDirectoryHash(dir, exclude = [], extensions = []) {
 }
 
 const targetDir = path.resolve(__dirname, '../');
+const packageJson = JSON.parse(fs.readFileSync(path.join(targetDir, 'package.json'), 'utf8'));
+const packageVersion = `v${packageJson.version}`;
 
 // We exclude config.js/about.md itself to avoid infinite hash changes when injecting the hash.
 // Also ignore logs, data, server (dist), node_modules, .git.
@@ -63,6 +65,13 @@ const finalHash = crypto.createHash('md5').update(publicHash + srcHash).digest('
 const configPath = path.join(targetDir, 'public', 'js', 'config.js');
 if (fs.existsSync(configPath)) {
     let configContent = fs.readFileSync(configPath, 'utf8');
+
+    // Keep the runtime version aligned with package.json for every build.
+    if (configContent.includes('version:')) {
+        configContent = configContent.replace(/version:\s*['"][^'"]+['"]/, `version: '${packageVersion}'`);
+    } else {
+        configContent = configContent.replace(/(window\.CONFIG\s*=\s*\{)/, `$1\n    version: '${packageVersion}',`);
+    }
 
     if (configContent.includes('buildHash:')) {
         configContent = configContent.replace(/buildHash:\s*['"][a-f0-9]+['"]/, `buildHash: '${finalHash}'`);

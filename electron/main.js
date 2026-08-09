@@ -255,7 +255,7 @@ function showPlayerWindow() {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                // 禁用 CORS/混合内容安全检查，允许渲染进程 fetch/WS 连接局域网 LX Music 设备
+                // 禁用 CORS/混合内容安全检查，允许渲染进程连接局域网音云服务。
                 webSecurity: false,
             }
         })

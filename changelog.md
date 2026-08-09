@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.1 (2026-08-09)
+
+### Bug Fixes
+
+- Removed stale hard-coded `v1.3.0` labels from the initial HTML of the admin console and Web player.
+- Synchronized the runtime version in `public/js/config.js` from `package.json` during every build.
+
+### 文案修正
+
+- 关于页面的“歌单同步”改为与音云客户端数据互通，不再宣称兼容 LX Music 客户端；同步与备份文档同步更新。
+
 ## v1.4.0 (2026-08-09)
 
 ### 破坏性升级
@@ -37,7 +48,7 @@
 
 ### 界面改进
 
-- 将设置项“启用 Token 认证”重命名为“启用持久化 API Token”，明确该开关只控制供脚本和第三方程序使用的长期 API Token，不影响 Web 登录、Windows 客户端、LX Music 同步或 Subsonic 认证。
+- 将设置项“启用 Token 认证”重命名为“启用持久化 API Token”，明确该开关只控制供脚本和第三方程序使用的长期 API Token，不影响 Web 登录、Windows 客户端、LX Music 同步或 Subsonic 认证。LX Music 同步仅适用于 `v1.3.6` 及以前版本，`v1.4.0` 起已不再兼容。
 
 ### 兼容性
 
