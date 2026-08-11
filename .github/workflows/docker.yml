@@ -167,7 +167,7 @@ jobs:
 
           VERSION_ID="$(gh api \
             "/users/${{ github.repository_owner }}/packages/container/yinyun-lxserver/versions" \
-            --jq '.[] | select(.metadata.container.tags // [] | contains(["v1"])) | .id' |
+            --jq '.[] | select(any(.metadata.container.tags[]?; . == "v1")) | .id' |
             head -n 1)"
 
           if [[ -n "$VERSION_ID" ]]; then
