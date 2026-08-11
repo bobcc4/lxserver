@@ -134,10 +134,11 @@
 
 本项目支持从 Docker Hub 或 GitHub Packages 拉取镜像：
 
-- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:latest`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
-> 仓库已由 `bobcc4/lxserver` 更名为 `bobcc4/yinyun-lxserver`。旧 Docker Hub 仓库已停止提供镜像；现有用户升级前需要把 Compose 或 NAS 容器中的镜像名称改为 `bobcc4/yinyun-lxserver:v1`。数据目录结构没有变化，保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载即可。
+> [!IMPORTANT]
+> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。现有用户必须把 Compose 或 NAS 容器中的镜像改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会永久保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.2`，用于锁定版本或回滚。数据目录结构没有变化，请保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载。
 
 **Docker Run 示例：**
 
@@ -150,7 +151,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/yinyun-lxserver:v1
+  bobcc4/yinyun-lxserver:latest
 ```
 
 **Docker Compose 示例：**
@@ -160,7 +161,7 @@ docker run -d \
 ```yaml
 services:
   yinyun:
-    image: bobcc4/yinyun-lxserver:v1
+    image: bobcc4/yinyun-lxserver:latest
     container_name: yinyun
     restart: unless-stopped
     ports:

@@ -119,10 +119,11 @@ The separate [Yinyun Windows client](https://github.com/bobcc4/yinyun-windows) c
 ### Option 2: Containerized Deployment via Docker
 
 This project supports pulling images from Docker Hub or GitHub Packages:
-- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:latest`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
-> The repository was renamed from `bobcc4/lxserver` to `bobcc4/yinyun-lxserver`. The old Docker Hub repository no longer provides images. Before upgrading, change the image in Docker Compose or your NAS container settings to `bobcc4/yinyun-lxserver:v1`. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
+> [!IMPORTANT]
+> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.2`, for version pinning and rollback. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
 
 **Docker Run Example:**
 
@@ -135,7 +136,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/yinyun-lxserver:v1
+  bobcc4/yinyun-lxserver:latest
 ```
 
 **Docker Compose Example:**
@@ -145,7 +146,7 @@ Create a `docker-compose.yml` file:
 ```yaml
 services:
   yinyun:
-    image: bobcc4/yinyun-lxserver:v1
+    image: bobcc4/yinyun-lxserver:latest
     container_name: yinyun
     restart: unless-stopped
     ports:

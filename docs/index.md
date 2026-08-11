@@ -63,7 +63,9 @@ features:
 3. 阅读[账户与 Windows 同步](/guide/accounts-sync)或[Subsonic 客户端](/guide/subsonic)连接其他设备。
 4. 下载前阅读[本地曲库与下载](/guide/library-downloads)，明确 `/cache` 与 `/music` 的区别。
 
-> 本文档对应 `bobcc4/yinyun-lxserver:v1`。
+::: warning Docker 标签迁移
+正式镜像使用 `bobcc4/yinyun-lxserver:latest`。原 `v1` 标签已停止更新，现有用户必须修改 Compose 或 NAS 容器配置。完整版本标签会永久保留，可用于锁定版本和回滚。
+:::
 
 ## 界面预览
 

@@ -2,7 +2,19 @@ name: Build and Push Docker Image
 
 on:
   workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      version:
+        description: Optional image version (for example, v1.5.2)
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
 env:
   REGISTRY: ghcr.io
   # 使用 github.repository_owner 获取用户名，并指定音云镜像名
@@ -49,6 +61,32 @@ jobs:
       - name: Generate build hash
         run: node scripts/update-build-hash.js
 
+      - name: Resolve image version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="$GITHUB_REF_NAME"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="v$(node -p "require('./package.json').version")"
+          fi
+
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid image version: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v6
@@ -57,38 +95,13 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             ${{ env.DOCKER_HUB_REPO }}
           tags: |
-            type=raw,value=v1
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.stable == 'true' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.title=Yinyun
             org.opencontainers.image.description=音云 Yinyun private music server and Web player
             org.opencontainers.image.licenses=Apache-2.0
-
-      - name: Delete old Docker image versions
-        run: |
-          PACKAGE_NAME="yinyun-lxserver"
-          OWNER="${{ github.repository_owner }}"
-          
-          for TAG in "v1"; do
-            echo "Checking for existing tag: $TAG"
-            
-            # 优先尝试用户 API，再尝试组织 API
-            # 使用 --jq 过滤出 ID，如果命令失败或没找到，则返回空
-            VERSION_ID=$(gh api "/users/$OWNER/packages/container/$PACKAGE_NAME/versions" --jq ".[] | select(.metadata.container.tags // [] | contains([\"$TAG\"])) | .id" 2>/dev/null || \
-                        gh api "/orgs/$OWNER/packages/container/$PACKAGE_NAME/versions" --jq ".[] | select(.metadata.container.tags // [] | contains([\"$TAG\"])) | .id" 2>/dev/null || echo "")
-            
-            # 确保 VERSION_ID 是数字（有效的 ID），而不是 JSON 错误信息
-            if [[ "$VERSION_ID" =~ ^[0-9]+$ ]]; then
-              echo "Deleting old version for $TAG (ID: $VERSION_ID)"
-              gh api -X DELETE "/users/$OWNER/packages/container/$PACKAGE_NAME/versions/$VERSION_ID" 2>/dev/null || \
-              gh api -X DELETE "/orgs/$OWNER/packages/container/$PACKAGE_NAME/versions/$VERSION_ID" 2>/dev/null || echo "Delete failed, skipping..."
-            else
-              echo "No valid existing version ID found for tag: $TAG, skipping cleanup."
-            fi
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7

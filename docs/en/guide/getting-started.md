@@ -28,11 +28,11 @@ After deploying the NAS server, install the separate [Yinyun Windows client](htt
 
 This project supports pulling images from Docker Hub or GitHub Packages:
 
-- **Docker Hub**: `bobcc4/yinyun-lxserver:v1`
-- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:v1`
+- **Docker Hub**: `bobcc4/yinyun-lxserver:latest`
+- **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
 > [!IMPORTANT]
-> The project and image were renamed from `bobcc4/lxserver` to `bobcc4/yinyun-lxserver`. The old Docker Hub repository no longer provides images. Existing deployments only need to change the image name and keep the current four volume mounts; no data migration is required.
+> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.2`, for version pinning and rollback. Keep the current four volume mounts; no data migration is required.
 
 Execute the following command to start the container:
 
@@ -45,7 +45,7 @@ docker run -d \
   -v $(pwd)/music:/server/music \
   --name yinyun \
   --restart unless-stopped \
-  bobcc4/yinyun-lxserver:v1
+  bobcc4/yinyun-lxserver:latest
 ```
 
 **Container Volume Mappings:**
@@ -62,7 +62,7 @@ Create a `docker-compose.yml` file:
 ```yaml
 services:
   yinyun:
-    image: bobcc4/yinyun-lxserver:v1
+    image: bobcc4/yinyun-lxserver:latest
     container_name: yinyun
     restart: unless-stopped
     ports:

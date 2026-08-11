@@ -1,24 +1,24 @@
 # 快速开始
 
-V1 适合个人 NAS、单用户或少量用户使用。下载与缓存文件使用可读文件名，能够直接在 NAS 文件系统中查看和管理。
+音云服务端适合个人 NAS、单用户或少量用户使用。下载与缓存文件使用可读文件名，能够直接在 NAS 文件系统中查看和管理。
 
 ## 部署前准备
 
 - 推荐：Docker 24 或更高版本、Docker Compose v2。
 - 源码运行：Node.js 22.12 或更高版本，推荐 Node.js 24 LTS。
 - 默认端口：`9527`。
-- 正式镜像：`bobcc4/yinyun-lxserver:v1`。
+- 正式镜像：`bobcc4/yinyun-lxserver:latest`。
 - 至少持久化 `/server/data`；需要下载和管理源文件时，还应持久化 `/server/cache`、`/server/music` 和 `/server/logs`。
 
 > [!IMPORTANT]
-> 项目仓库和正式镜像已由 `bobcc4/lxserver` 更名为 `bobcc4/yinyun-lxserver`，旧 Docker Hub 仓库已停止提供镜像。已有部署只需修改镜像名称并保留原来的四个目录挂载，不需要迁移数据。
+> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。已有部署必须改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.2`，用于锁定版本或回滚。请保留原来的四个目录挂载，不需要迁移数据。
 
 ## Docker Compose 部署
 
 ```yaml
 services:
   yinyun:
-    image: bobcc4/yinyun-lxserver:v1
+    image: bobcc4/yinyun-lxserver:latest
     container_name: yinyun
     restart: unless-stopped
     ports:

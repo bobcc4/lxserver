@@ -1,6 +1,6 @@
 services:
   yinyun:
-    image: bobcc4/yinyun-lxserver:v1
+    image: bobcc4/yinyun-lxserver:latest
     container_name: yinyun
     restart: unless-stopped
     ports:
