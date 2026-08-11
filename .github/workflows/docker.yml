@@ -129,12 +129,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Remove deprecated v1 tag from Docker Hub
+      - name: Remove deprecated v1 registry tags
         if: inputs.cleanup_legacy_v1 == true
         shell: bash
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TOKEN="$({
             jq -nc \
@@ -152,7 +153,24 @@ jobs:
             exit 1
           fi
 
-          curl --fail --silent --show-error \
+          HTTP_STATUS="$(curl --silent --show-error \
+            --output /dev/null \
+            --write-out '%{http_code}' \
             --request DELETE \
             --header "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/yinyun-lxserver/tags/v1/"
+            "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/yinyun-lxserver/tags/v1/")"
+
+          if [[ "$HTTP_STATUS" != "204" && "$HTTP_STATUS" != "404" ]]; then
+            echo "Docker Hub tag deletion failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          VERSION_ID="$(gh api \
+            "/users/${{ github.repository_owner }}/packages/container/yinyun-lxserver/versions" \
+            --jq '.[] | select(.metadata.container.tags // [] | contains(["v1"])) | .id' |
+            head -n 1)"
+
+          if [[ -n "$VERSION_ID" ]]; then
+            gh api --method DELETE \
+              "/users/${{ github.repository_owner }}/packages/container/yinyun-lxserver/versions/$VERSION_ID"
+          fi
