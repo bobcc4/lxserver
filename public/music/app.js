@@ -107,6 +107,8 @@ const DEFAULT_SETTINGS = {
     enableServerCache: true, // 开启服务器缓存
     enableServerLyricCache: true, // 开启服务器歌词文件缓存
     embedLyricToFile: true, // 下载时将歌词嵌入文件（标签+.lrc）
+    sidecarLyricFormat: 'line', // 外置歌词格式: line | word | enhanced
+    embedLyricFormat: 'line', // 内嵌歌词格式: line | word | enhanced
     serverCacheLocation: 'root', // 缓存位置: 'data' (synced) or 'root' (local)
     serverCacheNamingPattern: 'simple', // 缓存命名规则: standard | simple
     enableRemaster: false, // 启用下载目录歌曲洗版
@@ -142,6 +144,9 @@ function normalizeStoredSettings(nextSettings) {
     nextSettings.serverCacheNamingPattern = nextSettings.serverCacheNamingPattern === 'standard'
         ? 'standard'
         : 'simple';
+    const lyricFormats = new Set(['line', 'word', 'enhanced']);
+    nextSettings.sidecarLyricFormat = lyricFormats.has(nextSettings.sidecarLyricFormat) ? nextSettings.sidecarLyricFormat : 'line';
+    nextSettings.embedLyricFormat = lyricFormats.has(nextSettings.embedLyricFormat) ? nextSettings.embedLyricFormat : 'line';
     return nextSettings;
 }
 
@@ -4124,7 +4129,9 @@ async function triggerServerCache(song, url, quality) {
                 url, 
                 quality,
                 namingPattern: window.settings?.serverCacheNamingPattern || 'simple',
-                embedLyric: !!(window.settings?.embedLyricToFile ?? true)
+                embedLyric: !!(window.settings?.embedLyricToFile ?? true),
+                sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
+                embedLyricFormat: window.settings?.embedLyricFormat || 'line'
             })
         });
         // 移除 403 自动重试逻辑，API 不再报 403
@@ -6085,6 +6092,8 @@ const SETTINGS_UI_MAP = {
     enableServerCache: { id: 'setting-enable-server-cache', type: 'checkbox' },
     enableServerLyricCache: { id: 'setting-enable-server-lyric-cache', type: 'checkbox' },
     embedLyricToFile: { id: 'setting-embed-lyric-to-file', type: 'checkbox' },
+    sidecarLyricFormat: { id: 'setting-sidecar-lyric-format', type: 'value' },
+    embedLyricFormat: { id: 'setting-embed-lyric-format', type: 'value' },
     preferServerCache: { id: 'setting-prefer-server-cache', type: 'checkbox' },
     enableOnlyDownloadMode: { id: 'setting-only-download-mode', type: 'checkbox' },
     serverCacheLocation: { id: 'setting-server-cache-location', type: 'value' },
@@ -6471,6 +6480,11 @@ function renderCacheList() {
             qTagHtml = `<span class="flex-shrink-0 px-1 py-0 rounded text-[10px] t-badge-red border border-red-200 dark:border-red-500/30 transition-colors">${qName}</span>`;
         }
 
+        const lyricFormatLabel = { line: '逐行', word: '逐字', enhanced: '增强型' }[item.lyricFormat] || 'LRC';
+        const lyricFallbackTitle = item.lyricFallbackReason
+            ? `实际保存为${lyricFormatLabel}歌词：${item.lyricFallbackReason}`
+            : `已保存${lyricFormatLabel}歌词`;
+
         const username = (window.currentListData && window.currentListData.username) || localStorage.getItem('lx_sync_user') || '';
         // <img src> 无法携带自定义请求头，将 token 附到 URL 以通过服务端认证
         const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null)
@@ -6512,7 +6526,7 @@ function renderCacheList() {
                     </div>
                     ${item.hasLyric === true ? `
                         <div class="mt-1">
-                            <span class="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-black shadow-sm inline-flex items-center" title="歌词已同步">LRC</span>
+                            <span class="text-[9px] ${item.lyricFallbackReason ? 'bg-amber-500' : 'bg-emerald-500'} text-white px-1.5 py-0.5 rounded font-black shadow-sm inline-flex items-center" title="${lyricFallbackTitle.replace(/"/g, '&quot;')}">LRC · ${lyricFormatLabel}</span>
                         </div>
                     ` : `
                         <div class="mt-1">

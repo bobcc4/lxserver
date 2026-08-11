@@ -8,7 +8,8 @@ import https from 'https'
 import crypto from 'crypto'
 import { PassThrough } from 'stream'
 const { MusicTagger, MetaPicture } = require('music-tag-native')
-import { buildLyrics, parseLyrics } from '../utils/lrcTool'
+import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '../utils/lrcTool'
+import type { LyricOutputFormat } from '../utils/lrcTool'
 import { formatPlayTime } from '../common/utils/common'
 import { normalizeUsername } from '../utils/username'
 
@@ -65,7 +66,18 @@ export const activeTasks: Map<string, Array<{ songKey: string, controller: Abort
 
 // [新增] 歌词获取钩子：由 server.ts 在启动时注入，避免 fileCache 直接依赖 musicSdk
 // 调用时会通过 /api/v1/player/music/lyric 接口逻辑（先查本地 .lrc 缓存，再去源站）获取歌词文本
-type LyricFetcher = (songInfo: any) => Promise<string | null>
+type LyricData = {
+    lyric?: string
+    lrc?: string
+    tlyric?: string
+    rlyric?: string
+    lxlyric?: string
+    klyric?: string
+    _lyricKind?: 'line' | 'word'
+    _lyricProvider?: string
+    _lyricFallbackReason?: string
+}
+type LyricFetcher = (songInfo: any) => Promise<LyricData | null>
 let _lyricFetcher: LyricFetcher | null = null
 export const setLyricFetcher = (fn: LyricFetcher) => { _lyricFetcher = fn }
 
@@ -130,6 +142,12 @@ export interface CacheItem {
     metadataWritable?: boolean
     metadataError?: string
     embedLyricError?: string
+    lyricFormat?: LyricOutputFormat
+    lyricRequestedFormat?: LyricOutputFormat
+    embedLyricFormat?: LyricOutputFormat
+    embedLyricRequestedFormat?: LyricOutputFormat
+    lyricFallbackReason?: string
+    embedLyricFallbackReason?: string
     coverCheckedVersion?: number
     coverCheckedMtime?: number
     coverCheckedSize?: number
@@ -151,6 +169,11 @@ export interface DownloadProvenance {
     requestedSource?: string
     downloadSource?: string
     sourceName?: string
+}
+
+export interface LyricSaveOptions {
+    sidecarFormat?: LyricOutputFormat
+    embedFormat?: LyricOutputFormat
 }
 
 export interface LocalLyricsResult {
@@ -1834,7 +1857,13 @@ export const getLocalLyrics = (songInfo: any, username?: string): LocalLyricsRes
     return { exists: false }
 }
 
-export const saveLyricCache = (songInfo: any, lyricsObj: any, username?: string, isOnlyDownload?: boolean) => {
+export const saveLyricCache = (
+    songInfo: any,
+    lyricsObj: any,
+    username?: string,
+    isOnlyDownload?: boolean,
+    format: LyricOutputFormat = 'line',
+) => {
     try {
         let baseName: string
         let quality = songInfo.quality || 'unknown'
@@ -1879,7 +1908,8 @@ export const saveLyricCache = (songInfo: any, lyricsObj: any, username?: string,
         const lyricFile = baseName + '.lrc'
         const finalPath = path.join(dir, lyricFile)
 
-        const formattedLrc = buildLyrics(lyricsObj)
+        const serialized = serializeLyrics(lyricsObj, normalizeLyricOutputFormat(format))
+        const formattedLrc = serialized.text
         if (!formattedLrc) {
             console.log(`[FileCache] Empty lyrics for ${baseName}, skip saving.`)
             return false
@@ -1896,6 +1926,9 @@ export const saveLyricCache = (songInfo: any, lyricsObj: any, username?: string,
                 const root = getCacheDir(normalizedUsername, folder === 'music')
                 existing.lyricFilename = path.relative(root, finalPath).replace(/\\/g, '/')
                 existing.hasLyric = true
+                existing.lyricFormat = serialized.actualFormat
+                existing.lyricRequestedFormat = serialized.requestedFormat
+                existing.lyricFallbackReason = serialized.fallbackReason
                 indexManager.save(normalizedUsername, folder)
                 break
             }
@@ -1917,6 +1950,7 @@ const ensureCachedLyrics = async (
     folder: 'cache' | 'music',
     shouldCacheLyric: boolean,
     shouldEmbedLyric: boolean,
+    lyricOptions: LyricSaveOptions = {},
 ) => {
     if ((!shouldCacheLyric && !shouldEmbedLyric) || !_lyricFetcher || !fs.existsSync(audioPath)) return
 
@@ -1927,14 +1961,17 @@ const ensureCachedLyrics = async (
     const item = indexManager.get(normalizedUsername, id, folder, resolvedQuality, true)
         || indexManager.getAll(normalizedUsername, folder).find(candidate => candidate.filename === relativeAudioPath)
     const lyricPath = audioPath.substring(0, audioPath.length - path.extname(audioPath).length) + '.lrc'
-    let hasCachedLyric = fs.existsSync(lyricPath)
-    let hasEmbedLyric = item?.hasEmbedLyric === true
+    const sidecarFormat = normalizeLyricOutputFormat(lyricOptions.sidecarFormat)
+    const embedFormat = normalizeLyricOutputFormat(lyricOptions.embedFormat)
+    let hasCachedLyric = fs.existsSync(lyricPath) && (!item?.lyricRequestedFormat || item.lyricRequestedFormat === sidecarFormat)
+    let hasEmbedLyric = item?.hasEmbedLyric === true && (!item.embedLyricRequestedFormat || item.embedLyricRequestedFormat === embedFormat)
     let metadataWritable = item?.metadataWritable !== false
     let metadataError = item?.metadataError
     let embedLyricError = item?.embedLyricError
     const audioContainer = item?.audioContainer || detectAudioContainer(audioPath)
 
-    if (shouldEmbedLyric && !hasEmbedLyric && metadataWritable) {
+    const canReuseUnknownEmbeddedFormat = !item?.embedLyricRequestedFormat || item.embedLyricRequestedFormat === embedFormat
+    if (shouldEmbedLyric && !hasEmbedLyric && metadataWritable && canReuseUnknownEmbeddedFormat) {
         let tagger: any
         try {
             tagger = new MusicTagger()
@@ -1968,27 +2005,28 @@ const ensureCachedLyrics = async (
     }
 
     try {
-        const lyricText = await _lyricFetcher({ ...songInfo, quality: resolvedQuality })
-        if (!lyricText) return
+        const lyricsObj = await _lyricFetcher({ ...songInfo, quality: resolvedQuality })
+        if (!lyricsObj?.lyric && !lyricsObj?.lrc) return
 
         if (shouldCacheLyric && !hasCachedLyric) {
-            const lyricsObj = parseLyrics(lyricText)
             hasCachedLyric = saveLyricCache(
                 { ...songInfo, quality: resolvedQuality },
                 lyricsObj,
                 username,
                 isOnlyDownload,
+                sidecarFormat,
             ) || fs.existsSync(lyricPath)
         }
 
+        let embeddedLyrics = shouldEmbedLyric ? serializeLyrics(lyricsObj, embedFormat) : null
         if (shouldEmbedLyric && !hasEmbedLyric && metadataWritable) {
-            const embedResult = embedLyricsIntoFile(audioPath, lyricText)
+            const embedResult = embedLyricsIntoFile(audioPath, embeddedLyrics!.text)
             hasEmbedLyric = embedResult.hasEmbedLyric
             metadataWritable = embedResult.metadataWritable
             metadataError = embedResult.metadataWritable ? undefined : embedResult.error
             embedLyricError = embedResult.error
             if (embedResult.success) {
-                console.log(`[FileCache] USLT lyric embedded for: ${songInfo.name || songInfo.title || path.basename(audioPath)}`)
+                console.log(`[FileCache] ${embeddedLyrics!.actualFormat} lyric embedded for: ${songInfo.name || songInfo.title || path.basename(audioPath)}`)
             } else {
                 console.warn(`[FileCache] Lyric tag unavailable for ${path.basename(audioPath)}: ${embedResult.error}`)
             }
@@ -2006,6 +2044,9 @@ const ensureCachedLyrics = async (
                 finalItem.metadataWritable = metadataWritable
                 finalItem.metadataError = metadataError
                 finalItem.embedLyricError = embedLyricError
+                finalItem.embedLyricFormat = hasEmbedLyric ? embeddedLyrics!.actualFormat : undefined
+                finalItem.embedLyricRequestedFormat = hasEmbedLyric ? embedFormat : undefined
+                finalItem.embedLyricFallbackReason = hasEmbedLyric ? embeddedLyrics!.fallbackReason : undefined
             }
             indexManager.save(normalizedUsername, folder)
         }
@@ -2014,7 +2055,7 @@ const ensureCachedLyrics = async (
     }
 }
 
-export const downloadAndCache = async (songInfo: any, url: string, quality?: string, username?: string, signal?: AbortSignal, isOnlyDownload?: boolean, shouldCacheLyric: boolean = true, shouldEmbedLyric: boolean = true, provenance: DownloadProvenance = {}) => {
+export const downloadAndCache = async (songInfo: any, url: string, quality?: string, username?: string, signal?: AbortSignal, isOnlyDownload?: boolean, shouldCacheLyric: boolean = true, shouldEmbedLyric: boolean = true, provenance: DownloadProvenance = {}, lyricOptions: LyricSaveOptions = {}) => {
     const dir = ensureDir(username, isOnlyDownload)
     const baseName = getFileName(songInfo, quality, isOnlyDownload, username)
     const tempPath = path.join(dir, baseName + '.tmp')
@@ -2027,7 +2068,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
     if (result.exists && !result.isCollision) {
         const targetFolder: 'cache' | 'music' = isOnlyDownload ? 'music' : 'cache'
         if (result.folder === targetFolder && result.path) {
-            await ensureCachedLyrics(songInfo, quality || result.quality, username, isOnlyDownload, result.path, targetFolder, shouldCacheLyric, shouldEmbedLyric)
+            await ensureCachedLyrics(songInfo, quality || result.quality, username, isOnlyDownload, result.path, targetFolder, shouldCacheLyric, shouldEmbedLyric, lyricOptions)
             console.log(`[FileCache] Song already exists in ${targetFolder}, skipping download: ${result.filename}`)
             // 通知前端轮询：目标目录文件已存在，视为立即完成
             cacheProgress.set(songKey, { progress: 100, status: 'exists' })
@@ -2101,6 +2142,12 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                 coverType,
                 hasLyric: !!lyricFilename,
                 hasEmbedLyric,
+                lyricFormat: cachedItem?.lyricFormat,
+                lyricRequestedFormat: cachedItem?.lyricRequestedFormat,
+                embedLyricFormat: cachedItem?.embedLyricFormat,
+                embedLyricRequestedFormat: cachedItem?.embedLyricRequestedFormat,
+                lyricFallbackReason: cachedItem?.lyricFallbackReason,
+                embedLyricFallbackReason: cachedItem?.embedLyricFallbackReason,
                 audioContainer,
                 bitrate: inspection.bitrate,
                 sampleRate: inspection.sampleRate,
@@ -2109,7 +2156,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                 metadataError: metadataWritable ? undefined : getMetadataUnsupportedMessage(audioContainer)
             }, 'music')
 
-            await ensureCachedLyrics(songInfo, actualQuality, username, true, finalPath, 'music', shouldCacheLyric, shouldEmbedLyric)
+            await ensureCachedLyrics(songInfo, actualQuality, username, true, finalPath, 'music', shouldCacheLyric, shouldEmbedLyric, lyricOptions)
 
             console.log(`[FileCache] Copied cached song to music folder: ${path.basename(finalPath)}`)
             cacheProgress.set(songKey, { progress: 100, status: 'finished', total: stat.size, received: stat.size })
@@ -2364,7 +2411,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                         indexManager.save(normalizedUsername, folderType)
                     }
 
-                    await ensureCachedLyrics(songInfo, actualQuality, username, isOnlyDownload, finalPath, folderType, shouldCacheLyric, shouldEmbedLyric)
+                    await ensureCachedLyrics(songInfo, actualQuality, username, isOnlyDownload, finalPath, folderType, shouldCacheLyric, shouldEmbedLyric, lyricOptions)
 
                     cacheProgress.set(songKey, { progress: 100, status: 'finished', total: total || received, received, speed: 0, updatedAt: Date.now() })
                     setTimeout(() => cacheProgress.delete(songKey), 30000)
@@ -2718,7 +2765,7 @@ export const setIndexEmbedLyric = (
     filename: string,
     username: string,
     value: boolean,
-    metadata?: Pick<CacheItem, 'audioContainer' | 'metadataWritable' | 'metadataError' | 'embedLyricError'>,
+    metadata?: Pick<CacheItem, 'audioContainer' | 'metadataWritable' | 'metadataError' | 'embedLyricError' | 'embedLyricFormat' | 'embedLyricRequestedFormat' | 'embedLyricFallbackReason'>,
 ) => {
     const normalizedUsername = normalizeCacheUsername(username)
     for (const folder of ['cache', 'music'] as const) {

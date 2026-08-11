@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.5.2-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.5.3-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -80,7 +80,7 @@
 
 ### 5. 播放器设置与自定义源
 
-支持默认音质、缓存与下载、代理、歌词、主题、音效和播放行为设置。同步账户可按音源选择启用平台；管理员共享完整音源后，接收者可独立配置自己使用的平台。
+支持默认音质、缓存与下载、代理、歌词、主题、音效和播放行为设置。外置与内嵌歌词可分别选择逐行、逐字或增强型 LRC，TX 支持原生 QRC 逐字歌词。同步账户可按音源选择启用平台；管理员共享完整音源后，接收者可独立配置自己使用的平台。
 
 <p align="center">
   <img src="docs/public/screenshots/web-settings.png" width="900" alt="播放器设置与自定义源">
@@ -138,7 +138,7 @@
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
 > [!IMPORTANT]
-> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。现有用户必须把 Compose 或 NAS 容器中的镜像改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会永久保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.2`，用于锁定版本或回滚。数据目录结构没有变化，请保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载。
+> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。现有用户必须把 Compose 或 NAS 容器中的镜像改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会永久保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.3`，用于锁定版本或回滚。数据目录结构没有变化，请保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载。
 
 **Docker Run 示例：**
 

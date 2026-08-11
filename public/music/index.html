@@ -1830,6 +1830,18 @@
                                         </label>
                                     </div>
 
+                                    <div class="pb-3 border-b t-border-main">
+                                        <div class="text-sm font-bold t-text-main mb-2">外置歌词格式</div>
+                                        <select id="setting-sidecar-lyric-format"
+                                            onchange="updateSetting('sidecarLyricFormat', this.value)"
+                                            class="lm-select !w-full !py-2.5">
+                                            <option value="line">逐行 LRC</option>
+                                            <option value="word">逐字 LRC</option>
+                                            <option value="enhanced">增强型 LRC（ESLyric）</option>
+                                        </select>
+                                        <p class="text-xs t-text-muted mt-2">逐字歌词不可用时会自动降级为同平台逐行歌词，不生成伪时间轴。</p>
+                                    </div>
+
                                     <!-- Embed Lyric to File Setting -->
                                     <div class="flex items-center justify-between pb-3 border-b t-border-main">
                                         <div>
@@ -1850,6 +1862,17 @@
                                                 class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-all">
                                             </div>
                                         </label>
+                                    </div>
+
+                                    <div class="pb-3 border-b t-border-main">
+                                        <div class="text-sm font-bold t-text-main mb-2">内嵌歌词格式</div>
+                                        <select id="setting-embed-lyric-format"
+                                            onchange="updateSetting('embedLyricFormat', this.value)"
+                                            class="lm-select !w-full !py-2.5">
+                                            <option value="line">逐行 LRC</option>
+                                            <option value="word">逐字 LRC</option>
+                                            <option value="enhanced">增强型 LRC（ESLyric）</option>
+                                        </select>
                                     </div>
 
                                     <!-- Prefer Cached Playback Settings -->

@@ -1948,7 +1948,10 @@ window.LocalMusicManager = {
                     'Content-Type': 'application/json',
                     ...(window.getUserAuthHeaders ? window.getUserAuthHeaders() : {})
                 },
-                body: JSON.stringify({ filenames: targetFilenames })
+                body: JSON.stringify({
+                    filenames: targetFilenames,
+                    embedLyricFormat: window.settings?.embedLyricFormat || 'line'
+                })
             });
 
             const result = await res.json();

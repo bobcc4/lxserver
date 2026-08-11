@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yinyun-player-v1.5.2';
+const CACHE_NAME = 'yinyun-player-v1.5.3';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',

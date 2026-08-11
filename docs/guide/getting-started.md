@@ -11,7 +11,7 @@
 - 至少持久化 `/server/data`；需要下载和管理源文件时，还应持久化 `/server/cache`、`/server/music` 和 `/server/logs`。
 
 > [!IMPORTANT]
-> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。已有部署必须改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.2`，用于锁定版本或回滚。请保留原来的四个目录挂载，不需要迁移数据。
+> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。已有部署必须改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.3`，用于锁定版本或回滚。请保留原来的四个目录挂载，不需要迁移数据。
 
 ## Docker Compose 部署
 

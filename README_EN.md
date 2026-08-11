@@ -63,7 +63,7 @@ Filter and batch-select local tracks for replacement at a chosen target quality.
 
 ### 5. Player Settings and Custom Sources
 
-Configure default quality, caching, downloads, proxies, lyrics, themes, audio effects, and playback behavior. Each user can select enabled platforms per custom source, including independently configured shared sources.
+Configure default quality, caching, downloads, proxies, lyrics, themes, audio effects, and playback behavior. Sidecar and embedded lyrics independently support line, word-timed, and enhanced LRC, with native TX QRC word timing. Each user can select enabled platforms per custom source, including independently configured shared sources.
 
 <p align="center">
   <img src="docs/public/screenshots/web-settings.png" width="900" alt="Player settings and custom sources">
@@ -123,7 +123,7 @@ This project supports pulling images from Docker Hub or GitHub Packages:
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
 > [!IMPORTANT]
-> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.2`, for version pinning and rollback. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
+> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.3`, for version pinning and rollback. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
 
 **Docker Run Example:**
 

@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import * as fileCache from './fileCache'
 import { tryNormalizeUsername } from '@/utils/username'
+import { normalizeLyricOutputFormat } from '@/utils/lrcTool'
+import type { LyricOutputFormat } from '@/utils/lrcTool'
 
 export type ServerDownloadStatus = 'waiting' | 'downloading' | 'tagging' | 'paused' | 'finished' | 'exists' | 'error'
 
@@ -22,6 +24,8 @@ export interface ServerDownloadTask {
   enableOnlyDownloadMode: boolean
   cacheLyric: boolean
   embedLyric: boolean
+  sidecarLyricFormat: LyricOutputFormat
+  embedLyricFormat: LyricOutputFormat
   createdAt: number
   updatedAt: number
 }
@@ -33,6 +37,8 @@ interface QueueInput {
   enableOnlyDownloadMode?: boolean
   cacheLyric?: boolean
   embedLyric?: boolean
+  sidecarLyricFormat?: LyricOutputFormat
+  embedLyricFormat?: LyricOutputFormat
 }
 
 interface ResolveResult {
@@ -153,6 +159,8 @@ const loadTasks = () => {
         enableOnlyDownloadMode: !!raw.enableOnlyDownloadMode,
         cacheLyric: raw.cacheLyric !== false,
         embedLyric: raw.embedLyric !== false,
+        sidecarLyricFormat: normalizeLyricOutputFormat(raw.sidecarLyricFormat),
+        embedLyricFormat: normalizeLyricOutputFormat(raw.embedLyricFormat),
         createdAt: Number(raw.createdAt || now),
         updatedAt: now,
       }
@@ -181,6 +189,8 @@ const getPublicTask = (task: ServerDownloadTask) => {
     received: Number(live?.received ?? task.received ?? 0),
     speed: Number(live?.speed ?? task.speed ?? 0),
     errorMsg: String(live?.errorMsg || task.errorMsg || ''),
+    sidecarLyricFormat: task.sidecarLyricFormat,
+    embedLyricFormat: task.embedLyricFormat,
     createdAt: task.createdAt,
     updatedAt: Number(live?.updatedAt || task.updatedAt),
   }
@@ -215,6 +225,9 @@ const runTask = async (task: ServerDownloadTask) => {
         requestedSource: resolved.requestedSource,
         downloadSource: resolved.downloadSource,
         sourceName: resolved.sourceName,
+      }, {
+        sidecarFormat: task.sidecarLyricFormat,
+        embedFormat: task.embedLyricFormat,
       })
 
     if (controller.signal.aborted) return
@@ -310,6 +323,8 @@ export const enqueue = (username: string, inputs: QueueInput[]) => {
       existing.enableOnlyDownloadMode = !!input.enableOnlyDownloadMode
       existing.cacheLyric = input.cacheLyric !== false
       existing.embedLyric = input.embedLyric !== false
+      existing.sidecarLyricFormat = normalizeLyricOutputFormat(input.sidecarLyricFormat)
+      existing.embedLyricFormat = normalizeLyricOutputFormat(input.embedLyricFormat)
       existing.createdAt = now
       existing.updatedAt = now
       added.push(existing)
@@ -326,6 +341,8 @@ export const enqueue = (username: string, inputs: QueueInput[]) => {
       enableOnlyDownloadMode: !!input.enableOnlyDownloadMode,
       cacheLyric: input.cacheLyric !== false,
       embedLyric: input.embedLyric !== false,
+      sidecarLyricFormat: normalizeLyricOutputFormat(input.sidecarLyricFormat),
+      embedLyricFormat: normalizeLyricOutputFormat(input.embedLyricFormat),
       createdAt: now, updatedAt: now,
     }
     tasks.set(key, task)

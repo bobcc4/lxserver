@@ -863,6 +863,8 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
         enableOnlyDownloadMode: true,
         cacheLyric: item.downloadLyrics !== false,
         embedLyric: item.embedLyrics !== false,
+        sidecarLyricFormat: item.sidecarLyricFormat,
+        embedLyricFormat: item.embedLyricFormat,
       }))
       success(res, { items: serverDownloadQueue.enqueue(username, items) }, 202)
       return true

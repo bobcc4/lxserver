@@ -175,7 +175,9 @@ class DownloadManager {
                     quality: task.quality,
                     enableOnlyDownloadMode: window.settings?.enableOnlyDownloadMode || false,
                     cacheLyric: window.settings?.enableServerLyricCache !== false,
-                    embedLyric: !!(window.settings?.embedLyricToFile ?? true)
+                    embedLyric: !!(window.settings?.embedLyricToFile ?? true),
+                    sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
+                    embedLyricFormat: window.settings?.embedLyricFormat || 'line'
                 }))
             };
             if (headers['x-frontend-auth'] && window.settings?.serverCacheNamingPattern) {
@@ -864,7 +866,9 @@ class DownloadManager {
                 sourceName: result.sourceName || '',
                 enableOnlyDownloadMode: window.settings?.enableOnlyDownloadMode || false,
                 cacheLyric: window.settings?.enableServerLyricCache !== false,
-                embedLyric: !!(window.settings?.embedLyricToFile ?? true)
+                embedLyric: !!(window.settings?.embedLyricToFile ?? true),
+                sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
+                embedLyricFormat: window.settings?.embedLyricFormat || 'line'
             };
             if (window.settings?.serverCacheNamingPattern && headers['x-frontend-auth']) {
                 payload.namingPattern = window.settings.serverCacheNamingPattern;
@@ -983,7 +987,8 @@ class DownloadManager {
                     (task.song.songmid || task.song.id) ? `songmid=${encodeURIComponent(task.song.songmid || task.song.id)}` : '',
                     task.song.hash ? `hash=${encodeURIComponent(task.song.hash)}` : '',
                     task.song.interval ? `interval=${encodeURIComponent(task.song.interval)}` : '',
-                    (window.settings?.embedLyricToFile !== false) ? 'lyric=1' : ''
+                    (window.settings?.embedLyricToFile !== false) ? 'lyric=1' : '',
+                    `lyricFormat=${encodeURIComponent(window.settings?.embedLyricFormat || 'line')}`
                 ].filter(Boolean).join('&');
 
                 finalUrl = `/api/v1/player/music/download?url=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(filename)}&taskId=${task.id}&${metadataParams}`;

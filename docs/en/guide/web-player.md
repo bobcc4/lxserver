@@ -13,6 +13,7 @@ Functions currently supported by the Web player:
 - **Protocol Support**: Fully compatible with the **Subsonic** protocol, allowing you to use various Subsonic clients (e.g., Yinliu, Feishin, etc.) to connect.
 - **UI Experience**: Audio waveform display at the bottom, built-in 5 types of themes, sleep timer.
 - **Lyric Extension**: Supports displaying translation and romaji, supports Karaoke word-by-word high-light rendering, and supports sharing lyric images.
+- **Lyric File Formats**: Sidecar and embedded lyrics can independently use line LRC, word-timed LRC, or enhanced LRC (ESLyric). TX uses native QRC first and falls back only to same-platform line lyrics.
 
 ![Web player online search](/screenshots/web-search.png)
 

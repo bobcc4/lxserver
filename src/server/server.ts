@@ -29,6 +29,7 @@ import {
 } from './playlistSharing'
 import { getDownloadQualityCandidates } from './downloadQuality'
 import { normalizeSongInfo } from './utils/songInfo'
+import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '@/utils/lrcTool'
 import { registerPlaybackResolver, resolveOriginalPlatformFirst } from './playbackResolverRegistry'
 import { normalizeUsername, tryNormalizeUsername, validateUsername } from '@/utils/username'
 import crypto from 'node:crypto'
@@ -2717,7 +2718,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         }
         void readBody(req).then(body => {
           try {
-            const { songInfo, url, quality, enableOnlyDownloadMode, namingPattern, cacheLyric, embedLyric, requestedSource, downloadSource, sourceName } = JSON.parse(body)
+            const { songInfo, url, quality, enableOnlyDownloadMode, namingPattern, cacheLyric, embedLyric, sidecarLyricFormat, embedLyricFormat, requestedSource, downloadSource, sourceName } = JSON.parse(body)
             if (!songInfo || !url) {
               res.writeHead(400)
               res.end('Missing params')
@@ -2751,6 +2752,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
               requestedSource: requestedSource || songInfo.source,
               downloadSource,
               sourceName,
+            }, {
+              sidecarFormat: normalizeLyricOutputFormat(sidecarLyricFormat),
+              embedFormat: normalizeLyricOutputFormat(embedLyricFormat),
             })
               .then(() => console.log(`[Cache] Downloaded ${songInfo.name} for ${username}`))
               .catch((err: any) => {
@@ -3141,8 +3145,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
 
         void readBody(req).then(async body => {
           try {
-            const { filenames } = JSON.parse(body)
+            const { filenames, embedLyricFormat } = JSON.parse(body)
             if (!filenames || !Array.isArray(filenames)) throw new Error('Missing filenames')
+            const requestedEmbedFormat = normalizeLyricOutputFormat(embedLyricFormat)
 
             let successCount = 0
             let skippedCount = 0
@@ -3200,7 +3205,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                   try { if (checkTagger) checkTagger.dispose() } catch (e) { }
                 }
 
-                if (existingLyrics && existingLyrics.trim().length > 10) {
+                if (existingLyrics && existingLyrics.trim().length > 10 && (!indexItem?.embedLyricRequestedFormat || indexItem.embedLyricRequestedFormat === requestedEmbedFormat)) {
                   details.push({ filename, status: 'skipped', reason: '已有歌词标签' })
                   skippedCount++
                   continue
@@ -3216,15 +3221,26 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 const lrcPath = fileCache.getCacheFilePath(username, folder === 'music', lrcFilename)
 
                 let lyricText: string | null = null
+                let actualEmbedFormat = requestedEmbedFormat
+                let embedFallbackReason: string | undefined
 
                 if (fs.existsSync(lrcPath)) {
-                  lyricText = fs.readFileSync(lrcPath, 'utf8')
+                  const serialized = serializeLyrics(parseLyrics(fs.readFileSync(lrcPath, 'utf8')), requestedEmbedFormat)
+                  lyricText = serialized.text
+                  actualEmbedFormat = serialized.actualFormat
+                  embedFallbackReason = serialized.fallbackReason
                   console.log(`[EmbedLyric] Using local .lrc for: ${filename}`)
                 } else if (songInfo && songInfo.source && songInfo.source !== 'unknown') {
                   // 没有 .lrc 文件，尝试通过 SDK 获取
                   const lyricFetcherFn = fileCache.getLyricFetcher()
                   if (lyricFetcherFn) {
-                    lyricText = await lyricFetcherFn(songInfo)
+                    const lyricData = await lyricFetcherFn(songInfo)
+                    if (lyricData) {
+                      const serialized = serializeLyrics(lyricData, requestedEmbedFormat)
+                      lyricText = serialized.text
+                      actualEmbedFormat = serialized.actualFormat
+                      embedFallbackReason = serialized.fallbackReason
+                    }
                   }
                   if (lyricText) {
                     console.log(`[EmbedLyric] Fetched lyric from SDK for: ${filename}`)
@@ -3243,6 +3259,9 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                   metadataWritable: embedResult.metadataWritable,
                   metadataError: embedResult.metadataWritable ? undefined : embedResult.error,
                   embedLyricError: embedResult.error,
+                  embedLyricFormat: embedResult.hasEmbedLyric ? actualEmbedFormat : undefined,
+                  embedLyricRequestedFormat: embedResult.hasEmbedLyric ? requestedEmbedFormat : undefined,
+                  embedLyricFallbackReason: embedResult.hasEmbedLyric ? embedFallbackReason : undefined,
                 })
                 if (!embedResult.success) {
                   details.push({ filename, status: 'fail', reason: embedResult.error || '歌词标签写入后校验失败，外置歌词文件仍可正常使用' })
@@ -3390,6 +3409,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
           // MiGu (mg) needs: copyrightId, lrcUrl, mrcUrl, trcUrl (优先，避免调用getMusicInfo API)
           const songInfo = {
             songmid,
+            songId: urlObj.searchParams.get('songId') || urlObj.searchParams.get('id') || '',
             name: urlObj.searchParams.get('name') || '',
             singer: urlObj.searchParams.get('singer') || '',
             hash: urlObj.searchParams.get('hash') || '',
@@ -3471,14 +3491,14 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         }
         void readBody(req).then(body => {
           try {
-            const { songInfo, lyricsObj, enableOnlyDownloadMode } = JSON.parse(body)
+            const { songInfo, lyricsObj, enableOnlyDownloadMode, sidecarLyricFormat } = JSON.parse(body)
             if (!songInfo || !lyricsObj) {
               res.writeHead(400)
               res.end('Missing parameters')
               return
             }
 
-            const success = fileCache.saveLyricCache(songInfo, lyricsObj, username, !!enableOnlyDownloadMode)
+            const success = fileCache.saveLyricCache(songInfo, lyricsObj, username, !!enableOnlyDownloadMode, normalizeLyricOutputFormat(sidecarLyricFormat))
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success }))
           } catch (e: any) {
@@ -3590,6 +3610,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                   const imageUrl = urlObj.searchParams.get('pic') || ''
                   // [新增] 浏览器下载歌词嵌入参数
                   const embedLyric = urlObj.searchParams.get('lyric') === '1'
+                  const embedLyricFormat = normalizeLyricOutputFormat(urlObj.searchParams.get('lyricFormat'))
                   const lyricSource = urlObj.searchParams.get('source') || ''
                   const lyricSongmid = urlObj.searchParams.get('songmid') || ''
                   const lyricHash = urlObj.searchParams.get('hash') || ''
@@ -3683,7 +3704,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                             interval: lyricInterval,
                           })
                           const lyricResult = await lyricReqObj.promise
-                          const lyricText = lyricResult?.lyric || lyricResult?.lrc || ''
+                          const lyricText = serializeLyrics(lyricResult, embedLyricFormat).text
                           if (lyricText) tagger.lyrics = lyricText
                         } catch (e) { /* 歌词获取失败不影响下载 */ }
                       }
@@ -5617,15 +5638,16 @@ export const startServer = async (port: number, ip: string) => {
       console.log(`[LyricFetcher] Fetching lyric: ${source}_${songmid} (${songInfo.name})`)
       const requestObj = musicSdk[source].getLyric({
         songmid,
+        songId: songInfo.songId || songInfo.id || '',
         name: songInfo.name || '',
         singer: songInfo.singer || '',
         hash: songInfo.hash || '',
         interval: songInfo.interval || '',
       })
       const result = await requestObj.promise
-      const lyricText = result?.lyric || result?.lrc || null
-      console.log(`[LyricFetcher] Result: ${lyricText ? lyricText.length + ' chars' : 'null'}`)
-      return lyricText
+      const lyricData = result?.lyric || result?.lrc ? result : null
+      console.log(`[LyricFetcher] Result: ${lyricData ? (lyricData.lyric || lyricData.lrc).length + ' chars' : 'null'}`)
+      return lyricData
     } catch (e: any) {
       console.warn(`[LyricFetcher] Failed for "${songInfo.name}":`, e.message || e)
       return null

@@ -321,7 +321,8 @@ async function requestServerLyricCache(song, quality = null, force = false) {
             body: JSON.stringify({
                 songInfo: songInfoForCache,
                 lyricsObj: lyricInfo,
-                enableOnlyDownloadMode
+                enableOnlyDownloadMode,
+                sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line'
             })
         });
         if (!cacheRes.ok) throw new Error('Lyric cache request failed');
