@@ -6,12 +6,21 @@ on:
       version:
         required: false
         type: string
+      cleanup_legacy_v1:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       version:
         description: Optional image version (for example, v1.5.2)
         required: false
         type: string
+      cleanup_legacy_v1:
+        description: Remove the deprecated v1 tag without rebuilding
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -59,9 +68,11 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Generate build hash
+        if: inputs.cleanup_legacy_v1 != true
         run: node scripts/update-build-hash.js
 
       - name: Resolve image version
+        if: inputs.cleanup_legacy_v1 != true
         id: version
         shell: bash
         env:
@@ -88,6 +99,7 @@ jobs:
           fi
 
       - name: Extract metadata (tags, labels) for Docker
+        if: inputs.cleanup_legacy_v1 != true
         id: meta
         uses: docker/metadata-action@v6
         with:
@@ -104,6 +116,7 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
 
       - name: Build and push Docker image
+        if: inputs.cleanup_legacy_v1 != true
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -115,3 +128,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Remove deprecated v1 tag from Docker Hub
+        if: inputs.cleanup_legacy_v1 == true
+        shell: bash
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          TOKEN="$({
+            jq -nc \
+              --arg username "$DOCKER_USERNAME" \
+              --arg password "$DOCKER_PASSWORD" \
+              '{username: $username, password: $password}' |
+              curl --fail --silent --show-error \
+                --header 'Content-Type: application/json' \
+                --data-binary @- \
+                https://hub.docker.com/v2/users/login/
+          } | jq -r '.token // empty')"
+
+          if [[ -z "$TOKEN" ]]; then
+            echo "Docker Hub did not return an API token"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            --request DELETE \
+            --header "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/yinyun-lxserver/tags/v1/"
