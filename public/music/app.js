@@ -108,7 +108,7 @@ const DEFAULT_SETTINGS = {
     enableServerLyricCache: true, // 开启服务器歌词文件缓存
     embedLyricToFile: true, // 下载时将歌词嵌入文件（标签+.lrc）
     sidecarLyricFormat: 'line', // 外置歌词格式: line | word | enhanced
-    embedLyricFormat: 'line', // 内嵌歌词格式: line | word | enhanced
+    embedLyricFormat: 'enhanced', // 内嵌歌词格式: line | word | enhanced
     serverCacheLocation: 'root', // 缓存位置: 'data' (synced) or 'root' (local)
     serverCacheNamingPattern: 'simple', // 缓存命名规则: standard | simple
     enableRemaster: false, // 启用下载目录歌曲洗版
@@ -4121,21 +4121,27 @@ async function triggerServerCache(song, url, quality) {
             }
         };
 
-        await fetch('/api/v1/player/music/cache/download', {
+        const response = await fetch('/api/v1/player/music/cache/download', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ 
                 songInfo: songInfoForCache,
                 url, 
                 quality,
-                namingPattern: window.settings?.serverCacheNamingPattern || 'simple',
                 embedLyric: !!(window.settings?.embedLyricToFile ?? true),
                 sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
-                embedLyricFormat: window.settings?.embedLyricFormat || 'line'
+                embedLyricFormat: window.settings?.embedLyricFormat || 'enhanced'
             })
         });
-        // 移除 403 自动重试逻辑，API 不再报 403
-    } catch (e) { console.error('[ServerCache] Trigger failed:', e); }
+        if (!response.ok) {
+            const message = await response.text().catch(() => '');
+            throw new Error(message || `HTTP ${response.status}`);
+        }
+        return true;
+    } catch (e) {
+        console.error('[ServerCache] Trigger failed:', e);
+        return false;
+    }
 }
 
 let lastNamingPattern = window.settings?.serverCacheNamingPattern || 'simple';

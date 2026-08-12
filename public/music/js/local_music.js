@@ -1950,7 +1950,7 @@ window.LocalMusicManager = {
                 },
                 body: JSON.stringify({
                     filenames: targetFilenames,
-                    embedLyricFormat: window.settings?.embedLyricFormat || 'line'
+                    embedLyricFormat: window.settings?.embedLyricFormat || 'enhanced'
                 })
             });
 

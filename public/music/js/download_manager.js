@@ -177,7 +177,7 @@ class DownloadManager {
                     cacheLyric: window.settings?.enableServerLyricCache !== false,
                     embedLyric: !!(window.settings?.embedLyricToFile ?? true),
                     sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
-                    embedLyricFormat: window.settings?.embedLyricFormat || 'line'
+                    embedLyricFormat: window.settings?.embedLyricFormat || 'enhanced'
                 }))
             };
             if (headers['x-frontend-auth'] && window.settings?.serverCacheNamingPattern) {
@@ -868,7 +868,7 @@ class DownloadManager {
                 cacheLyric: window.settings?.enableServerLyricCache !== false,
                 embedLyric: !!(window.settings?.embedLyricToFile ?? true),
                 sidecarLyricFormat: window.settings?.sidecarLyricFormat || 'line',
-                embedLyricFormat: window.settings?.embedLyricFormat || 'line'
+                embedLyricFormat: window.settings?.embedLyricFormat || 'enhanced'
             };
             if (window.settings?.serverCacheNamingPattern && headers['x-frontend-auth']) {
                 payload.namingPattern = window.settings.serverCacheNamingPattern;
@@ -988,7 +988,7 @@ class DownloadManager {
                     task.song.hash ? `hash=${encodeURIComponent(task.song.hash)}` : '',
                     task.song.interval ? `interval=${encodeURIComponent(task.song.interval)}` : '',
                     (window.settings?.embedLyricToFile !== false) ? 'lyric=1' : '',
-                    `lyricFormat=${encodeURIComponent(window.settings?.embedLyricFormat || 'line')}`
+                    `lyricFormat=${encodeURIComponent(window.settings?.embedLyricFormat || 'enhanced')}`
                 ].filter(Boolean).join('&');
 
                 finalUrl = `/api/v1/player/music/download?url=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(filename)}&taskId=${task.id}&${metadataParams}`;

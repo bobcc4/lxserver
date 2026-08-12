@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.5.3-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.5.4-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -138,7 +138,7 @@
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
 > [!IMPORTANT]
-> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。现有用户必须把 Compose 或 NAS 容器中的镜像改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会永久保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.3`，用于锁定版本或回滚。数据目录结构没有变化，请保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载。
+> Docker 正式镜像已改用 `latest` 标签，原 `v1` 标签停止更新。现有用户必须把 Compose 或 NAS 容器中的镜像改为 `bobcc4/yinyun-lxserver:latest`。每次正式发布还会永久保留完整版本标签，例如 `bobcc4/yinyun-lxserver:v1.5.4`，用于锁定版本或回滚。数据目录结构没有变化，请保留原有 `/server/data`、`/server/logs`、`/server/cache` 和 `/server/music` 挂载。
 
 **Docker Run 示例：**
 

@@ -123,7 +123,7 @@ This project supports pulling images from Docker Hub or GitHub Packages:
 - **GitHub Packages**: `ghcr.io/bobcc4/yinyun-lxserver:latest`
 
 > [!IMPORTANT]
-> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.3`, for version pinning and rollback. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
+> The stable Docker image now uses the `latest` tag, and the former `v1` tag no longer receives updates. Existing deployments must switch to `bobcc4/yinyun-lxserver:latest`. Every stable release also keeps an immutable full-version tag, such as `bobcc4/yinyun-lxserver:v1.5.4`, for version pinning and rollback. The data layout is unchanged, so keep the existing `/server/data`, `/server/logs`, `/server/cache`, and `/server/music` mounts.
 
 **Docker Run Example:**
 
