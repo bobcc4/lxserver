@@ -25,7 +25,7 @@ function checkForUpdates() {
 const API_BASE = '/api/v1/player/music';
 let currentPage = 1;
 window.currentPage = 1;
-let currentSearch = { name: '', source: 'kw' };
+let currentSearch = { name: '', source: 'tx' };
 let currentPlaylist = [];
 let currentIndex = -1;
 let preSelectedNextIndex = null; // 预先选定的下一首索引 (用于确保随机模式下的预读一致性)
@@ -1379,7 +1379,7 @@ function performSearch(query, source = null) {
 
     // 如果指定了源且属于支持的源，则更新选择框
     const sourceEl = document.getElementById('search-source');
-    const validSources = ['kw', 'kg', 'tx', 'wy', 'mg'];
+    const validSources = ['tx', 'wy', 'kg', 'kw', 'mg'];
     if (source && sourceEl && validSources.includes(source)) {
         sourceEl.value = source;
     }
@@ -1410,7 +1410,7 @@ function handleSearchTypeChange() {
     if (typeSelect.value === 'singer' || typeSelect.value === 'album') {
         // 只有 wy 和 tx 支持歌手/专辑搜索
         if (sourceSelect.value !== 'wy' && sourceSelect.value !== 'tx') {
-            sourceSelect.value = 'wy';
+            sourceSelect.value = 'tx';
         }
         // 禁用不支持的选项
         Array.from(sourceSelect.options).forEach(opt => {
@@ -1423,7 +1423,7 @@ function handleSearchTypeChange() {
 }
 window.handleSearchTypeChange = handleSearchTypeChange;
 
-const SOURCES = ['kw', 'kg', 'tx', 'wy', 'mg'];
+const SOURCES = ['tx', 'wy', 'kg', 'kw', 'mg'];
 
 
 //搜索歌曲
@@ -1752,7 +1752,7 @@ function showInitialSearchState() {
 
     // 异步获取并显示热搜
     const sourceSelect = document.getElementById('search-source');
-    const source = sourceSelect ? sourceSelect.value : 'wy';
+    const source = sourceSelect ? sourceSelect.value : 'tx';
 
     fetchHotSearch(source).then(data => {
         renderHotSearch(data);
@@ -12566,7 +12566,7 @@ async function fetchSearchTips(query) {
     currentTipAbortController = new AbortController();
     const signal = currentTipAbortController.signal;
 
-    const source = (document.getElementById('search-source')) ? document.getElementById('search-source').value : 'kw';
+    const source = (document.getElementById('search-source')) ? document.getElementById('search-source').value : 'tx';
     try {
         const resp = await fetch(`/api/v1/player/music/tipSearch?name=${encodeURIComponent(query)}&source=${source}`, { signal });
         if (!resp.ok) return;

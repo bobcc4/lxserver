@@ -6,7 +6,7 @@
 window.SongListManager = (function () {
     const API_BASE = '/api/v1/player/music';
     let currentState = {
-        source: 'wy',
+        source: 'tx',
         tagId: '',
         tagName: '全部分类',
         sortId: 'hot',

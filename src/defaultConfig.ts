@@ -46,7 +46,7 @@ const config: LX.Config = {
   'subsonic.enableDebug': true, // 是否开启 Subsonic 调试日志模式
   'subsonic.onlineSearch': true, // 是否开启 Subsonic 在线全网搜索
   'subsonic.onlineSearchMode': 'fallback', // 在线搜索模式: fallback | merge | local_only
-  'subsonic.onlineSearchSources': 'wy,tx,kw,kg,mg', // 在线搜索默认平台
+  'subsonic.onlineSearchSources': 'tx,wy,kw,kg,mg', // 在线搜索默认平台
   'subsonic.lyricTranslation': true, // 是否在 Subsonic 歌词中包含翻译
   'singer.sourcePriority': ['tx', 'wy'], // 歌手信息源优先级
   'artist.maxFetchPages': 20, // 歌手歌曲最大抓取页数

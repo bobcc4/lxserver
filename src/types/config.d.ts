@@ -171,7 +171,7 @@ declare namespace LX {
     'subsonic.onlineSearchMode'?: 'fallback' | 'merge' | 'local_only'
 
     /**
-     * Subsonic 在线搜索默认平台 (如 wy,tx,kw,kg,mg)
+     * Subsonic 在线搜索默认平台 (如 tx,wy,kw,kg,mg)
      */
     'subsonic.onlineSearchSources'?: string
 

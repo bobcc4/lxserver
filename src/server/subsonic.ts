@@ -16,6 +16,7 @@ import { APP_VERSION } from '@/version'
 import { resolveAlbumReleaseDate, sortAlbumsByReleaseDate } from '@/server/utils/albumReleaseDate'
 import { getAudioQualityFormat, getUpstreamAudioContentType, hasUsableQualityEntry } from '@/server/audioQuality'
 import { getPlaybackResolver } from '@/server/playbackResolverRegistry'
+import { normalizeSubsonicSourcePriority, sortSubsonicSongResults, SUBSONIC_SOURCE_PRIORITY_VALUE } from '@/server/subsonicSearch'
 // @ts-ignore
 import musicSdkRaw from '@/modules/utils/musicSdk/index.js'
 const musicSdk = musicSdkRaw as any
@@ -2063,12 +2064,12 @@ class SubsonicHandler {
 
     private async fetchOnlineSearchSongs(cleanQuery: string, sources: string[], limit: number = 30): Promise<{ music: LX.Music.MusicInfo, listId: string }[]> {
         if (!cleanQuery) return []
-        const results: { music: LX.Music.MusicInfo, listId: string }[] = []
         const validSources = sources.filter(s => ['wy', 'tx', 'kw', 'kg', 'mg'].includes(s) && musicSdk[s]?.musicSearch?.search)
         // [限制] 单个平台最大获取数量上限
         const targetLimit = Math.min(limit, 50)
 
-        await Promise.all(validSources.map(async source => {
+        const resultGroups = await Promise.all(validSources.map(async source => {
+            const sourceResults: { music: LX.Music.MusicInfo, listId: string }[] = []
             try {
                 // 计算需要的页数 (网易云 wy 单页限制 20 条，如需要 50 条则自动抓取前 3 页)
                 const pageSize = source === 'kg' ? Math.min(targetLimit, 100) : source === 'wy' ? 20 : 30
@@ -2119,13 +2120,14 @@ class SubsonicHandler {
                         },
                     } as any
                     this.cacheOnlineSong(music)
-                    results.push({ music, listId: 'online' })
+                    sourceResults.push({ music, listId: 'online' })
                 }
             } catch (err: any) {
                 console.error(`[Subsonic] Online search error for source=${source}:`, err?.message || err)
             }
+            return sourceResults
         }))
-        return results
+        return resultGroups.flat()
     }
 
     private async handleSearch(res: http.ServerResponse, username: string, params: URLSearchParams, format: string, method: string = 'search3') {
@@ -2134,7 +2136,7 @@ class SubsonicHandler {
 
         // 0. 解析搜索前缀与搜索模式
         let searchMode: 'local_only' | 'force_online' | 'fallback' | 'merge' = 'fallback'
-        let targetOnlineSources: string[] = String(global.lx.config['subsonic.onlineSearchSources'] || 'wy,tx,kw,kg,mg').split(',').map(s => s.trim()).filter(Boolean)
+        let targetOnlineSources = normalizeSubsonicSourcePriority(global.lx.config['subsonic.onlineSearchSources'] || SUBSONIC_SOURCE_PRIORITY_VALUE)
         let cleanQuery = rawQuery
 
         const lowerQuery = rawQuery.toLowerCase()
@@ -2276,6 +2278,10 @@ class SubsonicHandler {
                     }
                 }
             }
+        }
+
+        if (cleanQuery) {
+            matchedSongs = sortSubsonicSongResults(matchedSongs, cleanQuery, targetOnlineSources)
         }
 
         const pagedArtists = artistCount > 0 ? matchedArtists.slice(artistOffset, artistOffset + artistCount) : []

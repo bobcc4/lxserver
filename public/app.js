@@ -1777,7 +1777,7 @@ class App {
                 form.elements['subsonic.onlineSearchMode'].value = config['subsonic.onlineSearchMode'] || 'fallback';
             }
             if (form.elements['subsonic.onlineSearchSources']) {
-                form.elements['subsonic.onlineSearchSources'].value = config['subsonic.onlineSearchSources'] || 'wy,tx,kw,kg,mg';
+                form.elements['subsonic.onlineSearchSources'].value = config['subsonic.onlineSearchSources'] || 'tx,wy,kw,kg,mg';
             }
             if (form.elements['subsonic.lyricTranslation']) {
                 form.elements['subsonic.lyricTranslation'].checked = config['subsonic.lyricTranslation'] !== false;
@@ -1817,7 +1817,7 @@ class App {
             'subsonic.enableDebug': formData.get('subsonic.enableDebug') === 'on',
             'subsonic.onlineSearch': formData.get('subsonic.onlineSearch') === 'on',
             'subsonic.onlineSearchMode': formData.get('subsonic.onlineSearchMode') || 'fallback',
-            'subsonic.onlineSearchSources': (formData.get('subsonic.onlineSearchSources') || '').trim() || 'wy,tx,kw,kg,mg',
+            'subsonic.onlineSearchSources': (formData.get('subsonic.onlineSearchSources') || '').trim() || 'tx,wy,kw,kg,mg',
             'subsonic.lyricTranslation': formData.get('subsonic.lyricTranslation') === 'on',
             'singer.sourcePriority': formData.get('singer.sourcePriority'),
             'system.allowUnsafeVM': formData.get('system.allowUnsafeVM') === 'on',

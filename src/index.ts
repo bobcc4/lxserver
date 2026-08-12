@@ -17,6 +17,7 @@ if (typeof (global as any).navigator === 'undefined') {
 
 import { initLogger, sanitizeLogText } from '@/utils/log4js'
 import defaultConfig from './defaultConfig'
+import { migrateLegacySubsonicSourcePriority } from './server/subsonicSearch'
 import { ENV_PARAMS, File } from './constants'
 import { checkAndCreateDirSync } from './utils'
 import { normalizeUsername, validateUsername } from './utils/username'
@@ -151,6 +152,7 @@ const margeConfig = (p: string) => {
     newConfig.users = users
   }
   if (['lxserver', 'yintuan'].includes(newConfig.serverName)) newConfig.serverName = 'yinyun'
+  newConfig['subsonic.onlineSearchSources'] = migrateLegacySubsonicSourcePriority(newConfig['subsonic.onlineSearchSources']) as string
   global.lx.config = newConfig
 
   mergeConfigFileEnv(config)

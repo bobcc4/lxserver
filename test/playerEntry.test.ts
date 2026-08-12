@@ -26,6 +26,18 @@ test('player defaults to line sidecar lyrics and enhanced embedded lyrics', () =
   assert.match(playerApp, /embedLyricFormat:\s*'enhanced'/)
 })
 
+test('web player platform selectors default to QQ in the requested order', () => {
+  for (const id of ['search-source', 'songlist-source', 'lb-source-select']) {
+    const start = playerHtml.indexOf(`id="${id}"`)
+    const end = playerHtml.indexOf('</select>', start)
+    const options = [...playerHtml.slice(start, end).matchAll(/<option value="([^"]+)"/g)].map(match => match[1])
+    assert.deepEqual(options, ['tx', 'wy', 'kg', 'kw', 'mg'])
+  }
+
+  assert.match(playerApp, /let currentSearch = \{ name: '', source: 'tx' \}/)
+  assert.match(playerApp, /const SOURCES = \['tx', 'wy', 'kg', 'kw', 'mg'\]/)
+})
+
 test('background playback cache does not submit an administrator-only naming change', () => {
   const start = playerApp.indexOf('async function triggerServerCache')
   const end = playerApp.indexOf('\nlet lastNamingPattern', start + 1)

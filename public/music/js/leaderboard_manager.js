@@ -7,7 +7,7 @@ window.LeaderboardManager = (function () {
     const API_BASE = '/api/v1/player/music/leaderboard';
 
     let state = {
-        source: 'wy',
+        source: 'tx',
         boards: [],          // 当前来源的榜单列表
         currentBangid: null, // 当前选中榜单 bangid
         currentBoardName: '',
@@ -29,7 +29,7 @@ window.LeaderboardManager = (function () {
 
         // 优先从缓存读取
         const cachedSource = localStorage.getItem('lb-source-select');
-        state.source = cachedSource || 'wy';
+        state.source = cachedSource || 'tx';
 
         // 同步 source select 的值
         const sel = document.getElementById('lb-source-select');

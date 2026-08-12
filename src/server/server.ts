@@ -31,6 +31,7 @@ import { getDownloadQualityCandidates } from './downloadQuality'
 import { normalizeSongInfo } from './utils/songInfo'
 import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '@/utils/lrcTool'
 import { registerPlaybackResolver, resolveOriginalPlatformFirst } from './playbackResolverRegistry'
+import { migrateLegacySubsonicSourcePriority, SUBSONIC_SOURCE_PRIORITY_VALUE } from './subsonicSearch'
 import { normalizeUsername, tryNormalizeUsername, validateUsername } from '@/utils/username'
 import crypto from 'node:crypto'
 import needle from 'needle'
@@ -421,6 +422,7 @@ export const reloadServerData = async () => {
   }
 
   nextConfig.users = reloadedUsers
+  nextConfig['subsonic.onlineSearchSources'] = migrateLegacySubsonicSourcePriority(nextConfig['subsonic.onlineSearchSources']) as string
   global.lx.config = nextConfig
   if (preparedUsers) {
     saveUsers()
@@ -4848,7 +4850,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
             'subsonic.enableDebug': global.lx.config['subsonic.enableDebug'] ?? true,
             'subsonic.onlineSearch': global.lx.config['subsonic.onlineSearch'] ?? true,
             'subsonic.onlineSearchMode': global.lx.config['subsonic.onlineSearchMode'] ?? 'fallback',
-            'subsonic.onlineSearchSources': global.lx.config['subsonic.onlineSearchSources'] ?? 'wy,tx,kw,kg,mg',
+            'subsonic.onlineSearchSources': global.lx.config['subsonic.onlineSearchSources'] ?? SUBSONIC_SOURCE_PRIORITY_VALUE,
             'subsonic.lyricTranslation': global.lx.config['subsonic.lyricTranslation'] ?? true,
             'singer.sourcePriority': (global.lx.config['singer.sourcePriority'] || ['tx', 'wy']).join(','),
             'artist.maxFetchPages': global.lx.config['artist.maxFetchPages'] ?? 20,
