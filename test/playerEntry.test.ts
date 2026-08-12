@@ -35,3 +35,15 @@ test('background playback cache does not submit an administrator-only naming cha
   assert.doesNotMatch(triggerSource, /namingPattern\s*:/)
   assert.match(triggerSource, /if \(!response\.ok\)/)
 })
+
+test('lyric loading clears the previous song text before asynchronous resolution', () => {
+  const start = playerApp.indexOf('async function fetchLyric')
+  const end = playerApp.indexOf('\n// 辅助函数：根据当前设置应用歌词更新', start + 1)
+  const fetchLyricSource = playerApp.slice(start, end)
+
+  assert.ok(start >= 0)
+  assert.match(fetchLyricSource, /currentRawLrc\s*=\s*''/)
+  assert.match(fetchLyricSource, /currentRawTlrc\s*=\s*''/)
+  assert.match(fetchLyricSource, /currentRawRlrc\s*=\s*''/)
+  assert.match(fetchLyricSource, /currentRawKlrc\s*=\s*''/)
+})

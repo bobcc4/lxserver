@@ -6942,6 +6942,10 @@ async function fetchLyric(song, quality = null) {
 
     document.getElementById('lyric-content').innerHTML = '<p class="t-text-muted text-lg animate-pulse">正在加载歌词...</p>';
     currentLyricLines = [];
+    currentRawLrc = '';
+    currentRawTlrc = '';
+    currentRawRlrc = '';
+    currentRawKlrc = '';
 
     // ===== 1. 尝试读取浏览器本地缓存 (最高优先级) =====
     const cacheKey = `lx_lyric_${source}_${songmid} `;
@@ -7054,7 +7058,9 @@ async function fetchLyric(song, quality = null) {
                 }
             }
 
-            // 写入服务器端 (如果不是已经来自服务器缓存，且启用了服务端缓存)
+            // The server writes only beside an existing indexed audio file. This
+            // request can therefore fill lyrics for a cache hit without creating
+            // a quality-unknown orphan while a new audio download is still pending.
             if (settings.enableServerLyricCache !== false && !isFromLocal) {
                 try {
                     fetch(`${API_BASE}/cache/lyric`, {
@@ -7064,7 +7070,7 @@ async function fetchLyric(song, quality = null) {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            songInfo: { ...song, quality: (typeof quality !== 'undefined' ? quality : (typeof currentQuality !== 'undefined' ? currentQuality : null)) },
+                            songInfo: { ...song, quality: quality || null },
                             lyricsObj: {
                                 lyric: currentRawLrc,
                                 tlyric: currentRawTlrc,

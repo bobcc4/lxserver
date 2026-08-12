@@ -42,6 +42,8 @@ let currentCacheLocation = CACHE_ROOTS.ROOT
 const CACHE_LIST_SYNC_TTL = 30 * 1000
 const AUDIO_DOWNLOAD_MAX_REDIRECTS = 5
 const AUDIO_DOWNLOAD_TIMEOUT = 30 * 1000
+const INDEXED_AUDIO_EXTENSIONS = ['.mp3', '.flac', '.m4a', '.ogg', '.wav']
+const AUDIO_FILE_EXTENSIONS = new Set([...INDEXED_AUDIO_EXTENSIONS, '.ape'])
 const AUDIO_DOWNLOAD_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const AUDIO_DOWNLOAD_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -711,6 +713,28 @@ const getFileName = (songInfo: any, quality?: string, isOnlyDownload?: boolean, 
 // Helper to sanitize for URL/Path
 const sanitize = (str: any) => String(str || '').replace(/[\\/:*?"<>|]/g, '_')
 
+const isGeneratedUnknownLyricFilename = (filename: string) => {
+    const baseName = path.basename(filename, path.extname(filename))
+    return baseName.includes(' - unknown - ') || /_-_unknown(?:\s|$)/i.test(baseName)
+}
+
+const removeGeneratedUnknownLyric = (lyricPath: string) => {
+    if (!fs.existsSync(lyricPath) || !isGeneratedUnknownLyricFilename(lyricPath)) return false
+
+    const basePath = lyricPath.substring(0, lyricPath.length - path.extname(lyricPath).length)
+    const hasAudioCounterpart = Array.from(AUDIO_FILE_EXTENSIONS).some(ext => fs.existsSync(basePath + ext))
+    if (hasAudioCounterpart) return false
+
+    try {
+        fs.unlinkSync(lyricPath)
+        console.log(`[FileCache] Removed orphaned unknown lyric: ${lyricPath}`)
+        return true
+    } catch (e: any) {
+        if (e?.code !== 'ENOENT') console.warn(`[FileCache] Failed to remove orphaned lyric ${lyricPath}: ${e?.message || e}`)
+        return false
+    }
+}
+
 // --- Public APIs ---
 
 /**
@@ -723,7 +747,7 @@ export const syncCacheIndex = async (
 ) => {
     const normalizedUsername = normalizeCacheUsername(username)
     const indexLocation = location || currentCacheLocation
-    const extensions = ['.mp3', '.flac', '.m4a', '.ogg', '.wav']
+    const extensions = INDEXED_AUDIO_EXTENSIONS
 
     for (const folder of roots) {
         const index = indexManager.load(normalizedUsername, folder, indexLocation)
@@ -763,6 +787,10 @@ export const syncCacheIndex = async (
         }
 
         const files = await getAllFilesAsync(dir)
+        for (const file of files) {
+            if (path.extname(file).toLowerCase() !== '.lrc') continue
+            removeGeneratedUnknownLyric(path.join(dir, file))
+        }
         for (const file of files) {
             if (file === 'cache_index.json' || file === 'music_index.json') continue
             const ext = path.extname(file).toLowerCase()
@@ -1498,6 +1526,7 @@ export const removeCacheFile = (filename: string, username?: string, requestedFo
     if (matches.length === 0) return { deleted: false }
 
     const { folder, dir, filePath } = matches[0]
+    const item = indexManager.getAll(normalizedUsername, folder).find(i => i.filename === filename)
     let coverCacheHash = ''
     try {
         coverCacheHash = getCoverCacheHash(filename, fs.statSync(filePath))
@@ -1521,10 +1550,17 @@ export const removeCacheFile = (filename: string, username?: string, requestedFo
                 if (e?.code !== 'ENOENT') throw e
             }
         }
+
+        if (item) {
+            const unknownBaseName = getFileName({
+                ...item,
+                songmid: item.songmid || item.id,
+                albumName: item.album,
+            }, 'unknown', folder === 'music', normalizedUsername)
+            removeGeneratedUnknownLyric(path.join(dir, unknownBaseName + '.lrc'))
+        }
     }
 
-    const items = indexManager.getAll(normalizedUsername, folder)
-    const item = items.find(i => i.filename === filename)
     if (item) indexManager.remove(normalizedUsername, item.id, folder, item.quality)
 
     // Cover cache is shared by filename. Preserve it while the same relative file
@@ -1874,11 +1910,21 @@ export const saveLyricCache = (
         const preferredFolders: Array<'cache' | 'music'> = isOnlyDownload ? ['music', 'cache'] : ['cache', 'music']
         let audioResult: any = { exists: false }
         for (const folder of preferredFolders) {
+            const indexedItems = indexManager.getAll(normalizedUsername, folder)
+            const targetName = String(songInfo.name || songInfo.meta?.songName || '').trim().toLowerCase()
+            const targetSinger = String(songInfo.singer || songInfo.meta?.singerName || '').trim().toLowerCase()
+            const targetAlbum = String(songInfo.albumName || songInfo.meta?.albumName || (typeof songInfo.album === 'string' ? songInfo.album : songInfo.album?.name) || '').trim().toLowerCase()
+            const metadataMatches = indexedItems.filter(candidate => {
+                    if (!targetName || !targetSinger) return false
+                    if (candidate.name.trim().toLowerCase() !== targetName || candidate.singer.trim().toLowerCase() !== targetSinger) return false
+                    return !targetAlbum || !candidate.album || candidate.album.trim().toLowerCase() === targetAlbum
+                })
             const cached = indexManager.get(normalizedUsername, id, folder, songInfo.quality, false)
+                || (metadataMatches.length === 1 ? metadataMatches[0] : undefined)
             if (!cached?.filename) continue
             const root = getCacheDir(normalizedUsername, folder === 'music')
-            const filePath = path.join(root, cached.filename)
-            if (fs.existsSync(filePath)) {
+            const filePath = resolveCacheRelativePath(root, cached.filename)
+            if (filePath && fs.existsSync(filePath)) {
                 audioResult = {
                     exists: true,
                     path: filePath,
@@ -1890,20 +1936,16 @@ export const saveLyricCache = (
             }
         }
 
-        if (audioResult.exists && audioResult.path) {
-            // If audio exists, save lyric in the same folder
-            dir = path.dirname(audioResult.path)
-            quality = audioResult.quality || quality
-            baseName = path.basename(audioResult.path, path.extname(audioResult.path))
-        } else {
-            // Audio not found, fallback to target dir
-            dir = ensureDir(username, isOnlyDownload)
-            if (songInfo.quality) {
-                baseName = getFileName(songInfo, songInfo.quality, isOnlyDownload, username)
-            } else {
-                baseName = getFileName(songInfo, 'unknown', isOnlyDownload, username)
-            }
+        if (!audioResult.exists || !audioResult.path) {
+            console.log(`[FileCache] Audio not found for lyric, skip sidecar save: ${songInfo.name || id}`)
+            return false
         }
+
+        // Lyrics are sidecar metadata for an existing audio file. Keeping both in
+        // the same directory and using the audio basename prevents orphan files.
+        dir = path.dirname(audioResult.path)
+        quality = audioResult.quality || quality
+        baseName = path.basename(audioResult.path, path.extname(audioResult.path))
 
         const lyricFile = baseName + '.lrc'
         const finalPath = path.join(dir, lyricFile)

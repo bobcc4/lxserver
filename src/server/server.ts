@@ -5628,7 +5628,7 @@ export const startServer = async (port: number, ip: string) => {
         return null
       }
       // [Fix] Strip source prefix from songmid (e.g. "tx_004bd0..." -> "004bd0...")
-      let songmid: string = songInfo.songmid || songInfo.id || ''
+      let songmid = String(songInfo.songmid || songInfo.songId || songInfo.id || '')
       const sourcePrefix = `${source}_`
       if (songmid.startsWith(sourcePrefix)) songmid = songmid.slice(sourcePrefix.length)
       if (!songmid) {

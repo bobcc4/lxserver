@@ -24,3 +24,8 @@ test('server route implementation uses versioned paths directly', () => {
   assert.match(source, /pathname === '\/api\/v1\/admin\/login'/)
   assert.match(source, /pathname === '\/api\/v1\/player\/music\/search'/)
 })
+
+test('background lyric fetching accepts numeric platform song IDs', () => {
+  const source = fs.readFileSync(path.join(process.cwd(), 'src/server/server.ts'), 'utf8')
+  assert.match(source, /let songmid = String\(songInfo\.songmid \|\| songInfo\.songId \|\| songInfo\.id \|\| ''\)/)
+})
