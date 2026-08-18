@@ -7,7 +7,7 @@ import http from 'http'
 import https from 'https'
 import crypto from 'crypto'
 import { PassThrough } from 'stream'
-const { MusicTagger, MetaPicture } = require('music-tag-native')
+import { MusicTagger, MetaPicture } from './musicTagger'
 import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '../utils/lrcTool'
 import type { LyricOutputFormat } from '../utils/lrcTool'
 import { formatPlayTime } from '../common/utils/common'

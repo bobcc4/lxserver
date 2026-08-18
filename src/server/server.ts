@@ -37,7 +37,7 @@ import { normalizeAdminPath, DEFAULT_ADMIN_PATH, isAdminPath } from '@/adminPath
 import { getUserIsAdmin, withUserRole } from '@/userRoles'
 import crypto from 'node:crypto'
 import needle from 'needle'
-const { MusicTagger, MetaPicture } = require('music-tag-native')
+import { MusicTagger, MetaPicture } from './musicTagger'
 
 /** 生成随机 sessionId */
 const generateSessionId = () => crypto.randomBytes(32).toString('hex')
@@ -3208,7 +3208,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 }
 
                 // 检查是否已有 USLT 歌词（已有则跳过）
-                const { MusicTagger: MT } = require('music-tag-native')
+                const { MusicTagger: MT } = require('./musicTagger')
                 let checkTagger: any
                 let existingLyrics = ''
                 try {
