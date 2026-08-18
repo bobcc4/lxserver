@@ -85,7 +85,20 @@ let adminWindow = null   // 管理后台窗口（可正常关闭）
 
 // 获取当前路径工具函数
 const getPlayerPath = () => '/'
-const getAdminPath = () => '/admin'
+const getAdminPath = () => {
+    try {
+        const configPath = storageRoot && path.join(storageRoot, 'config.js')
+        if (configPath && fs.existsSync(configPath)) {
+            delete require.cache[require.resolve(configPath)]
+            const config = require(configPath)
+            const value = String(config['admin.path'] || '').trim().replace(/\/+$/, '')
+            if (value.startsWith('/')) return value
+        }
+    } catch (error) {
+        console.error('Read admin path failed:', error)
+    }
+    return '/admin'
+}
 
 const appRoot = app.getAppPath()
 const staticPath = app.isPackaged

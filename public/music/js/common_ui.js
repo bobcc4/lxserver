@@ -68,7 +68,9 @@
  * 跳转至管理后台
  */
 function goToAdmin() {
-    location.href = '/admin/';
+    const configuredPath = window.CONFIG && window.CONFIG['admin.path'];
+    const adminPath = String(configuredPath || '/admin').replace(/\/+$/, '');
+    location.href = `${adminPath}/`;
 }
 
 /**

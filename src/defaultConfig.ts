@@ -24,6 +24,7 @@ const config: LX.Config = {
   ],
 
   'frontend.password': '123456',
+  'admin.path': '/admin',
 
   // WebDAV 配置
   'webdav.enable': false,

@@ -21,6 +21,8 @@ import { migrateLegacySubsonicSourcePriority } from './server/subsonicSearch'
 import { ENV_PARAMS, File } from './constants'
 import { checkAndCreateDirSync } from './utils'
 import { normalizeUsername, validateUsername } from './utils/username'
+import { normalizeAdminPath } from './adminPath'
+import { withUserRole } from './userRoles'
 
 // Declare Env Params Type
 type ENV_PARAMS_Type = typeof ENV_PARAMS
@@ -145,13 +147,19 @@ const margeConfig = (p: string) => {
     const users: LX.UserConfig[] = []
     for (const user of newConfig.users) {
       users.push({
-        ...user,
+        ...withUserRole(user),
         dataPath: '',
       })
     }
     newConfig.users = users
   }
   if (['lxserver', 'yintuan'].includes(newConfig.serverName)) newConfig.serverName = 'yinyun'
+  try {
+    newConfig['admin.path'] = normalizeAdminPath(newConfig['admin.path'])
+  } catch (error: any) {
+    console.warn(`Invalid admin.path, using /admin: ${error.message}`)
+    newConfig['admin.path'] = '/admin'
+  }
   newConfig['subsonic.onlineSearchSources'] = migrateLegacySubsonicSourcePriority(newConfig['subsonic.onlineSearchSources']) as string
   global.lx.config = newConfig
 
@@ -181,6 +189,14 @@ if (envParams.LIST_ADD_MUSIC_LOCATION_TYPE) {
 }
 if (envParams.FRONTEND_PASSWORD) {
   global.lx.config['frontend.password'] = envParams.FRONTEND_PASSWORD
+}
+if (envParams.ADMIN_PATH) {
+  try {
+    global.lx.config['admin.path'] = normalizeAdminPath(envParams.ADMIN_PATH)
+  } catch (error: any) {
+    console.warn(`Invalid ADMIN_PATH, using /admin: ${error.message}`)
+    global.lx.config['admin.path'] = '/admin'
+  }
 }
 if (envParams.WEBDAV_ENABLE) {
   global.lx.config['webdav.enable'] = envParams.WEBDAV_ENABLE === 'true'
@@ -305,7 +321,7 @@ const validateUserConfig = (users: LX.Config['users']) => {
     }
     if (userNames.has(name)) throw new Error('User name duplicate: ' + name)
     userNames.add(name)
-    normalizedUsers.push({ ...user, name })
+    normalizedUsers.push(withUserRole({ ...user, name }))
     if (oldName !== name) renames.push({ oldName, newName: name })
   }
   return { users: normalizedUsers, renames }
@@ -331,7 +347,7 @@ if (fs.existsSync(usersJsonPath)) {
     const users = JSON.parse(fs.readFileSync(usersJsonPath, 'utf-8'))
     if (Array.isArray(users)) {
       console.log('Load users from users.json')
-      global.lx.config.users = users.map(u => ({ ...u, dataPath: '' }))
+      global.lx.config.users = users.map(u => ({ ...withUserRole(u), dataPath: '' }))
     }
   } catch (err) {
     console.error('Failed to load users.json', err)
@@ -357,6 +373,7 @@ try {
   fs.writeFileSync(usersJsonPath, JSON.stringify(global.lx.config.users.map(u => ({
     name: u.name,
     password: u.password,
+    isAdmin: u.isAdmin === true,
     maxSnapshotNum: u.maxSnapshotNum,
     'list.addMusicLocationType': u['list.addMusicLocationType'],
   })), null, 2))

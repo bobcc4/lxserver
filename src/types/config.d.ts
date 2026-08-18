@@ -12,6 +12,9 @@ declare namespace LX {
      */
     password: string
 
+    /** 管理员角色；旧数据缺失时按用户名 admin 迁移。 */
+    isAdmin?: boolean
+
     /**
      * 最大备份快照数
      */
@@ -89,6 +92,9 @@ declare namespace LX {
      * 前端访问密码
      */
     'frontend.password'?: string
+
+    /** 管理后台页面入口路径 */
+    'admin.path'?: string
 
     /**
      * 是否启用 WebDAV 同步服务

@@ -646,6 +646,12 @@
                                     <input type="password" name="frontend.password" class="form-input config-input"
                                         placeholder="管理控制台登录密码" />
                                 </div>
+                                <div class="config-field">
+                                    <label class="config-label">管理后台页面路径</label>
+                                    <input type="text" name="admin.path" class="form-input config-input"
+                                        placeholder="/admin" />
+                                    <small class="config-hint">例如 /control-7f3a。仅改变管理页面入口，不改变 /api/v1/admin 接口；不能使用 /、/api、/rest 等保留路径。</small>
+                                </div>
                             </div>
                         </div>
 

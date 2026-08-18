@@ -5,6 +5,7 @@ import { throttle } from '@/utils/common'
 import { filterFileName, toMD5 } from '@/utils'
 import { File } from '@/constants'
 import { normalizeUsername, validateUsername } from '@/utils/username'
+import { getUserIsAdmin } from '@/userRoles'
 
 
 interface ServerInfo {
@@ -58,6 +59,7 @@ export const getUserConfig = (userName: string): Required<LX.User> => {
     maxSnapshotNum: global.lx.config.maxSnapshotNum,
     'list.addMusicLocationType': global.lx.config['list.addMusicLocationType'],
     ...user,
+    isAdmin: getUserIsAdmin(user),
   }
 }
 
