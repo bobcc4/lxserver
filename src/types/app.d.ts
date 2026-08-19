@@ -6,6 +6,7 @@ declare global {
     logPath: string
     dataPath: string
     userPath: string
+    configPath: string
     config: LX.Config
     webdavSync?: any  // WebDAVSync instance
     staticPath: string

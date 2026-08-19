@@ -377,7 +377,7 @@ export const reloadServerData = async () => {
   // 先完整读取并校验候选配置，避免校验失败后留下部分生效的配置。
   const previousConfig = global.lx.config
   const nextConfig = { ...previousConfig }
-  const configPath = process.env.CONFIG_PATH || path.join(process.cwd(), 'config.js')
+  const configPath = global.lx.configPath
   if (fs.existsSync(configPath)) {
     try {
       delete require.cache[require.resolve(configPath)]
@@ -4962,7 +4962,7 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
                 })
               }
 
-              const configPath = process.env.CONFIG_PATH || path.join(process.cwd(), 'config.js')
+              const configPath = global.lx.configPath
               const configContent = `module.exports = ${JSON.stringify({
                 serverName: global.lx.config.serverName,
                 bindIP: global.lx.config.bindIP,

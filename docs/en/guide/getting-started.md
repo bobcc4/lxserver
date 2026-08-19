@@ -74,6 +74,7 @@ services:
       - ./music:/server/music
     environment:
       NODE_ENV: production
+      CONFIG_PATH: /server/data/config.js
 ```
 
 Start the service:

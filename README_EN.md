@@ -5,7 +5,7 @@
 <div align="center">
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.5.1-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.6.1-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -158,6 +158,7 @@ services:
       - ./music:/server/music
     environment:
       NODE_ENV: production
+      CONFIG_PATH: /server/data/config.js
 ```
 
 Start the service:
@@ -225,7 +226,7 @@ Edit `config.js` directly. Environment variables take precedence:
 | `FRONTEND_PASSWORD` | `frontend.password` | Web dashboard password | `123456` |
 | `SERVER_NAME` | `serverName` | Sync service name | `yinyun` |
 | `MAX_SNAPSHOT_NUM` | `maxSnapshotNum` | Max snapshots to keep | `10` |
-| `CONFIG_PATH` | - | Absolute path to external config file | - |
+| `CONFIG_PATH` | - | Server configuration path; use `/server/data/config.js` with Docker | `<DATA_PATH>/config.js` |
 | `DATA_PATH` | - | Absolute path to data storage directory | `./data` |
 | `LOG_PATH` | - | Absolute path to log output directory | `./logs` |
 | `PROXY_HEADER` | `proxy.header` | Proxy IP header (e.g., `x-real-ip`) | - |

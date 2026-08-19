@@ -10,8 +10,8 @@ The loading and merging of configurations follow the priority sequence from high
 
 1. **Runtime Environment Variables (Environment Variables)**: Has very high priority. For example, `PORT=9527`.
 2. **WebDAV Cloud Data (WebDAV Cloud Data)**: If WebDAV is configured, the system will try to restore from the cloud on startup. **Restored cloud content will overwrite the local `config.js` and trigger a hot-reload**.
-3. **Explicit Custom Configuration File Path (Custom Config File)**: Static JSON file specified via `CONFIG_PATH`.
-4. **Global Default Entry Configuration (Global Config.js)**: The `config.js` file in the project's root directory.
+3. **Persistent Configuration File**: The file specified by `CONFIG_PATH`, or `<DATA_PATH>/config.js` by default.
+4. **Bundled Configuration**: The `config.js` file shipped with the application, used only as the initial baseline.
 5. **System-level Default Constants (Default Consts)**: Defaults in `src/defaultConfig.ts`.
 
 ---
@@ -46,7 +46,7 @@ This module involves monitoring the status of connected clients and isolation sp
 | `MAX_SNAPSHOT_NUM` | `10` | Integer | **Time snapshot retention threshold setting**. The maximum allowed length of the historical archive snapshot queue retained by the system. Early histories exceeding this queue limit will be cyclically discarded by the underlying timed GC task. |
 | `DATA_PATH` | `./data` | String | **Data directory path**. Specifies where persistence data (users.json, snapshots) are stored. |
 | `LOG_PATH` | `./logs` | String | **Log directory path**. Specifies where system logs are stored. |
-| `CONFIG_PATH` | `''` | String | **External config path**. Manually specify an extra config.js file path. |
+| `CONFIG_PATH` | `<DATA_PATH>/config.js` | String | **Persistent config path**. Docker deployments should use `/server/data/config.js`. |
 | `ENABLE_LOGIN_USER_CACHE_RESTRICTION` | `false` | Boolean | **Restrict cache settings for logged-in users**. If enabled, non-admin logged-in users will be restricted from modifying core cache settings. |
 | `ENABLE_CACHE_SIZE_LIMIT` | `false` | Boolean | **Enable automatic cache cleanup**. If enabled, the system will monitor and limit the total user cache size, and automatically delete oldest files (LRU) when the limit is reached. |
 | `CACHE_SIZE_LIMIT` | `2000` | Integer | **Cache size limit (MB)**. The threshold at which the auto-cleanup mechanism is triggered. |

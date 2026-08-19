@@ -23,6 +23,7 @@ import { checkAndCreateDirSync } from './utils'
 import { normalizeUsername, validateUsername } from './utils/username'
 import { normalizeAdminPath } from './adminPath'
 import { withUserRole } from './userRoles'
+import { resolveConfigPath } from './configPath'
 
 // Declare Env Params Type
 type ENV_PARAMS_Type = typeof ENV_PARAMS
@@ -81,10 +82,12 @@ const getConfigHash = (filePath: string) => {
 }
 
 const dataPath = envParams.DATA_PATH ?? path.join(__dirname, '../data')
+const bundledConfigPath = path.join(__dirname, '../config.js')
+let configPath = resolveConfigPath(dataPath, envParams.CONFIG_PATH)
 const saveConfigToFile = () => {
-  const configPath = process.env.CONFIG_PATH || path.join(process.cwd(), 'config.js')
   const content = `module.exports = ${JSON.stringify(global.lx.config, null, 2)}`
   try {
+    fs.mkdirSync(path.dirname(configPath), { recursive: true })
     fs.writeFileSync(configPath, content)
     lastConfigHash = crypto.createHash('md5').update(content).digest('hex')
     // console.log('Current memory config saved to config.js')
@@ -97,6 +100,7 @@ global.lx = {
   logPath: envParams.LOG_PATH ?? path.join(__dirname, '../logs'),
   dataPath,
   userPath: path.join(dataPath, File.userDir),
+  configPath,
   config: defaultConfig,
   staticPath: process.env.STATIC_PATH ?? path.join(process.cwd(), 'public'),
   saveConfig: saveConfigToFile,
@@ -168,9 +172,12 @@ const margeConfig = (p: string) => {
 }
 
 //加载环境变量
-const p1 = path.join(__dirname, '../config.js')
-fs.existsSync(p1) && margeConfig(p1)
-envParams.CONFIG_PATH && fs.existsSync(envParams.CONFIG_PATH) && margeConfig(envParams.CONFIG_PATH)
+fs.existsSync(bundledConfigPath) && margeConfig(bundledConfigPath)
+configPath = resolveConfigPath(dataPath, envParams.CONFIG_PATH)
+global.lx.configPath = configPath
+if (path.resolve(configPath) !== path.resolve(bundledConfigPath) && fs.existsSync(configPath)) {
+  margeConfig(configPath)
+}
 if (envParams.PROXY_HEADER) {
   global.lx.config['proxy.enabled'] = true
   global.lx.config['proxy.header'] = envParams.PROXY_HEADER
@@ -447,7 +454,7 @@ saveConfigToFile()
 startServer(global.lx.config.port, global.lx.config.bindIP)
 
 // 监控 config.js 变动以实现热重载 (由于 nodemon 已忽略该文件)
-const rootConfigPath = process.env.CONFIG_PATH || path.join(process.cwd(), 'config.js')
+const rootConfigPath = global.lx.configPath
 if (fs.existsSync(rootConfigPath)) {
   lastConfigHash = getConfigHash(rootConfigPath)
   let debounceTimer: NodeJS.Timeout | null = null

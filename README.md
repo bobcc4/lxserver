@@ -8,7 +8,7 @@
   <h1>音云 Yinyun</h1> -->
   <p>
     <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status">
-    <img src="https://img.shields.io/badge/version-v1.5.4-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.6.1-blue?style=flat-square" alt="Version">
     <img src="https://img.shields.io/badge/node-%3E%3D22.12-green?style=flat-square" alt="Node Version">
     <img src="https://img.shields.io/github/license/bobcc4/yinyun-lxserver?style=flat-square" alt="License">
     <br>
@@ -173,6 +173,7 @@ services:
       - ./music:/server/music
     environment:
       NODE_ENV: production
+      CONFIG_PATH: /server/data/config.js
 ```
 
 启动服务：
@@ -240,7 +241,7 @@ npm start
 | `FRONTEND_PASSWORD`                   | `frontend.password`                | Web 管理界面访问密码                                               | `123456`         |
 | `SERVER_NAME`                         | `serverName`                       | 同步服务名称                                                       | `yinyun`        |
 | `MAX_SNAPSHOT_NUM`                    | `maxSnapshotNum`                   | 保留的最大快照数量                                                 | `10`             |
-| `CONFIG_PATH`                         | -                                    | 指定外部配置文件的绝对路径                                         | -                  |
+| `CONFIG_PATH`                         | -                                    | 服务端配置文件路径；Docker 建议使用 `/server/data/config.js`       | `<DATA_PATH>/config.js` |
 | `DATA_PATH`                           | -                                    | 指定数据存储目录的绝对路径                                         | `./data`         |
 | `LOG_PATH`                            | -                                    | 指定日志输出目录的绝对路径                                         | `./logs`         |
 | `PROXY_HEADER`                        | `proxy.header`                     | 代理转发 IP 头 (如 `x-real-ip`)                                  | -                  |

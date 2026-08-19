@@ -8,7 +8,7 @@ V1 可以通过环境变量、外部配置文件、项目根目录 `config.js` �
 
 1. WebDAV 恢复或同步的数据。
 2. 环境变量。
-3. `CONFIG_PATH` 指定的配置文件，或项目根目录 `config.js`。
+3. `CONFIG_PATH` 指定的配置文件；未指定时使用 `<DATA_PATH>/config.js`。
 4. `src/defaultConfig.ts` 内置默认值。
 
 如果某个值由环境变量固定，管理后台修改后可能在服务重启时再次被环境变量覆盖。生产环境建议把关键网络和密码配置保留在 Docker 环境变量中。
@@ -22,7 +22,7 @@ V1 可以通过环境变量、外部配置文件、项目根目录 `config.js` �
 | `SERVER_NAME` | `serverName` | `yinyun` | 服务名称 |
 | `SUBSONIC_PATH` | `subsonic.path` | `/rest` | Subsonic API 路径 |
 | `PROXY_HEADER` | `proxy.header` | `x-real-ip` | 反向代理真实 IP 请求头 |
-| `CONFIG_PATH` | - | 空 | 外部 `config.js` 绝对路径 |
+| `CONFIG_PATH` | - | `<DATA_PATH>/config.js` | 服务端配置文件路径；Docker 建议使用 `/server/data/config.js` |
 | `DATA_PATH` | - | `./data` | 服务数据目录 |
 | `LOG_PATH` | - | `./logs` | 日志目录 |
 
