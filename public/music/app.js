@@ -291,6 +291,60 @@ async function checkNetworkListUpdates(manual = false) {
 
 window.checkNetworkListUpdates = checkNetworkListUpdates;
 
+// v1.6.2: the server owns the timer and persists update state. These later
+// declarations intentionally replace the legacy browser-only implementation.
+function applyNetworkListStatusesV162(statuses) {
+    window.networkListUpdateMap.clear();
+    (Array.isArray(statuses) ? statuses : []).forEach(status => {
+        if (status && status.changed && status.listId) window.networkListUpdateMap.add(status.listId);
+    });
+    if (typeof renderMyLists === 'function' && currentListData) renderMyLists(currentListData);
+}
+
+async function loadNetworkListStatusesV162() {
+    if (!isUserLoggedIn()) return [];
+    const response = await fetch('/api/v1/player/network-playlists/status', {
+        headers: getUserAuthHeaders(), cache: 'no-store'
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const statuses = payload.data || [];
+    applyNetworkListStatusesV162(statuses);
+    return statuses;
+}
+
+function setupNetworkListAutoCheck() {
+    if (networkListAutoCheckTimer) {
+        clearInterval(networkListAutoCheckTimer);
+        networkListAutoCheckTimer = null;
+    }
+    if (isUserLoggedIn()) loadNetworkListStatusesV162().catch(err => console.warn('[NetworkPlaylist] status load failed:', err));
+}
+
+async function checkNetworkListUpdates(manual = false) {
+    if (!isUserLoggedIn()) {
+        if (manual && window.showToast) showToast('info', '请先登录同步账户', 3000);
+        return [];
+    }
+    const response = await fetch('/api/v1/player/network-playlists/check', {
+        method: 'POST', headers: getUserAuthHeaders(), cache: 'no-store'
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) throw new Error(payload.message || `HTTP ${response.status}`);
+    const statuses = payload.data || [];
+    applyNetworkListStatusesV162(statuses);
+    const changed = statuses.filter(item => item.changed);
+    const failed = statuses.filter(item => item.error);
+    if (manual) {
+        if (changed.length) showSuccess(`检测到 ${changed.length} 个网络歌单有更新`);
+        else if (!failed.length) showSuccess('所有网络歌单均为最新状态');
+        if (failed.length) showError(`${failed.length} 个网络歌单检测失败`);
+    }
+    return statuses;
+}
+
+window.checkNetworkListUpdates = checkNetworkListUpdates;
+
 
 
 // Initial Sync for Server Cache Config
@@ -8686,6 +8740,7 @@ async function handleLocalLogin() {
             if (currentListData) currentListData.username = user; // Attach username
             window.myPersonalListData = currentListData; // [个人数据缓存]
             renderMyLists(listData);
+            setupNetworkListAutoCheck();
 
             // [Library] 登录后加载收藏歌手/专辑
             loadLibraryData();
@@ -11438,6 +11493,70 @@ window.toggleLyrics = toggleLyrics;
 window.toggleFavorites = toggleFavorites;
 window.handleFavoritesClick = handleFavoritesClick;
 window.handleListClick = handleListClick;
+
+// Local-network playback (DLNA/UPnP). The server performs discovery and
+// streaming, so closing the browser does not interrupt an active cast.
+window.YinyunCast = (() => {
+    let devices = [];
+    let sessionId = null;
+    const modal = () => document.getElementById('cast-modal');
+    const status = (message, error = false) => {
+        const el = document.getElementById('cast-status');
+        if (el) { el.textContent = message; el.className = `text-xs ${error ? 'text-red-500' : 't-text-muted'}`; }
+    };
+    const request = async (url, options = {}) => {
+        const response = await fetch(url, { ...options, headers: { ...getUserAuthHeaders(), ...(options.headers || {}) } });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
+        return data.data || data;
+    };
+    const currentLocalTrack = () => {
+        const song = window.currentPlayingSong || currentPlayingSong;
+        const item = song?._localLibraryItem || song;
+        if (!item || !item.filename || !['cache', 'music'].includes(item.folder)) return null;
+        return { song, item };
+    };
+    const renderDevices = () => {
+        const select = document.getElementById('cast-device-select');
+        if (!select) return;
+        select.innerHTML = devices.length ? devices.map(device => `<option value="${escapeHtmlText(device.id)}">${escapeHtmlText(device.friendlyName || device.modelName || 'DLNA Renderer')}</option>`).join('') : '<option value="">未发现 DLNA 设备</option>';
+    };
+    const discover = async () => {
+        status('正在搜索局域网设备…');
+        try {
+            const result = await request('/api/v1/player/cast/devices');
+            devices = Array.isArray(result.devices) ? result.devices : [];
+            renderDevices();
+            status(devices.length ? `发现 ${devices.length} 个 DLNA 设备` : '未发现设备，请确认音响与 NAS 在同一局域网');
+        } catch (error) { devices = []; renderDevices(); status(error.message || '设备搜索失败', true); }
+    };
+    const open = () => {
+        if (!isUserLoggedIn()) { showError('请先登录同步账户'); return; }
+        const track = currentLocalTrack();
+        if (!track) { showError('局域网投放仅支持当前已缓存或已下载的本地歌曲'); return; }
+        const node = modal();
+        if (node) { node.classList.remove('hidden'); node.classList.add('flex'); }
+        renderDevices();
+        void discover();
+    };
+    const close = () => { const node = modal(); if (node) { node.classList.add('hidden'); node.classList.remove('flex'); } };
+    const start = async () => {
+        const track = currentLocalTrack();
+        const deviceId = document.getElementById('cast-device-select')?.value;
+        if (!track || !deviceId) { status('请选择设备，并确保当前歌曲已在服务器缓存或下载目录', true); return; }
+        try {
+            const data = await request('/api/v1/player/cast/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deviceId, filename: track.item.filename, folder: track.item.folder, storageLocation: track.item.storageLocation, autoPlay: true }) });
+            sessionId = data.id;
+            status(`正在投放到 ${data.device?.friendlyName || 'DLNA 设备'}`);
+        } catch (error) { status(error.message || '创建投放会话失败', true); }
+    };
+    const control = async (action, volume) => {
+        if (!sessionId) { status('请先投放当前歌曲', true); return; }
+        try { await request(`/api/v1/player/cast/sessions/${encodeURIComponent(sessionId)}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, volume: Number(volume) }) }); status(action === 'volume' ? `音量 ${Math.round(Number(volume))}%` : `已发送：${action}`); }
+        catch (error) { status(error.message || '投放控制失败', true); }
+    };
+    return { open, close, discover, start, control };
+})();
 window.handleCreateList = handleCreateList;
 window.handleRefreshList = handleRefreshList;
 window.handleJumpToOriginalList = handleJumpToOriginalList;

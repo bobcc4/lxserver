@@ -1,13 +1,18 @@
-## v1.6.1 (2026-08-19)
+## v1.6.2 (2026-08-24)
 
-### 管理配置持久化
+### Server-side network playlist monitoring
 
-- 修复 Docker 更新并重建容器后，后台管理密码、管理路径及其他服务端设置恢复默认值的问题。
-- 服务端配置默认保存到持久化的 `<DATA_PATH>/config.js`；官方 Docker Compose 明确使用 `/server/data/config.js`。
-- 配置读取、后台保存、热重载和 WebDAV 恢复统一使用同一配置路径，避免不同入口写入容器临时层。
-- 独立安装包会在首次启动新版本时，把原应用目录中的现有配置写入数据目录；显式设置的 `CONFIG_PATH` 仍保持最高优先级。
+- Moved network playlist update checks from the browser timer to a persistent server background task.
+- Checks continue after the browser is closed and follow each user's enable switch and interval.
+- Persisted per-playlist status keeps update indicators and records the last error without losing the previous update state.
 
-### 升级说明
+### LAN casting
 
-- 可以从 `v1.6.0` 直接升级，不改变用户、音乐、缓存或数据库目录。
-- 如果旧容器已经被重建且密码已经恢复为 `123456`，旧密码无法自动找回，需要升级后重新设置一次；此后更新不会再丢失。
+- Added DLNA/UPnP MediaRenderer discovery and server-side casting controls for play, pause, stop, and volume.
+- Only files already present in the current user's server cache or music directory can be cast.
+- Added short-lived cast sessions so a renderer can stream from the NAS without browser authentication headers.
+- AirPlay, Chromecast, and private speaker protocols such as XiaoAI are not claimed as supported in this release.
+
+### Upgrade notes
+
+- This release keeps the existing data directories and `/api/v1` structure. No migration is required.

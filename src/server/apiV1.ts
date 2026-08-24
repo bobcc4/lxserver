@@ -29,6 +29,8 @@ import {
   type ApiTokenPayload,
 } from './apiV1Contract'
 import { normalizeLyricsResponse } from './utils/apiLyrics'
+import type { CastAction, CastManager } from './cast'
+import type { NetworkPlaylistMonitor } from './networkPlaylistMonitor'
 
 const API_PREFIX = '/api/v1'
 const ACCESS_TOKEN_TTL = 60 * 60
@@ -57,6 +59,9 @@ interface ApiV1Dependencies {
   saveLibrary: (username: string, type: 'artists' | 'albums', items: any[]) => Promise<void>
   getLeaderboardBoards: (source: string, username: string) => Promise<any>
   getLeaderboardList: (source: string, bangid: string, page: number, username: string) => Promise<any>
+  castManager: CastManager
+  networkPlaylistMonitor: NetworkPlaylistMonitor
+  getRequestBaseUrl: (req: IncomingMessage, url: URL) => string
 }
 
 interface ApiErrorShape {
@@ -501,10 +506,20 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
             restore: true,
           },
           events: 'sse',
+          networkPlaylistMonitor: true,
+          dlna: true,
           subsonic: global.lx.config['subsonic.enable'] === true,
         },
         supportedQualities: QUALITY_ORDER,
       })
+      return true
+    }
+
+    const castMediaMatch = pathname.match(/^\/api\/v1\/cast\/media\/([^/]+)$/)
+    if (castMediaMatch && (req.method === 'GET' || req.method === 'HEAD')) {
+      const session = deps.castManager.getMediaSession(decodeURIComponent(castMediaMatch[1]))
+      if (!session) { res.writeHead(404); res.end('Not Found'); return true }
+      fileCache.serveCacheFile(req, res, session.filename, session.username, session.folder, session.location)
       return true
     }
 
@@ -543,6 +558,64 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
     }
 
     const username = requireUser(req, deps, url)
+
+    if (pathname === `${API_PREFIX}/player/network-playlists/status` && req.method === 'GET') {
+      success(res, deps.networkPlaylistMonitor.getStatus(username))
+      return true
+    }
+    if (pathname === `${API_PREFIX}/player/network-playlists/check` && req.method === 'POST') {
+      success(res, await deps.networkPlaylistMonitor.checkAndGetStatus(username))
+      return true
+    }
+    if (pathname === `${API_PREFIX}/player/cast/devices` && req.method === 'GET') {
+      success(res, { protocol: 'dlna', devices: await deps.castManager.discover() })
+      return true
+    }
+    if (pathname === `${API_PREFIX}/player/cast/sessions` && req.method === 'POST') {
+      const body = await readJson(req)
+      const device = deps.castManager.getDevice(String(body.deviceId || ''))
+      if (!device) throw new ApiError(404, 'cast_device_not_found', '局域网投放设备不存在或已失效')
+      const filename = String(body.filename || '')
+      const folder = body.folder === 'music' ? 'music' : body.folder === 'cache' ? 'cache' : null
+      if (!filename || !folder) throw new ApiError(400, 'cast_track_required', '只能投放已缓存或已下载的本地歌曲')
+      const items = await fileCache.getCacheList(username)
+      const item = items.find((candidate: any) => candidate.filename === filename && candidate.folder === folder && (!body.storageLocation || candidate.storageLocation === body.storageLocation))
+      if (!item) throw new ApiError(404, 'cast_track_not_found', '本地歌曲不存在或不属于当前用户')
+      const baseUrl = deps.getRequestBaseUrl(req, url)
+      const session = deps.castManager.createSession({
+        username,
+        filename: item.filename,
+        folder,
+        location: item.storageLocation,
+        device,
+        streamUrl: `${baseUrl}/api/v1/cast/media/PLACEHOLDER`,
+        title: item.name,
+        artist: item.singer,
+        album: item.album,
+        duration: item.interval,
+      })
+      session.streamUrl = `${baseUrl}/api/v1/cast/media/${encodeURIComponent(session.id)}`
+      const action = body.autoPlay === false ? null : 'play'
+      if (action) await deps.castManager.setUriAndPlay(session)
+      success(res, { id: session.id, device: { id: device.id, friendlyName: device.friendlyName, modelName: device.modelName }, expiresIn: 600, streamUrl: session.streamUrl })
+      return true
+    }
+    const castSessionMatch = pathname.match(/^\/api\/v1\/player\/cast\/sessions\/([^/]+)$/)
+    if (castSessionMatch && req.method === 'DELETE') {
+      success(res, { removed: deps.castManager.remove(decodeURIComponent(castSessionMatch[1]), username) })
+      return true
+    }
+    const castControlMatch = pathname.match(/^\/api\/v1\/player\/cast\/sessions\/([^/]+)\/control$/)
+    if (castControlMatch && req.method === 'POST') {
+      const body = await readJson(req)
+      const session = deps.castManager.getSession(decodeURIComponent(castControlMatch[1]), username)
+      if (!session) throw new ApiError(404, 'cast_session_not_found', '投放会话不存在或已过期')
+      const action = body.action as CastAction
+      if (!['play', 'pause', 'stop', 'volume'].includes(action)) throw new ApiError(400, 'cast_action_invalid', '不支持的投放控制操作')
+      await deps.castManager.control(session, action, body.volume)
+      success(res, { action })
+      return true
+    }
 
     if (pathname === `${API_PREFIX}/auth/me` && req.method === 'GET') {
       success(res, { username, isAdmin: deps.isAdminUser(username) })

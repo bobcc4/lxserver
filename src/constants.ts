@@ -50,6 +50,7 @@ export const File = {
   userPlaylistSharesJSON: 'playlistShares.json',
   userSoundEffectsJSON: 'soundEffects.json',
   userTokensJSON: 'token.json',
+  userNetworkPlaylistCheckJSON: 'networkPlaylistCheck.json',
   listDir: 'list',
   listSnapshotDir: 'snapshot',
   listSnapshotInfoJSON: 'snapshotInfo.json',
