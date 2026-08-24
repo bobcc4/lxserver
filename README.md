@@ -171,10 +171,22 @@ services:
       - ./logs:/server/logs
       - ./cache:/server/cache
       - ./music:/server/music
+      # 外部音乐库（先在后台配置库名称；推荐只读挂载）
+      # - /volume1/media/music:/server/external/admin/bendigequ:ro
     environment:
       NODE_ENV: production
       CONFIG_PATH: /server/data/config.js
 ```
+
+### 外部音乐库
+
+已有歌曲位于 NAS 其他目录时，可在管理后台 **系统配置 → 外部音乐库** 配置用户和库名称。系统会为 `admin / bendigequ` 使用固定路径 `/server/external/admin/bendigequ`，Compose 映射示例：
+
+```yaml
+- /volume1/media/music:/server/external/admin/bendigequ:ro
+```
+
+外部库支持多层目录扫描、网页播放、DLNA 和 Subsonic，索引写入 `/server/data/external-index`。它是只读音乐库，不支持删除、重命名、洗版或嵌入元数据；删除后台配置不会删除宿主机文件。
 
 启动服务：
 

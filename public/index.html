@@ -656,6 +656,44 @@
                         </div>
 
                         <!-- WebDAV 配置卡片 -->
+                        <div class="config-card glass" id="config-card-external-libraries">
+                            <div class="config-card-header">
+                                <div class="config-card-icon" style="background: linear-gradient(135deg, #14b8a6, #0f766e);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M3 12h18M3 18h18" />
+                                        <circle cx="7" cy="6" r="1" /><circle cx="7" cy="12" r="1" /><circle cx="7" cy="18" r="1" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="config-card-title">外部音乐库</h3>
+                                    <p class="config-card-desc">将宿主机目录映射为用户的只读音乐库</p>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                <div class="config-field-row">
+                                    <div class="config-field">
+                                        <label class="config-label">同步用户</label>
+                                        <select id="external-library-user" class="form-input config-input"></select>
+                                    </div>
+                                    <div class="config-field">
+                                        <label class="config-label">库名称</label>
+                                        <input id="external-library-name" class="form-input config-input" placeholder="例如 library" maxlength="64" />
+                                    </div>
+                                </div>
+                                <div class="config-field">
+                                    <label class="config-label">容器内映射路径</label>
+                                    <input id="external-library-container-path" class="form-input config-input" readonly />
+                                    <small class="config-hint">请将宿主机目录以 :ro 挂载到该路径，然后点击添加或重新扫描。</small>
+                                </div>
+                                <div class="config-field-row">
+                                    <button type="button" id="add-external-library-btn" class="btn-primary">添加外部音乐库</button>
+                                    <button type="button" id="refresh-external-libraries-btn" class="btn-secondary">刷新列表</button>
+                                </div>
+                                <div id="external-libraries-list" class="data-content" style="margin-top: 1rem;"></div>
+                                <small class="config-hint">外部音乐库支持扫描、播放、网页播放器和 Subsonic，不支持删除、重命名、洗版或写入封面/歌词。删除配置不会删除宿主机文件。</small>
+                            </div>
+                        </div>
+
                         <div id="config-card-webdav" class="config-card glass">
                             <div class="config-card-header">
                                 <div class="config-card-icon"

@@ -227,6 +227,7 @@ const toTrack = (item: any) => ({
   duration: item.interval || null,
   size: Number(item.size || 0),
   folder: item.folder,
+  storageLocation: item.storageLocation || null,
   extension: item.ext || '',
   hasCover: item.hasCover === true,
   hasLyrics: item.hasLyric === true || !!item.lyricFilename || item.hasEmbedLyric === true,
@@ -576,16 +577,19 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       const device = deps.castManager.getDevice(String(body.deviceId || ''))
       if (!device) throw new ApiError(404, 'cast_device_not_found', '局域网投放设备不存在或已失效')
       const filename = String(body.filename || '')
-      const folder = body.folder === 'music' ? 'music' : body.folder === 'cache' ? 'cache' : null
-      if (!filename || !folder) throw new ApiError(400, 'cast_track_required', '只能投放已缓存或已下载的本地歌曲')
-      const items = await fileCache.getCacheList(username)
-      const item = items.find((candidate: any) => candidate.filename === filename && candidate.folder === folder && (!body.storageLocation || candidate.storageLocation === body.storageLocation))
+      const folder = body.folder === 'music' ? 'music' : body.folder === 'cache' ? 'cache' : ''
+      const item = await fileCache.findLocalCacheItem(username, {
+        ...(body.track || body.song || body.songInfo || {}),
+        filename,
+        folder,
+        storageLocation: body.storageLocation,
+      })
       if (!item) throw new ApiError(404, 'cast_track_not_found', '本地歌曲不存在或不属于当前用户')
       const baseUrl = deps.getRequestBaseUrl(req, url)
       const session = deps.castManager.createSession({
         username,
         filename: item.filename,
-        folder,
+        folder: item.folder === 'music' ? 'music' : 'cache',
         location: item.storageLocation,
         device,
         streamUrl: `${baseUrl}/api/v1/cast/media/PLACEHOLDER`,

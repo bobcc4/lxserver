@@ -6550,7 +6550,7 @@ function renderCacheList() {
         const authToken = (window.getUserAuthHeaders ? window.getUserAuthHeaders()['x-user-token'] : null)
             || localStorage.getItem('lx_user_token') || '';
         const coverUrl = item.hasCover
-            ? `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`
+            ? `/api/v1/player/music/cache/cover?filename=${encodeURIComponent(item.filename)}&user=${encodeURIComponent(username)}${item.storageLocation ? `&location=${encodeURIComponent(item.storageLocation)}` : ''}${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`
             : '/_player/assets/logo.svg';
 
         return `
@@ -6756,7 +6756,7 @@ async function removeCacheItem(index) {
         const res = await fetch('/api/v1/player/music/cache/remove', {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({ items: [{ filename: item.filename, folder: item.folder }] })
+            body: JSON.stringify({ items: [{ filename: item.filename, folder: item.folder, storageLocation: item.storageLocation }] })
         });
 
         const result = await res.json();
@@ -6789,7 +6789,7 @@ async function batchDeleteCache() {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
-                items: deleteItems.map(item => ({ filename: item.filename, folder: item.folder }))
+                items: deleteItems.map(item => ({ filename: item.filename, folder: item.folder, storageLocation: item.storageLocation }))
             })
         });
 
@@ -11516,6 +11516,33 @@ window.YinyunCast = (() => {
         if (!item || !item.filename || !['cache', 'music'].includes(item.folder)) return null;
         return { song, item };
     };
+    const resolveCurrentLocalTrack = async () => {
+        const direct = currentLocalTrack();
+        if (direct) return direct;
+        const song = window.currentPlayingSong || currentPlayingSong;
+        if (!song) return null;
+        try {
+            const result = await request('/api/v1/player/music/cache/list');
+            const items = Array.isArray(result) ? result : [];
+            const ids = new Set([song.id, song.songmid, song.songId, song.copyrightId, song.mediaMid]
+                .filter(value => value !== undefined && value !== null && String(value).trim()).map(String));
+            const name = String(song.name || '').trim().toLowerCase();
+            const singer = String(song.singer || song.artist || '').trim().toLowerCase();
+            const album = String(song.album || song.albumName || '').trim().toLowerCase();
+            const candidates = items.filter(item => item && ['cache', 'music'].includes(item.folder));
+            const byId = candidates.find(item => ids.has(String(item.id || '')) || ids.has(String(item.songmid || '')));
+            const metadata = candidates.filter(item => (
+                name && String(item.name || '').trim().toLowerCase() === name &&
+                singer && String(item.singer || '').trim().toLowerCase() === singer &&
+                (!album || String(item.album || '').trim().toLowerCase() === album)
+            ));
+            const item = byId || (metadata.length === 1 ? metadata[0] : null);
+            return item?.filename ? { song, item } : null;
+        } catch (error) {
+            console.warn('[DLNA] Failed to resolve current local track:', error);
+            return null;
+        }
+    };
     const renderDevices = () => {
         const select = document.getElementById('cast-device-select');
         if (!select) return;
@@ -11530,9 +11557,9 @@ window.YinyunCast = (() => {
             status(devices.length ? `发现 ${devices.length} 个 DLNA 设备` : '未发现设备，请确认音响与 NAS 在同一局域网');
         } catch (error) { devices = []; renderDevices(); status(error.message || '设备搜索失败', true); }
     };
-    const open = () => {
+    const open = async () => {
         if (!isUserLoggedIn()) { showError('请先登录同步账户'); return; }
-        const track = currentLocalTrack();
+        const track = await resolveCurrentLocalTrack();
         if (!track) { showError('局域网投放仅支持当前已缓存或已下载的本地歌曲'); return; }
         const node = modal();
         if (node) { node.classList.remove('hidden'); node.classList.add('flex'); }
@@ -11541,7 +11568,7 @@ window.YinyunCast = (() => {
     };
     const close = () => { const node = modal(); if (node) { node.classList.add('hidden'); node.classList.remove('flex'); } };
     const start = async () => {
-        const track = currentLocalTrack();
+        const track = await resolveCurrentLocalTrack();
         const deviceId = document.getElementById('cast-device-select')?.value;
         if (!track || !deviceId) { status('请选择设备，并确保当前歌曲已在服务器缓存或下载目录', true); return; }
         try {

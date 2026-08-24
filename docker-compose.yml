@@ -10,6 +10,8 @@ services:
       - ./logs:/server/logs
       - ./cache:/server/cache
       - ./music:/server/music
+      # Configure the library name in the admin console before enabling this mount.
+      # - /volume1/media/music:/server/external/admin/bendigequ:ro
     environment:
       NODE_ENV: production
       CONFIG_PATH: /server/data/config.js

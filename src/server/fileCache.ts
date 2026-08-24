@@ -12,6 +12,13 @@ import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '../uti
 import type { LyricOutputFormat } from '../utils/lrcTool'
 import { formatPlayTime } from '../common/utils/common'
 import { normalizeUsername } from '../utils/username'
+import {
+    EXTERNAL_LOCATION_PREFIX,
+    getExternalLibraryByLocation,
+    getExternalIndexPath,
+    getExternalMusicPath,
+    listExternalMusicLibraries,
+} from './externalMusicLibraries'
 
 // --- Cache Naming Patterns ---
 export const CACHE_NAMING_PATTERNS = {
@@ -37,6 +44,28 @@ export const CACHE_ROOTS = {
     DATA: 'data', // inside global.lx.dataPath (synced)
     ROOT: 'root'  // relative to process.cwd() (not synced)
 }
+
+const isExternalLocation = (location?: string) => typeof location === 'string' && location.startsWith(EXTERNAL_LOCATION_PREFIX)
+
+const getStorageLocations = (username: string) => {
+    const alternate = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    return Array.from(new Set([
+        currentCacheLocation,
+        alternate,
+        ...listExternalMusicLibraries(username).map(library => `${EXTERNAL_LOCATION_PREFIX}${library.id}`),
+    ]))
+}
+
+export const isStorageLocationAllowed = (username: string, location?: string) => {
+    if (!location || location === CACHE_ROOTS.DATA || location === CACHE_ROOTS.ROOT) return true
+    return !!getExternalLibraryByLocation(location, username)
+}
+
+const assertStorageLocation = (username: string, location?: string) => {
+    if (!isStorageLocationAllowed(username, location)) throw new Error('Invalid or unauthorized storage location')
+}
+
+const isReadOnlyExternalLocation = (location?: string) => isExternalLocation(location)
 
 let currentCacheLocation = CACHE_ROOTS.ROOT
 const CACHE_LIST_SYNC_TTL = 30 * 1000
@@ -86,6 +115,13 @@ export const setLyricFetcher = (fn: LyricFetcher) => { _lyricFetcher = fn }
 export const getCacheDir = (username?: string, isOnlyDownload?: boolean, location?: string) => {
     const folderName = isOnlyDownload ? 'music' : 'cache'
     const loc = location || currentCacheLocation
+    const userDirName = normalizeCacheUsername(username)
+    if (isExternalLocation(loc)) {
+        const library = getExternalLibraryByLocation(loc, userDirName)
+        if (!library) throw new Error('Invalid or unauthorized external music library')
+        if (!isOnlyDownload) throw new Error('External music libraries only support the music folder')
+        return getExternalMusicPath(library)
+    }
     let baseDir = ''
     if (loc === CACHE_ROOTS.DATA) {
         baseDir = path.join(global.lx.dataPath, folderName)
@@ -94,8 +130,6 @@ export const getCacheDir = (username?: string, isOnlyDownload?: boolean, locatio
     }
 
     // [New] Segment cache by username
-    const userDirName = normalizeCacheUsername(username)
-
     const fullPath = path.join(baseDir, userDirName)
     if (!fs.existsSync(fullPath)) {
         fs.mkdirSync(fullPath, { recursive: true })
@@ -191,6 +225,12 @@ class CacheIndexManager {
 
     private getIndexFile(username: string, folder: 'cache' | 'music', location?: string) {
         const loc = location || currentCacheLocation
+        if (isExternalLocation(loc)) {
+            if (folder !== 'music') throw new Error('External music libraries only support the music folder')
+            const library = getExternalLibraryByLocation(loc, username)
+            if (!library) throw new Error('Invalid or unauthorized external music library')
+            return getExternalIndexPath(library, folder)
+        }
         const folderName = folder === 'music' ? 'music' : 'cache'
         let baseDir = ''
         if (loc === CACHE_ROOTS.DATA) {
@@ -762,7 +802,13 @@ export const syncCacheIndex = async (
             filenameToItemMap.set(item.filename, { key, item })
         }
         const dir = getCacheDir(normalizedUsername, folder === 'music', indexLocation)
-        if (!fs.existsSync(dir)) continue
+        if (!fs.existsSync(dir)) {
+            if (isReadOnlyExternalLocation(indexLocation)) {
+                index.clear()
+                indexManager.save(normalizedUsername, folder, indexLocation)
+            }
+            continue
+        }
 
         // [Unified Enhancement] Recursive file walker (asynchronous)
         const getAllFilesAsync = async (dirPath: string, base: string = dirPath): Promise<string[]> => {
@@ -787,9 +833,11 @@ export const syncCacheIndex = async (
         }
 
         const files = await getAllFilesAsync(dir)
-        for (const file of files) {
-            if (path.extname(file).toLowerCase() !== '.lrc') continue
-            removeGeneratedUnknownLyric(path.join(dir, file))
+        if (!isReadOnlyExternalLocation(indexLocation)) {
+            for (const file of files) {
+                if (path.extname(file).toLowerCase() !== '.lrc') continue
+                removeGeneratedUnknownLyric(path.join(dir, file))
+            }
         }
         for (const file of files) {
             if (file === 'cache_index.json' || file === 'music_index.json') continue
@@ -918,8 +966,10 @@ export const syncCacheIndex = async (
                                 existing.hasEmbedLyric = !!(lyricsInTag && lyricsInTag.trim().length > 10)
                             }
                             existing.audioContainer = currentAudioContainer
-                            existing.metadataWritable = true
-                            existing.metadataError = undefined
+                            existing.metadataWritable = !isReadOnlyExternalLocation(indexLocation)
+                            existing.metadataError = existing.metadataWritable
+                                ? undefined
+                                : '外部音乐库为只读目录，不能修改音频元数据'
                         } catch (e: any) {
                             existing.audioContainer = currentAudioContainer
                             existing.metadataWritable = false
@@ -964,7 +1014,8 @@ export const syncCacheIndex = async (
                         // [新增] 检测是否已嵌入歌词 USLT 标签
                         const lyricsInTag = tagger.lyrics
                         hasEmbedLyric = !!(lyricsInTag && lyricsInTag.trim().length > 10)
-                        metadataWritable = true
+                        metadataWritable = !isReadOnlyExternalLocation(indexLocation)
+                        if (!metadataWritable) metadataError = '外部音乐库为只读目录，不能修改音频元数据'
 
                         tagger.dispose()
                     } catch (e: any) {
@@ -1056,32 +1107,38 @@ export const syncCacheIndex = async (
  */
 export const getCacheList = async (username?: string) => {
     const normalizedUsername = normalizeCacheUsername(username)
-
-    // Keep indexed metadata aligned with disk. This also repairs stale hasCover values
-    // from older indexes where the cover endpoint may already return 404.
-    const cacheDir = getCacheDir(normalizedUsername, false)
-    const musicDir = getCacheDir(normalizedUsername, true)
-    const hasCacheIndex = fs.existsSync(path.join(cacheDir, 'cache_index.json'))
-    const hasMusicIndex = fs.existsSync(path.join(musicDir, 'music_index.json'))
-
-    const syncKey = `${currentCacheLocation}:${normalizedUsername}`
-    const syncState = cacheListSyncState.get(syncKey) || { lastSync: 0 }
-    const mustSync = !hasCacheIndex || !hasMusicIndex
-    const shouldSync = mustSync || Date.now() - syncState.lastSync > CACHE_LIST_SYNC_TTL
-
-    if (shouldSync) {
-        if (!syncState.pending) {
-            syncState.pending = syncCacheIndex(normalizedUsername)
-                .then(() => { syncState.lastSync = Date.now() })
-                .finally(() => { syncState.pending = undefined })
-            cacheListSyncState.set(syncKey, syncState)
+    const locations = getStorageLocations(normalizedUsername)
+    const items: CacheItem[] = []
+    for (const location of locations) {
+        const folders: Array<'cache' | 'music'> = isExternalLocation(location) ? ['music'] : ['cache', 'music']
+        const indexExists = folders.every(folder => {
+            try {
+                return fs.existsSync(isExternalLocation(location)
+                    ? getExternalIndexPath(getExternalLibraryByLocation(location, normalizedUsername)!, folder)
+                    : path.join(getCacheDir(normalizedUsername, folder === 'music', location), `${folder}_index.json`))
+            } catch {
+                return false
+            }
+        })
+        const syncKey = `${location}:${normalizedUsername}`
+        const syncState = cacheListSyncState.get(syncKey) || { lastSync: 0 }
+        const shouldSync = !indexExists || Date.now() - syncState.lastSync > CACHE_LIST_SYNC_TTL
+        if (shouldSync) {
+            if (!syncState.pending) {
+                syncState.pending = syncCacheIndex(normalizedUsername, folders, location)
+                    .then(() => { syncState.lastSync = Date.now() })
+                    .finally(() => { syncState.pending = undefined })
+                cacheListSyncState.set(syncKey, syncState)
+            }
+            await syncState.pending
         }
-        await syncState.pending
+        for (const folder of folders) {
+            items.push(...indexManager.getAll(normalizedUsername, folder, location).map(item => ({
+                ...item,
+                storageLocation: location,
+            })))
+        }
     }
-
-    const cacheItems = indexManager.getAll(normalizedUsername, 'cache')
-    const musicItems = indexManager.getAll(normalizedUsername, 'music')
-    const items = [...cacheItems, ...musicItems]
 
     return items.map(item => ({
         ...item,
@@ -1096,11 +1153,74 @@ export const getCacheList = async (username?: string) => {
             albumId: item.albumId,
             img: item.img,
             interval: item.interval,
+            storageLocation: item.storageLocation,
             type: item.quality, // Compatibility
             types: {} // To be filled if needed
         },
         hasLyric: item.hasLyric || !!item.lyricFilename
     }))
+}
+
+/**
+ * Resolve a player track to a file that already exists in the user's cache or
+ * download directory. Playlist tracks do not always carry the local filename,
+ * so callers must not require filename/folder before attempting this lookup.
+ */
+export const findLocalCacheItem = async (username: string, track: any = {}) => {
+    const items = await getCacheList(username)
+    const filename = typeof track.filename === 'string' ? track.filename : ''
+    const folder = track.folder === 'cache' || track.folder === 'music' ? track.folder : ''
+    const location = typeof track.storageLocation === 'string' && track.storageLocation ? track.storageLocation : ''
+
+    const inRequestedLocation = (item: any) => (
+        (!folder || item.folder === folder) &&
+        (!location || item.storageLocation === location)
+    )
+    const byFilename = filename
+        ? items.find((item: any) => inRequestedLocation(item) && item.filename === filename)
+        : undefined
+    if (byFilename) return byFilename
+
+    const ids = new Set([
+        track.id,
+        track.songmid,
+        track.songId,
+        track.copyrightId,
+        track.mediaMid,
+    ].filter(value => value !== undefined && value !== null && String(value).trim()).map(String))
+    const source = String(track.source || '').toLowerCase()
+    const name = String(track.name || '').trim().toLowerCase()
+    const singer = String(track.singer || track.artist || '').trim().toLowerCase()
+    const album = String(track.album || track.albumName || '').trim().toLowerCase()
+    if (!ids.size && !name) return undefined
+
+    const candidates = items.filter(inRequestedLocation)
+    const byId = ids.size
+        ? candidates.find((item: any) => ids.has(String(item.id || '')) || ids.has(String(item.songmid || '')))
+        : undefined
+    if (byId) return byId
+
+    const exactMetadata = candidates.filter((item: any) => {
+        if (!name || String(item.name || '').trim().toLowerCase() !== name) return false
+        if (singer && String(item.singer || '').trim().toLowerCase() !== singer) return false
+        if (album && String(item.album || '').trim().toLowerCase() !== album) return false
+        return true
+    })
+    if (exactMetadata.length === 1) return exactMetadata[0]
+    if (source && exactMetadata.length > 1) {
+        const sourceMatch = exactMetadata.find((item: any) => String(item.source || '').toLowerCase() === source)
+        if (sourceMatch) return sourceMatch
+    }
+
+    // A source switch can change the ID or album while preserving the title and
+    // artist. Only use this fallback when it is unambiguous.
+    const sameNameAndSinger = candidates.filter((item: any) => (
+        name && String(item.name || '').trim().toLowerCase() === name &&
+        singer && String(item.singer || '').trim().toLowerCase() === singer
+    ))
+    if (sameNameAndSinger.length === 1) return sameNameAndSinger[0]
+
+    return undefined
 }
 
 /**
@@ -1441,15 +1561,14 @@ const setIndexCoverState = (filename: string, username: string, coverType: Cache
 export const getCacheCover = async (filename: string, username?: string, preferredLocation?: string) => {
     const normalizedUsername = normalizeCacheUsername(username)
 
-    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    assertStorageLocation(normalizedUsername, preferredLocation)
     const locations = Array.from(new Set([
         preferredLocation,
-        currentCacheLocation,
-        alternateLocation,
+        ...getStorageLocations(normalizedUsername),
     ].filter((location): location is string => !!location)))
-    const roots: Array<'cache' | 'music'> = ['cache', 'music']
 
     for (const loc of locations) {
+        const roots: Array<'cache' | 'music'> = isExternalLocation(loc) ? ['music'] : ['cache', 'music']
         for (const folder of roots) {
             const dir = getCacheDir(normalizedUsername, folder === 'music', loc)
             const filePath = resolveCacheRelativePath(dir, filename) // [Fix] Allow subfolders safely
@@ -1832,16 +1951,16 @@ export const getLocalLyrics = (songInfo: any, username?: string): LocalLyricsRes
     }
 
     const preferredLocation = String(songInfo._localStorageLocation || '')
-    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    assertStorageLocation(normalizedUsername, preferredLocation || undefined)
     const locations = Array.from(new Set([
         preferredLocation,
-        currentCacheLocation,
-        alternateLocation,
-    ].filter(location => location === CACHE_ROOTS.DATA || location === CACHE_ROOTS.ROOT)))
+        ...getStorageLocations(normalizedUsername),
+    ].filter((location): location is string => !!location)))
     const exactItems: Array<{ item: CacheItem, folder: CacheFolder, location: string }> = []
     const metadataItems: Array<{ item: CacheItem, folder: CacheFolder, location: string }> = []
     for (const location of locations) {
-        for (const folder of folders) {
+        const allowedFolders: CacheFolder[] = isExternalLocation(location) ? ['music'] : folders
+        for (const folder of allowedFolders) {
             const exactMatches: CacheItem[] = []
             const metadataMatches: CacheItem[] = []
             for (const item of indexManager.getAll(normalizedUsername, folder, location)) {
@@ -2539,10 +2658,7 @@ export const getDownloadedMusicItems = async (username?: string) => {
  */
 export const getDownloadedMusicItemsAcrossLocations = async (username?: string) => {
     const normalizedUsername = normalizeCacheUsername(username)
-    const locations = [
-        currentCacheLocation,
-        currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA,
-    ]
+    const locations = getStorageLocations(normalizedUsername)
     const items: CacheItem[] = []
     const physicalPaths = new Set<string>()
 
@@ -2852,17 +2968,17 @@ export const serveCacheFile = (
     requestedFolder?: CacheFolder,
     preferredLocation?: string,
 ) => {
-    const alternateLocation = currentCacheLocation === CACHE_ROOTS.DATA ? CACHE_ROOTS.ROOT : CACHE_ROOTS.DATA
+    assertStorageLocation(normalizeCacheUsername(username), preferredLocation)
     const locations = Array.from(new Set([
         preferredLocation,
-        currentCacheLocation,
-        alternateLocation,
+        ...getStorageLocations(normalizeCacheUsername(username)),
     ].filter((location): location is string => !!location)))
     const roots: CacheFolder[] = requestedFolder ? [requestedFolder] : ['cache', 'music']
     let filePath = ''
     const normalizedUsername = normalizeCacheUsername(username)
     for (const loc of locations) {
-        for (const folder of roots) {
+        const allowedRoots: CacheFolder[] = isExternalLocation(loc) ? ['music'] : roots
+        for (const folder of allowedRoots) {
             const dir = getCacheDir(normalizedUsername, folder === 'music', loc)
             const checkPath = resolveMusicPath(dir, filename)
             if (fs.existsSync(checkPath)) { filePath = checkPath; break }

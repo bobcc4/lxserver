@@ -72,10 +72,22 @@ services:
       - ./logs:/server/logs
       - ./cache:/server/cache
       - ./music:/server/music
+      # External music library; configure the library name in the admin console first
+      # - /volume1/media/music:/server/external/admin/bendigequ:ro
     environment:
       NODE_ENV: production
       CONFIG_PATH: /server/data/config.js
 ```
+
+### External music libraries
+
+If your music already exists elsewhere on the NAS, do not move it. In **System Configuration -> External music libraries**, choose the sync user and a library name. For `admin` and `bendigequ`, mount the host directory as:
+
+```yaml
+- /volume1/media/music:/server/external/admin/bendigequ:ro
+```
+
+After recreating the container, rescan the library. Nested directories are supported, and the tracks are available in Local Music, the Web player, DLNA, and Subsonic. External libraries are read-only: they are excluded from downloads, cache cleanup, remastering, renaming, and metadata writes. The index is stored under `/server/data/external-index`; removing the configuration never deletes host files.
 
 Start the service:
 

@@ -127,6 +127,10 @@ class App {
             await this.saveConfig(true);
             this.loadConfig();
         });
+        document.getElementById('external-library-name')?.addEventListener('input', () => this.updateExternalLibraryPath());
+        document.getElementById('external-library-user')?.addEventListener('change', () => this.updateExternalLibraryPath());
+        document.getElementById('add-external-library-btn')?.addEventListener('click', () => this.addExternalLibrary());
+        document.getElementById('refresh-external-libraries-btn')?.addEventListener('click', () => this.loadExternalLibraries());
         // 日志查看
         document.getElementById('refresh-logs-btn')?.addEventListener('click', () => this.loadLogs());
         document.getElementById('log-type-select')?.addEventListener('change', () => this.loadLogs());
@@ -1785,9 +1789,76 @@ class App {
             if (form.elements['subsonic.lyricTranslation']) {
                 form.elements['subsonic.lyricTranslation'].checked = config['subsonic.lyricTranslation'] !== false;
             }
+            await this.loadExternalLibraries();
         } catch (err) {
             console.error('Failed to load config:', err);
         }
+    }
+
+    updateExternalLibraryPath() {
+        const user = document.getElementById('external-library-user')?.value || '';
+        const name = document.getElementById('external-library-name')?.value.trim() || '<库名称>';
+        const pathInput = document.getElementById('external-library-container-path');
+        if (pathInput) pathInput.value = user ? `/server/external/${user}/${name}` : `/server/external/<用户名>/${name}`;
+    }
+
+    async loadExternalLibraries() {
+        const list = document.getElementById('external-libraries-list');
+        const userSelect = document.getElementById('external-library-user');
+        if (!list || !userSelect || !this.password) return;
+        try {
+            const users = await this.request('/api/v1/admin/users');
+            const currentUser = userSelect.value;
+            userSelect.innerHTML = users.map(user => `<option value="${this.escapeHtml(user.name)}">${this.escapeHtml(user.name)}</option>`).join('');
+            if (users.some(user => user.name === currentUser)) userSelect.value = currentUser;
+            this.updateExternalLibraryPath();
+            const libraries = await this.request('/api/v1/admin/external-libraries');
+            if (!libraries.length) {
+                list.innerHTML = '<p style="color: var(--text-secondary);">暂未配置外部音乐库</p>';
+                return;
+            }
+            list.innerHTML = libraries.map(library => `
+                <div class="config-field-row" style="align-items:center; margin-bottom: .75rem;">
+                    <div style="flex:1; min-width:0;">
+                        <strong>${this.escapeHtml(library.username)} / ${this.escapeHtml(library.name)}</strong>
+                        <div class="config-hint">${this.escapeHtml(library.containerPath)} · ${library.enabled ? '已启用' : '已停用'}</div>
+                    </div>
+                    <button type="button" class="btn-secondary external-library-rescan" data-id="${this.escapeHtml(library.id)}">重新扫描</button>
+                    <button type="button" class="btn-secondary external-library-delete" data-id="${this.escapeHtml(library.id)}">删除配置</button>
+                </div>`).join('');
+            list.querySelectorAll('.external-library-rescan').forEach(button => button.addEventListener('click', () => this.rescanExternalLibrary(button.dataset.id)));
+            list.querySelectorAll('.external-library-delete').forEach(button => button.addEventListener('click', () => this.deleteExternalLibrary(button.dataset.id)));
+        } catch (error) {
+            list.innerHTML = `<p style="color: var(--accent-error);">外部音乐库加载失败：${this.escapeHtml(error.message)}</p>`;
+        }
+    }
+
+    async addExternalLibrary() {
+        const username = document.getElementById('external-library-user')?.value;
+        const name = document.getElementById('external-library-name')?.value.trim();
+        if (!username || !name) { showError('请选择用户并填写库名称'); return; }
+        try {
+            await this.request('/api/v1/admin/external-libraries', { method: 'POST', body: JSON.stringify({ username, name }) });
+            showSuccess('外部音乐库配置已保存，请按显示路径挂载宿主机目录');
+            await this.loadExternalLibraries();
+        } catch (error) { showError(`添加外部音乐库失败：${error.message}`); }
+    }
+
+    async rescanExternalLibrary(id) {
+        try {
+            await this.request(`/api/v1/admin/external-libraries/${encodeURIComponent(id)}/rescan`, { method: 'POST' });
+            showSuccess('外部音乐库扫描完成');
+            await this.loadExternalLibraries();
+        } catch (error) { showError(`扫描失败：${error.message}`); }
+    }
+
+    async deleteExternalLibrary(id) {
+        if (!confirm('只删除配置和索引，不会删除宿主机音乐文件。继续吗？')) return;
+        try {
+            await this.request(`/api/v1/admin/external-libraries/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            showSuccess('外部音乐库配置已删除');
+            await this.loadExternalLibraries();
+        } catch (error) { showError(`删除配置失败：${error.message}`); }
     }
 
     async saveConfig(silent = false) {
