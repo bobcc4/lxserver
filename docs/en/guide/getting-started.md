@@ -87,7 +87,7 @@ If your music already exists elsewhere on the NAS, do not move it. In **System C
 - /volume1/media/music:/server/external/admin/bendigequ:ro
 ```
 
-After recreating the container, rescan the library. Nested directories are supported, and the tracks are available in Local Music, the Web player, DLNA, and Subsonic. External libraries are read-only: they are excluded from downloads, cache cleanup, remastering, renaming, and metadata writes. The index is stored under `/server/data/external-index`; removing the configuration never deletes host files.
+After recreating the container, rescan the library. Nested directories are supported, and the tracks are available in Local Music, the Web player, and Subsonic. External libraries are read-only: they are excluded from downloads, cache cleanup, remastering, renaming, and metadata writes. The index is stored under `/server/data/external-index`; removing the configuration never deletes host files.
 
 Start the service:
 

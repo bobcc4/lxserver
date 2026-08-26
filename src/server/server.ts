@@ -38,7 +38,6 @@ import { getUserIsAdmin, withUserRole } from '@/userRoles'
 import crypto from 'node:crypto'
 import needle from 'needle'
 import { MusicTagger, MetaPicture } from './musicTagger'
-import { CastManager, type CastAction } from './cast'
 import { NetworkPlaylistMonitor } from './networkPlaylistMonitor'
 import {
   createExternalMusicLibrary,
@@ -49,7 +48,6 @@ import {
   removeExternalMusicLibrary,
 } from './externalMusicLibraries'
 
-const castManager = new CastManager()
 const networkPlaylistMonitor = new NetworkPlaylistMonitor({
   getUsers: () => global.lx.config.users,
   musicSdk,
@@ -813,15 +811,7 @@ const handleApiV1 = createApiV1Handler({
   saveLibrary: writeUserLibrary,
   getLeaderboardBoards,
   getLeaderboardList,
-  castManager,
   networkPlaylistMonitor,
-  getRequestBaseUrl: (req: IncomingMessage, url: URL) => {
-    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
-    const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim()
-    const protocol = forwardedProto === 'https' ? 'https' : 'http'
-    const host = forwardedHost || String(req.headers.host || `${global.lx.config.bindIP}:${global.lx.config.port}`)
-    return `${protocol}://${host}`
-  },
 })
 
 const isPathInside = (child: string, parent: string): boolean => {
@@ -1078,92 +1068,6 @@ const handleStartServer = async (port = 9527, ip = '127.0.0.1') => await new Pro
         })
         return
       }
-
-      if (pathname === '/api/v1/player/cast/devices' && req.method === 'GET') {
-        const username = verifyUserAuth(req)
-        if (!username) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, message: 'Unauthorized' })); return }
-        void castManager.discover().then(devices => {
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
-          res.end(JSON.stringify({ success: true, protocol: 'dlna', devices }))
-        }).catch(error => {
-          res.writeHead(500, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ success: false, message: error?.message || 'DLNA discovery failed' }))
-        })
-        return
-      }
-
-      if (pathname === '/api/v1/player/cast/sessions' && req.method === 'POST') {
-        const username = verifyUserAuth(req)
-        if (!username) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, message: 'Unauthorized' })); return }
-        void readBody(req).then(async rawBody => {
-          try {
-            const body = JSON.parse(rawBody)
-            const device = castManager.getDevice(String(body.deviceId || ''))
-            if (!device) throw new Error('局域网投放设备不存在或已失效，请重新搜索')
-            const filename = String(body.filename || '')
-            const folder = body.folder === 'music' ? 'music' : body.folder === 'cache' ? 'cache' : ''
-            const item = await fileCache.findLocalCacheItem(username, {
-              ...(body.track || body.song || body.songInfo || {}),
-              filename,
-              folder,
-              storageLocation: body.storageLocation,
-            })
-            if (!item) throw new Error('本地歌曲不存在或不属于当前用户')
-            const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
-            const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim()
-            const host = forwardedHost || String(req.headers.host || `${global.lx.config.bindIP}:${global.lx.config.port}`)
-            const baseUrl = `${forwardedProto === 'https' ? 'https' : 'http'}://${host}`
-            const session = castManager.createSession({
-              username,
-              filename: item.filename,
-              folder: item.folder === 'music' ? 'music' : 'cache',
-              location: item.storageLocation,
-              device,
-              streamUrl: '',
-              title: item.name,
-              artist: item.singer,
-              album: item.album,
-              duration: item.interval,
-            })
-            session.streamUrl = `${baseUrl}/api/v1/cast/media/${encodeURIComponent(session.id)}`
-            if (body.autoPlay !== false) await castManager.setUriAndPlay(session)
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ success: true, data: { id: session.id, streamUrl: session.streamUrl, expiresIn: 600, device: { id: device.id, friendlyName: device.friendlyName, modelName: device.modelName } } }))
-          } catch (error: any) {
-            res.writeHead(400, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ success: false, message: error?.message || '创建投放会话失败' }))
-          }
-        })
-        return
-      }
-
-      const castControlMatch = pathname.match(/^\/api\/v1\/player\/cast\/sessions\/([^/]+)\/control$/)
-      if (castControlMatch && req.method === 'POST') {
-        const username = verifyUserAuth(req)
-        if (!username) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, message: 'Unauthorized' })); return }
-        void readBody(req).then(async rawBody => {
-          try {
-            const body = JSON.parse(rawBody)
-            const session = castManager.getSession(decodeURIComponent(castControlMatch[1]), username)
-            if (!session) throw new Error('投放会话不存在或已过期')
-            const action = body.action as CastAction
-            if (!['play', 'pause', 'stop', 'volume'].includes(action)) throw new Error('不支持的投放控制操作')
-            await castManager.control(session, action, body.volume)
-            res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: true, data: { action } }))
-          } catch (error: any) {
-            res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, message: error?.message || '投放控制失败' }))
-          }
-        })
-        return
-      }
-
-      const castDeleteMatch = pathname.match(/^\/api\/v1\/player\/cast\/sessions\/([^/]+)$/)
-      if (castDeleteMatch && req.method === 'DELETE') {
-        const username = verifyUserAuth(req)
-        if (!username) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: false, message: 'Unauthorized' })); return }
-        res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ success: true, data: { removed: castManager.remove(decodeURIComponent(castDeleteMatch[1]), username) } })); return
-      }
-
 
       if (pathname === '/api/v1/admin/login' && req.method === 'POST') {
         void readBody(req).then(body => {

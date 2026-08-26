@@ -3430,11 +3430,6 @@
                 onclick="toggleQueueDrawer()" title="当前播放队列">
                 <i class="fas fa-list"></i>
             </button>
-            <button id="btn-cast" onclick="window.YinyunCast && window.YinyunCast.open()"
-                class="text-gray-500 hover:text-emerald-600 text-sm font-bold border border-gray-300 rounded px-2 py-0.5"
-                title="局域网投放（DLNA）">
-                <i class="fas fa-broadcast-tower"></i>
-            </button>
             <div class="flex items-center gap-2 group">
                 <button onclick="toggleMute()" class="t-text-muted hover:text-emerald-500 transition-colors">
                     <i id="volume-icon" class="fas fa-volume-up w-4"></i>
@@ -3463,22 +3458,6 @@
         class="fixed bottom-24 right-6 z-40 w-12 h-12 flex items-center justify-center t-bg-panel/80 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] text-gray-500 hover:text-emerald-500 transform transition-all duration-300 translate-y-20 opacity-0 border border-white/50">
         <i class="fas fa-chevron-up text-lg"></i>
     </button>
-
-    <div id="cast-modal" class="fixed inset-0 z-[180] hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="t-bg-panel rounded-xl shadow-2xl w-full max-w-md border t-border-main overflow-hidden">
-            <div class="px-5 py-4 border-b t-border-main flex items-center justify-between">
-                <div><h3 class="font-bold t-text-main">局域网投放</h3><p class="text-xs t-text-muted mt-1">首期支持 DLNA / UPnP 音响</p></div>
-                <button onclick="window.YinyunCast && window.YinyunCast.close()" class="p-2 t-text-muted hover:text-red-500" title="关闭"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="p-5 space-y-4">
-                <div class="flex items-center gap-2"><select id="cast-device-select" class="flex-1 p-2 rounded-lg border t-border-main t-bg-main text-sm"></select><button onclick="window.YinyunCast && window.YinyunCast.discover()" class="p-2 rounded-lg border t-border-main hover:text-emerald-500" title="重新搜索"><i class="fas fa-sync-alt"></i></button></div>
-                <p id="cast-status" class="text-xs t-text-muted">请先搜索局域网设备</p>
-                <div class="grid grid-cols-4 gap-2"><button onclick="window.YinyunCast && window.YinyunCast.control('play')" class="p-2 rounded-lg border t-border-main hover:text-emerald-500" title="播放"><i class="fas fa-play"></i></button><button onclick="window.YinyunCast && window.YinyunCast.control('pause')" class="p-2 rounded-lg border t-border-main hover:text-emerald-500" title="暂停"><i class="fas fa-pause"></i></button><button onclick="window.YinyunCast && window.YinyunCast.control('stop')" class="p-2 rounded-lg border t-border-main hover:text-emerald-500" title="停止"><i class="fas fa-stop"></i></button><button onclick="window.YinyunCast && window.YinyunCast.start()" class="p-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600" title="投放当前歌曲"><i class="fas fa-broadcast-tower"></i></button></div>
-                <label class="flex items-center gap-2 text-xs t-text-muted"><i class="fas fa-volume-up"></i><input id="cast-volume" type="range" min="0" max="100" value="80" class="flex-1" onchange="window.YinyunCast && window.YinyunCast.control('volume', this.value)"></label>
-                <p class="text-[11px] t-text-muted">仅支持服务器已缓存或已下载的歌曲。设备必须能访问 NAS 的局域网地址。</p>
-            </div>
-        </div>
-    </div>
 
     <!-- External Song List Modal -->
     <div id="external-list-modal"
