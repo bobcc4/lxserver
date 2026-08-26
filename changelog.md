@@ -2,12 +2,12 @@
 
 ## v1.6.4
 
-### Removed LAN casting
+### 移除局域网投放
 
-- Removed the DLNA/UPnP Web player button and modal.
-- Removed the DLNA discovery, media session, and control APIs.
-- Removed the server-side casting module and its tests.
-- External libraries remain available through Local Music, Web playback, and Subsonic.
+- 移除 Web 播放器中的 DLNA/UPnP 投放按钮和弹窗。
+- 移除 DLNA 设备发现、媒体会话和控制 API。
+- 移除服务端投放模块及其测试。
+- 外部音乐库仍可通过本地音乐、网页播放和 Subsonic 使用。
 
 ## v1.6.3 (2026-08-24)
 
