@@ -18,6 +18,9 @@ export class MusicTagger {
     get artist() { return this.file?.artist ?? null }
     set artist(value: string | null) { this.requireFile().artist = value }
 
+    get albumArtist() { return this.file?.albumArtist ?? null }
+    set albumArtist(value: string | null) { this.requireFile().albumArtist = value }
+
     get album() { return this.file?.album ?? null }
     set album(value: string | null) { this.requireFile().album = value }
 

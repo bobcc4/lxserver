@@ -44,3 +44,24 @@ test('preserves canonical fields while filling SDK metadata aliases', () => {
   assert.equal(normalized.strMediaMid, 'media-mid')
   assert.deepEqual(normalized.types, ['flac'])
 })
+
+test('prefers an explicit album artist over the song singer', () => {
+  const normalized = normalizeSongInfo({
+    name: 'Song',
+    singer: 'Featured singer',
+    albumArtist: 'Album artist',
+    source: 'wy',
+  })
+
+  assert.equal(normalized.albumArtist, 'Album artist')
+})
+
+test('falls back to the song singer when album artist is missing', () => {
+  const normalized = normalizeSongInfo({
+    name: 'Song',
+    singer: 'Song singer',
+    source: 'tx',
+  })
+
+  assert.equal(normalized.albumArtist, 'Song singer')
+})

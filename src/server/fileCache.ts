@@ -12,6 +12,7 @@ import { parseLyrics, serializeLyrics, normalizeLyricOutputFormat } from '../uti
 import type { LyricOutputFormat } from '../utils/lrcTool'
 import { formatPlayTime } from '../common/utils/common'
 import { normalizeUsername } from '../utils/username'
+import { getAlbumArtist } from './utils/songInfo'
 import {
     EXTERNAL_LOCATION_PREFIX,
     getExternalLibraryByLocation,
@@ -153,6 +154,7 @@ export interface CacheItem {
     songmid?: string
     name: string
     singer: string
+    albumArtist?: string
     album: string
     albumId?: string
     releaseDate?: string
@@ -582,6 +584,7 @@ const extractSongMetadata = (songInfo: any) => {
         id: id,
         name: songInfo.name || meta.songName || 'Unknown',
         singer: songInfo.singer || meta.singerName || 'Unknown',
+        albumArtist: getAlbumArtist(songInfo, songInfo.singer || meta.singerName || 'Unknown'),
         album: songInfo.albumName || meta.albumName ||
             (typeof songInfo.album === 'string' ? songInfo.album : songInfo.album?.name) || '',
         albumId: String(songInfo.albumId || meta.albumId || ''),
@@ -855,6 +858,7 @@ export const syncCacheIndex = async (
             let songId = existing?.id || ''
             let songName = existing?.name || ''
             let singer = existing?.singer || ''
+            let albumArtist = existing?.albumArtist || ''
             let source = existing?.source || ''
             let quality = existing?.quality || ''
             let album = existing?.album || ''
@@ -913,7 +917,7 @@ export const syncCacheIndex = async (
             const qualityCorrectionNeeded = !!existing && needsQualityCorrection(existing.quality, currentAudioContainer)
 
             // Update or add to index if anything changed (size, mtime, lyric status, or cover status)
-            if (!existing || existing.size !== stats.size || existing.hasLyric !== hasLyricOnDisk || needsCoverCheck || !existing.interval || existing.quality === 'unknown' || !existing.bitrate || qualityCorrectionNeeded) {
+            if (!existing || existing.size !== stats.size || existing.hasLyric !== hasLyricOnDisk || needsCoverCheck || !existing.interval || existing.quality === 'unknown' || !existing.bitrate || !String(existing.albumArtist || '').trim() || qualityCorrectionNeeded) {
                 if (existing) {
                     existing.size = stats.size
                     existing.mtime = stats.mtimeMs
@@ -945,7 +949,7 @@ export const syncCacheIndex = async (
                     }
 
                     // If interval or quality/bitrate is missing/unknown, or hasEmbedLyric not yet detected, try to extract it
-                    if (!existing.interval || existing.quality === 'unknown' || !existing.bitrate || existing.releaseDate === undefined || existing.hasEmbedLyric === undefined || existing.metadataWritable === undefined || qualityCorrectionNeeded) {
+                    if (!existing.interval || existing.quality === 'unknown' || !existing.bitrate || existing.releaseDate === undefined || existing.hasEmbedLyric === undefined || existing.metadataWritable === undefined || !String(existing.albumArtist || '').trim() || qualityCorrectionNeeded) {
                         let tagger: any
                         try {
                             tagger = new MusicTagger()
@@ -956,6 +960,7 @@ export const syncCacheIndex = async (
                             existing.sampleRate = tagger.sampleRate
                             existing.bitDepth = tagger.bitDepth
                             if (existing.releaseDate === undefined) existing.releaseDate = normalizeReleaseDate(tagger.year)
+                            if (existing.albumArtist === undefined) existing.albumArtist = String(tagger.albumArtist || existing.singer || singer || 'Unknown').trim()
                             if (!existing.quality || existing.quality === 'unknown' || qualityCorrectionNeeded) {
                                 const detectedQuality = detectQualityFromBitrate(tagger.bitRate, ext, tagger)
                                 existing.quality = resolveInspectedQuality(existing.quality, detectedQuality, currentAudioContainer, tagger)
@@ -972,6 +977,7 @@ export const syncCacheIndex = async (
                                 : '外部音乐库为只读目录，不能修改音频元数据'
                         } catch (e: any) {
                             existing.audioContainer = currentAudioContainer
+                            if (!String(existing.albumArtist || '').trim()) existing.albumArtist = String(existing.singer || singer || 'Unknown').trim()
                             existing.metadataWritable = false
                             existing.metadataError = getMetadataUnsupportedMessage(existing.audioContainer)
                             existing.hasEmbedLyric = false
@@ -999,6 +1005,7 @@ export const syncCacheIndex = async (
                         tagger.loadPath(filePath)
                         if (tagger.title && !songName) songName = tagger.title
                         if (tagger.artist && !singer) singer = tagger.artist
+                        if (tagger.albumArtist) albumArtist = tagger.albumArtist
                         if (tagger.album && !album) album = tagger.album
                         if (hasValidEmbeddedCover(tagger.pictures)) hasCover = true
 
@@ -1035,6 +1042,7 @@ export const syncCacheIndex = async (
                         songmid: normalizedId,
                         name: songName || nameWithoutExt || 'Unknown',
                         singer: singer || 'Unknown',
+                        albumArtist: albumArtist || singer || 'Unknown',
                         album: album || '',
                         albumId: '',
                         releaseDate,
@@ -1147,6 +1155,7 @@ export const getCacheList = async (username?: string) => {
             songmid: item.songmid || item.id,
             name: item.name,
             singer: item.singer,
+            albumArtist: item.albumArtist || item.singer,
             source: item.source,
             quality: item.quality,
             albumName: item.album,
@@ -1245,6 +1254,7 @@ export const batchRenameCacheFiles = async (username: string | undefined) => {
                 songmid: item.songmid || item.id,
                 name: item.name,
                 singer: item.singer,
+                albumArtist: item.albumArtist || item.singer,
                 source: item.source,
                 quality: item.quality,
                 albumName: item.album,
@@ -1473,6 +1483,7 @@ export const linkLocalFile = async (oldFilename: string, songInfo: any, username
     item.songmid = newId
     item.name = metadata.name
     item.singer = metadata.singer
+    item.albumArtist = metadata.albumArtist
     item.album = metadata.album
     item.albumId = metadata.albumId
     item.img = metadata.img
@@ -2292,6 +2303,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
 
             indexManager.update(normalizedUsername, {
                 id, songmid: id, name: metadata.name, singer: metadata.singer,
+                albumArtist: metadata.albumArtist,
                 album: metadata.album, albumId: metadata.albumId, releaseDate: metadata.releaseDate, img: metadata.img,
                 interval: metadata.interval, source: metadata.source, requestedSource,
                 downloadSource: actualDownloadSource, sourceName: actualSourceName,
@@ -2517,6 +2529,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
 
                     indexManager.update(normalizedUsername, {
                         id, songmid: id, name: metadata.name, singer: metadata.singer,
+                        albumArtist: metadata.albumArtist,
                         album: metadata.album, albumId: metadata.albumId, releaseDate: metadata.releaseDate, img: metadata.img,
                         interval: metadata.interval, source: metadata.source, requestedSource,
                         downloadSource, sourceName,
@@ -2536,6 +2549,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                         tagger.loadPath(finalPath)
                         tagger.title = metadata.name
                         tagger.artist = metadata.singer
+                        tagger.albumArtist = metadata.albumArtist || metadata.singer
                         tagger.album = metadata.album
                         if (metadata.releaseDate) tagger.year = Number.parseInt(metadata.releaseDate.slice(0, 4), 10)
                         if (imageBuffer && imageBuffer.length > 0) tagger.pictures = [new MetaPicture(imageMime, new Uint8Array(imageBuffer), 'Cover')]
@@ -2553,6 +2567,7 @@ export const downloadAndCache = async (songInfo: any, url: string, quality?: str
                     }
                     const taggedItem = indexManager.get(normalizedUsername, id, folderType, actualQuality)
                     if (taggedItem) {
+                        taggedItem.albumArtist = metadata.albumArtist
                         taggedItem.coverType = readEmbeddedCoverState(finalPath)
                             ? 'embedded'
                             : finalHasCover

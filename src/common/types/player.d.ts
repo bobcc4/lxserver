@@ -23,6 +23,7 @@ declare namespace LX {
       status: 'playing' | 'paused' | 'error' | 'stoped'
       name: string
       singer: string
+      albumArtist?: string
       albumName: string
       picUrl: string
       progress: number

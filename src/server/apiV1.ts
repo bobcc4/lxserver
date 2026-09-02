@@ -208,6 +208,7 @@ const toTrack = (item: any) => ({
   songmid: item.songmid || item.id,
   title: item.name || '',
   artist: item.singer || '',
+  albumArtist: item.albumArtist || item.singer || null,
   album: item.album || '',
   albumId: item.albumId || null,
   addedAt: Number(item.mtime || 0),
@@ -235,6 +236,7 @@ const toTrack = (item: any) => ({
     songmid: item.songmid || item.id,
     name: item.name,
     singer: item.singer,
+    albumArtist: item.albumArtist || item.singer,
     albumName: item.album,
     albumId: item.albumId,
     publishTime: item.releaseDate || null,
@@ -261,6 +263,7 @@ const normalizeOnlineTrack = (song: any, source: string) => ({
   id: song.id || `${song.source || source}_${song.songmid || song.hash || ''}`,
   title: song.name || song.title || '',
   artist: song.singer || song.artist || '',
+  albumArtist: song.albumArtist || song.albumArtistName || song.meta?.albumArtist || song.meta?.albumArtistName || song.singer || song.artist || '',
   album: song.albumName || song.album || song.meta?.albumName || '',
   source: song.source || source,
   duration: song.interval || song.duration || null,
@@ -312,6 +315,7 @@ const mergeLocalTrackMetadata = (onlineTrack: any, localItem: any) => {
     bitrate: localTrack.bitrate,
     size: localTrack.size,
     extension: localTrack.extension,
+    albumArtist: localTrack.albumArtist,
     hasCover: localTrack.hasCover,
     hasLyrics: localTrack.hasLyrics,
     localTrackId: localTrack.id,
@@ -341,6 +345,7 @@ const normalizeAlbum = (item: any, source: string) => ({
   id: String(item.id || item.mid || item.albumMid || ''),
   name: item.name || item.albumName || item.info?.name || '',
   artist: item.artistName || item.artist || item.singer || item.info?.author || '',
+  albumArtist: item.albumArtist || item.albumArtistName || item.artistName || item.artist || item.singer || item.info?.author || '',
   artworkUrl: item.picUrl || item.img || item.info?.img || null,
   source: item.source || source,
   publishTime: item.publishTime || item.info?.publishTime || null,
@@ -604,7 +609,7 @@ export const createApiV1Handler = (deps: ApiV1Dependencies) => async (
       const all = await fileCache.getCacheList(username)
       const filtered = all.filter((item: any) => (
         (!folder || item.folder === folder) &&
-        (!query || `${item.name}\n${item.singer}\n${item.album}`.toLocaleLowerCase().includes(query))
+        (!query || `${item.name}\n${item.singer}\n${item.albumArtist || item.singer}\n${item.album}`.toLocaleLowerCase().includes(query))
       ))
       const offset = (page - 1) * limit
       success(res, { items: filtered.slice(offset, offset + limit).map(toTrack).map(track => withSignedArtwork(track, username, deps.getAuthSecret())), page, limit, total: filtered.length })

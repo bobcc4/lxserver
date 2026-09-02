@@ -4,12 +4,14 @@ export const toNewMusicInfo = (oldMusicInfo: any): LX.Music.MusicInfo => {
   const meta: Record<string, any> = {
     songId: oldMusicInfo.songmid, // 歌曲ID，local为文件路径
     albumName: oldMusicInfo.albumName, // 歌曲专辑名称
+    albumArtist: oldMusicInfo.albumArtist || oldMusicInfo.singer, // 专辑艺术家
     picUrl: oldMusicInfo.img, // 歌曲图片链接
   }
   const newInfo = {
     id: `${oldMusicInfo.source}_${oldMusicInfo.songmid}`,
     name: oldMusicInfo.name,
     singer: oldMusicInfo.singer,
+    albumArtist: oldMusicInfo.albumArtist || oldMusicInfo.singer,
     source: oldMusicInfo.source,
     interval: oldMusicInfo.interval,
     meta: meta as LX.Music.MusicInfoOnline['meta'],
@@ -62,6 +64,7 @@ export const toOldMusicInfo = (minfo: LX.Music.MusicInfo) => {
     songmid: minfo.meta.songId,
     interval: minfo.interval,
     albumName: minfo.meta.albumName,
+    albumArtist: minfo.albumArtist || minfo.meta.albumArtist || minfo.singer,
     img: minfo.meta.picUrl ?? '',
     typeUrl: {},
   }
@@ -147,4 +150,3 @@ export const clipNameLength = (name: string) => {
 export const clipFileNameLength = (name: string) => {
   return name.length > MAX_FILE_NAME_LENGTH ? name.substring(0, MAX_FILE_NAME_LENGTH) : name
 }
-

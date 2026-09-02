@@ -25,6 +25,7 @@ test('music tag adapter reads and writes metadata, lyrics, and cover art', () =>
 
     tagger.title = 'Yinyun metadata test'
     tagger.artist = 'Yinyun'
+    tagger.albumArtist = 'Yinyun Artists'
     tagger.album = 'Yinyun Test Album'
     tagger.lyrics = '[00:01.00]metadata test'
     tagger.pictures = [new MetaPicture('image/png', new Uint8Array(cover), 'Cover')]
@@ -35,6 +36,7 @@ test('music tag adapter reads and writes metadata, lyrics, and cover art', () =>
     tagger.loadPath(target)
     assert.equal(tagger.title, 'Yinyun metadata test')
     assert.equal(tagger.artist, 'Yinyun')
+    assert.equal(tagger.albumArtist, 'Yinyun Artists')
     assert.equal(tagger.album, 'Yinyun Test Album')
     assert.equal(tagger.lyrics, '[00:01.00]metadata test')
     assert.equal(tagger.pictures?.length, 1)

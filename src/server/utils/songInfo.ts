@@ -1,5 +1,18 @@
 const firstValue = (...values: any[]) => values.find(value => value !== undefined && value !== null && value !== '')
 
+export const getAlbumArtist = (songInfo: any, fallback?: unknown) => {
+  const value = firstValue(
+    songInfo?.albumArtist,
+    songInfo?.albumArtistName,
+    songInfo?.raw?.albumArtist,
+    songInfo?.raw?.albumArtistName,
+    songInfo?.meta?.albumArtist,
+    songInfo?.meta?.albumArtistName,
+    fallback,
+  )
+  return String(value || '').trim()
+}
+
 /**
  * Normalizes SDK songs, saved playlist entries, and /api/v1 track wrappers to
  * the canonical root fields consumed by source resolution.
@@ -25,6 +38,7 @@ export const normalizeSongInfo = (songInfo: any) => {
 
   songInfo.name ||= firstValue(raw.name, songInfo.title, raw.title, meta.name)
   songInfo.singer ||= firstValue(raw.singer, songInfo.artist, raw.artist, meta.singer)
+  songInfo.albumArtist ||= getAlbumArtist(songInfo, songInfo.singer)
   songInfo.albumName ||= firstValue(raw.albumName, songInfo.album, raw.album, meta.albumName)
   songInfo.albumId ||= firstValue(raw.albumId, meta.albumId)
   songInfo.img ||= firstValue(raw.img, raw.pic, raw.picUrl, songInfo.artworkUrl, meta.picUrl)

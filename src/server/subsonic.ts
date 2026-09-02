@@ -17,6 +17,7 @@ import { resolveAlbumReleaseDate, sortAlbumsByReleaseDate } from '@/server/utils
 import { getAudioQualityFormat, getUpstreamAudioContentType, hasUsableQualityEntry } from '@/server/audioQuality'
 import { getPlaybackResolver } from '@/server/playbackResolverRegistry'
 import { normalizeSubsonicSourcePriority, sortSubsonicSongResults, SUBSONIC_SOURCE_PRIORITY_VALUE } from '@/server/subsonicSearch'
+import { getAlbumArtist } from '@/server/utils/songInfo'
 // @ts-ignore
 import musicSdkRaw from '@/modules/utils/musicSdk/index.js'
 const musicSdk = musicSdkRaw as any
@@ -438,6 +439,7 @@ class SubsonicHandler {
             id: platformId || this.getLocalFileId(item),
             name: item.name || path.basename(item.filename),
             singer: item.singer || 'Unknown Artist',
+            albumArtist: item.albumArtist || item.singer || 'Unknown Artist',
             source,
             songmid,
             interval: item.interval || '0',
@@ -450,6 +452,7 @@ class SubsonicHandler {
                 songId: songmid,
                 picUrl: item.img,
                 albumName: item.album,
+                albumArtist: item.albumArtist || item.singer || 'Unknown Artist',
                 albumId: item.albumId,
                 publishTime: item.releaseDate,
                 addedAt: item.mtime,
@@ -596,6 +599,7 @@ class SubsonicHandler {
 
         const id = music.id
         const singer = music.singer || 'Unknown Artist'
+        const albumArtist = getAlbumArtist(music, singer) || 'Unknown Artist'
         const source = music.source
 
         // [优化] 深度提取专辑信息：兼容 SDK 原始对象结构
@@ -637,6 +641,7 @@ class SubsonicHandler {
             album: albumName,
             albumId: String(albumId),
             artist: singer,
+            albumArtist,
             artistId: finalArtistId,
             track: (music as any).track || 0,
             year: (music as any).year || 0,
@@ -774,7 +779,7 @@ class SubsonicHandler {
             const rawAlbumId = (music as any).albumMid || (music as any).album?.mid || meta.albumId || (music as any).albumId || (music as any).album?.id
             const albumId = rawAlbumId
                 ? `alb_${music.source}_${rawAlbumId}`
-                : `album_${Buffer.from(`${albumName}__${music.singer || 'Unknown Artist'}`).toString('base64url').slice(0, 24)}`
+                : `album_${Buffer.from(`${albumName}__${getAlbumArtist(music, music.singer || 'Unknown Artist')}`).toString('base64url').slice(0, 24)}`
             const song = this.musicToSongFlat(music, albumId)
             const releaseDate = String(meta.publishTime || (music as any).releaseDate || (music as any).year || '')
             const addedAt = Number(meta.addedAt || (music as any).addedAt || 0)
@@ -786,7 +791,8 @@ class SubsonicHandler {
                         name: song.album || 'Unknown Album',
                         title: song.album || 'Unknown Album',
                         album: song.album || 'Unknown Album',
-                        artist: song.artist || 'Unknown Artist',
+                        artist: getAlbumArtist(music, song.artist || 'Unknown Artist') || 'Unknown Artist',
+                        albumArtist: getAlbumArtist(music, song.artist || 'Unknown Artist') || 'Unknown Artist',
                         artistId: song.artistId,
                         isDir: true,
                         coverArt: song.coverArt || albumId,
@@ -818,14 +824,16 @@ class SubsonicHandler {
 
     private mapLibraryAlbum(album: any) {
         const source = album.source || 'wy'
-        const primarySinger = (album.artistName || '').split('\u3001')[0] || 'Yinyun'
+        const albumArtist = album.albumArtist || album.artistName || album.artist || 'Yinyun'
+        const primarySinger = albumArtist.split('\u3001')[0] || 'Yinyun'
         const artistId = album.singerId ? `art_${source}_${album.singerId}` : `artist_${primarySinger}`
         return {
             id: `alb_${source}_${album.id}`,
             name: album.name,
             title: album.name,
             album: album.name,
-            artist: album.artistName || 'Yinyun',
+            artist: albumArtist,
+            albumArtist,
             artistId,
             isDir: true,
             coverArt: album.picUrl || album.meta?.picUrl || `alb_${source}_${album.id}`,
@@ -843,7 +851,7 @@ class SubsonicHandler {
     private getAlbumIdentity(album: any) {
         const source = String(album.source || String(album.id || '').match(/^alb_([^_]+)_/)?.[1] || '').toLowerCase()
         const name = String(album.name || album.title || album.album || '').trim().toLowerCase()
-        const artist = String(album.artist || album.artistName || '').trim().toLowerCase()
+        const artist = String(album.albumArtist || album.artist || album.artistName || '').trim().toLowerCase()
         const primaryArtist = artist.split(/\u3001|,|\uFF0C|\/|&/)[0].trim()
         return `${source}\0${name}\0${primaryArtist}`
     }
@@ -972,6 +980,7 @@ class SubsonicHandler {
                                 meta: {
                                     picUrl: s.img,
                                     albumName: s.albumName || alb.name,
+                                    albumArtist: s.albumArtist || alb.albumArtist || alb.artistName,
                                     albumId: s.albumMid || alb.id,
                                 },
                             } as any,
@@ -1315,6 +1324,7 @@ class SubsonicHandler {
                     id: `${s.source}_${s.songmid || s.songId}`,
                     name: s.name,
                     singer: s.singer,
+                    albumArtist: s.albumArtist || album.albumArtist || album.artistName,
                     source: s.source,
                     songmid: s.songmid,
                     interval: s.interval || '0',
@@ -1322,6 +1332,7 @@ class SubsonicHandler {
                     meta: {
                         picUrl: s.img,
                         albumName: s.albumName || album.name,
+                        albumArtist: s.albumArtist || album.albumArtist || album.artistName,
                         albumId: s.albumMid || album.id,
                     },
                 } as any))
@@ -1423,8 +1434,8 @@ class SubsonicHandler {
             const collectInto = (songs: LX.Music.MusicInfo[], listId: string) => {
                 for (const m of songs) {
                     const albumName = (m as any).meta?.albumName || m.name
-                    const singer = m.singer || 'Unknown'
-                    const key = `album_${Buffer.from(`${albumName}__${singer}`).toString('base64url').slice(0, 24)}`
+                    const albumArtist = getAlbumArtist(m, m.singer || 'Unknown Artist')
+                    const key = `album_${Buffer.from(`${albumName}__${albumArtist}`).toString('base64url').slice(0, 24)}`
                     if (!allMusicsMap.has(key)) allMusicsMap.set(key, [])
                     allMusicsMap.get(key)!.push({ music: m, listId })
                 }
@@ -1466,12 +1477,15 @@ class SubsonicHandler {
             musics = this.preferDownloadedMusic(musics, await this.getLocalMusicItems(username))
         }
 
+        const albumArtists = Array.from(new Set(musics.map(music => getAlbumArtist(music, music.singer || 'Unknown Artist')).filter(Boolean)))
+        const albumArtist = albumArtists.length === 1 ? albumArtists[0] : (musics.length === 1 ? getAlbumArtist(musics[0], musics[0].singer) : 'Yinyun')
         const albumMeta = {
             id,
             name: listName,
             title: listName,
             album: listName,
-            artist: (musics.length === 1) ? musics[0].singer : 'Yinyun',
+            artist: albumArtist,
+            albumArtist,
             artistId: (musics.length === 1) ? ((musics[0] as any).singerId ? `art_${musics[0].source}_${(musics[0] as any).singerId}` : `artist_${(musics[0].singer || '').split('、')[0]}`) : 'artist_lxmusic',
             songCount: musics.length,
             duration: musics.reduce((sum: number, m: any) => sum + this.parseDuration(m.interval), 0),
@@ -2925,7 +2939,18 @@ class SubsonicHandler {
                 const song = (alb.list || []).find((s: any) => `${s.source}_${s.songmid || s.songId}` === id)
                 if (song) {
                     const source = alb.source || 'wy'
-                    found = { music: { ...song, id, meta: { picUrl: song.img || song.meta?.picUrl } } as any, listId: `alb_${source}_${alb.id}` }
+                    found = {
+                        music: {
+                            ...song,
+                            id,
+                            meta: {
+                                ...(song.meta || {}),
+                                picUrl: song.img || song.meta?.picUrl,
+                                albumArtist: song.albumArtist || song.meta?.albumArtist || alb.albumArtist || alb.artistName,
+                            },
+                        } as any,
+                        listId: `alb_${source}_${alb.id}`,
+                    }
                     break
                 }
             }

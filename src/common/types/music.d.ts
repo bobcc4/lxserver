@@ -21,6 +21,7 @@ declare namespace LX {
     interface MusicInfoMetaBase {
       songId: string | number // 歌曲ID，mg源为copyrightId，local为文件路径
       albumName: string // 歌曲专辑名称
+      albumArtist?: string // 专辑艺术家
       picUrl?: string | null // 歌曲图片链接
       toggleMusicInfo?: MusicInfoOnline | null
     }
@@ -41,6 +42,7 @@ declare namespace LX {
       id: string
       name: string // 歌曲名
       singer: string // 艺术家名
+      albumArtist?: string // 专辑艺术家
       source: S // 源
       interval: string | null // 格式化后的歌曲时长，例：03:55
       meta: MusicInfoMetaBase

@@ -80,6 +80,7 @@ const buildSongInfo = (item: fileCache.CacheItem) => {
     songmid: rawId,
     name: item.name,
     singer: item.singer,
+    albumArtist: item.albumArtist || item.singer,
     source: item.source,
     albumName: item.album,
     albumId: item.albumId,
