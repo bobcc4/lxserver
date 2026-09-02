@@ -1379,6 +1379,7 @@ export const batchUpdateMetadata = async (filenames: string[], username: string 
                 tagger.loadPath(filePath)
                 tagger.title = item.name || 'Unknown'
                 tagger.artist = item.singer || 'Unknown'
+                tagger.albumArtist = item.albumArtist || item.singer || 'Unknown'
                 if (item.album) tagger.album = item.album
                 if (item.releaseDate) tagger.year = Number.parseInt(item.releaseDate.slice(0, 4), 10)
                 if (imageBuffer && imageBuffer.length > 0) {

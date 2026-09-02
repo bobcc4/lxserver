@@ -4,6 +4,8 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
+import { MusicTagger } from '../src/server/musicTagger'
+
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yinyun-file-cache-'))
 const previousCwd = process.cwd()
 let fileCache: typeof import('../src/server/fileCache')
@@ -29,6 +31,41 @@ test('does not create a lyric sidecar when no audio file exists', () => {
 
   assert.equal(saved, false)
   assert.equal(fs.readdirSync(cacheDir).some(file => file.endsWith('.lrc')), false)
+})
+
+test('batch metadata completion writes Album Artist into the audio tags', async () => {
+  const source = path.resolve(previousCwd, 'public/music/assets/medias/filters/bright-hall.wav')
+  const filename = 'metadata-batch-test.wav'
+  const musicDir = fileCache.getCacheDir('admin', true)
+  const target = path.join(musicDir, filename)
+  fs.copyFileSync(source, target)
+
+  const stats = fs.statSync(target)
+  fileCache.indexManager.update('admin', {
+    id: 'wy_metadata_batch_test',
+    name: 'Metadata batch test',
+    singer: 'Track artist',
+    albumArtist: 'Album artist',
+    album: 'Test album',
+    source: 'wy',
+    quality: 'wav',
+    filename,
+    folder: 'music',
+    mtime: stats.mtimeMs,
+    size: stats.size,
+    ext: 'wav',
+  } as any, 'music')
+
+  const result = await fileCache.batchUpdateMetadata([filename], 'admin')
+  assert.deepEqual(result, { successCount: 1, failCount: 0 })
+
+  const tagger = new MusicTagger()
+  try {
+    tagger.loadPath(target)
+    assert.equal(tagger.albumArtist, 'Album artist')
+  } finally {
+    tagger.dispose()
+  }
 })
 
 test('writes lyrics beside the indexed audio file with its actual quality name', async () => {
